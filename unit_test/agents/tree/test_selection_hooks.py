@@ -17,6 +17,18 @@ from lits.agents.tree.mcts import MCTSSearch, _select
 from lits.agents.tree.node import MCTSNode, SearchNode
 
 
+def inspect_search_node_path() -> None:
+    """Check reusable root-to-node path reconstruction."""
+    root = SearchNode(state="root", action=None)
+    child = SearchNode(state="child", action="a", parent=root)
+    leaf = SearchNode(state="leaf", action="b", parent=child)
+
+    path = leaf.get_path()
+    assert path == [root, child, leaf]
+    assert root.get_path() == [root]
+    print(f"SearchNode path: {[node.id for node in path]}")
+
+
 def inspect_bfs_default() -> None:
     """Inspect descending reward order and beam cardinality."""
     parent = SearchNode(state="root", action=None)
@@ -66,6 +78,7 @@ def inspect_mcts_default() -> None:
 
 
 def main() -> None:
+    inspect_search_node_path()
     inspect_bfs_default()
     inspect_mcts_default()
 

@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-08-27 Unreleased (`0820-major-selection-interface/tasks`)
+
+### Added
+- `SearchNode.get_path()` for reusable root-to-node path reconstruction [T5]
+
 ## 2026-08-26 Unreleased (`docs/lm/LLAMA_CPP_TAILSCALE_SETUP.md`)
 
 ### Added

@@ -53,6 +53,14 @@ class SearchNode(Generic[StateT, ActionT]):
 
     def add_child(self, child: 'SearchNode'):
         self.children.append(child)
+
+    def get_path(self) -> List['SearchNode']:
+        """Return the root-to-current-node path as node objects."""
+        node, path = self, []
+        while node is not None:
+            path.append(node)
+            node = node.parent
+        return path[::-1]
     
     def get_trace(self) -> List[Tuple[ActionT, StateT, float]]:
         """ Returns the sequence of actions and states from the root to the current node """

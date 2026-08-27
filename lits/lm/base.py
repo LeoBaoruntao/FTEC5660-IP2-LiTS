@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 import warnings
 import logging
-from typing import Callable, Dict, Optional
+from typing import Any, Callable, Dict, Mapping, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +33,27 @@ VALID_ROLES_PREFIX = ["default", "dynamics", "policy", "evaluator", "prm", "bn_e
 DETERMINISTIC_TEMPERATURE = 1e-6
 DEFAULT_MAX_LENGTH = 2048
 LOADED_MODEL_CACHE = {}
+
+INFERENCE_METRIC_FIELDS = (
+    "num_calls",
+    "num_batch_calls",
+    "num_flatten_calls",
+    "input_tokens",
+    "output_tokens",
+    "running_time",
+)
+
+
+def subtract_inference_metrics(
+    left: Mapping[str, Any],
+    right: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Subtract cumulative inference metrics field by field."""
+    return {
+        field: left.get(field, 0) - right.get(field, 0)
+        for field in INFERENCE_METRIC_FIELDS
+    }
+
 
 def log_final_metrics(logger, inference_logger ):
     """Log final inference metrics (token usage, etc.)."""
@@ -188,14 +209,7 @@ class InferenceLogger:
                 return False
 
             return True
-        metrics = {
-            "num_calls":         0,
-            "num_batch_calls":   0,
-            "num_flatten_calls": 0,
-            "input_tokens":      0,
-            "output_tokens":     0,
-            "running_time":      0,
-        }
+        metrics = dict.fromkeys(INFERENCE_METRIC_FIELDS, 0)
         num_check = 0
         try:
             with open(self.filepath, "r") as f:
@@ -1073,4 +1087,3 @@ class HfChatModel(HfModel):
         """ Same as HfModel, with additional argument: `sys_prompt` """
         model, tokenizer = cls._cache_from_hf(model_name, device)
         return cls(model_name, model,  tokenizer, sys_prompt, inference_logger, **kwargs)
-

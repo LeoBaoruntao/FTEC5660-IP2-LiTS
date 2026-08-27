@@ -1,4 +1,11 @@
-from .base import LanguageModel, HfChatModel, HfModel, DEFAULT_MAX_LENGTH, InferenceLogger
+from .base import (
+    DEFAULT_MAX_LENGTH,
+    HfChatModel,
+    HfModel,
+    InferenceLogger,
+    LanguageModel,
+    subtract_inference_metrics,
+)
 from .loader import configure_hf_model_logging, setup_inference_logging, load_models
 
 from .openai_chat import OpenAIChatModel
@@ -216,4 +223,3 @@ def infer_chat_model(model_name: str):
 
     
         
-

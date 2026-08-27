@@ -119,6 +119,20 @@ Do not use Tailscale Funnel or bind llama-server to `0.0.0.0`. Record the MagicD
 then repeat `/v1/models` and `/v1/chat/completions` from another tailnet device. Run
 `tailscale ping <host>` and report whether the path is direct or DERP-relayed.
 
+If the host is visible in `tailscale status` but its MagicDNS name does not resolve, inspect:
+
+tailscale dns status
+
+If it reports `Tailscale DNS: disabled`, enable the tailnet DNS resolver and retry the normal
+HTTPS hostname:
+
+tailscale set --accept-dns=true
+
+Use `tailscale set --accept-dns=false` to restore the previous system-DNS behavior. A temporary
+`curl --resolve <magicdns-host>:443:<tailscale-ip>` mapping can confirm that the server and TLS
+endpoint work, but it is only a diagnostic workaround; OpenAI-compatible clients still require
+normal hostname resolution.
+
 The remote client configuration is:
 
 model = get_lm(

@@ -29,6 +29,23 @@ def inspect_search_node_path() -> None:
     print(f"SearchNode path: {[node.id for node in path]}")
 
 
+def inspect_search_node_walk() -> None:
+    """Check preorder traversal across sibling and descendant nodes."""
+    root = SearchNode(state="root", action=None)
+    left = SearchNode(state="left", action="left", parent=root)
+    right = SearchNode(state="right", action="right", parent=root)
+    leaf = SearchNode(state="leaf", action="leaf", parent=left)
+    root.children.extend([left, right])
+    left.children.append(leaf)
+
+    visited_states = [node.state for node in root.walk()]
+    print(
+        f"SearchNode walk: {visited_states}; "
+        "expected: ['root', 'left', 'leaf', 'right']"
+    )
+    breakpoint()  # inspect: visited_states
+
+
 def inspect_bfs_default() -> None:
     """Inspect descending reward order and beam cardinality."""
     parent = SearchNode(state="root", action=None)
@@ -79,6 +96,7 @@ def inspect_mcts_default() -> None:
 
 def main() -> None:
     inspect_search_node_path()
+    inspect_search_node_walk()
     inspect_bfs_default()
     inspect_mcts_default()
 

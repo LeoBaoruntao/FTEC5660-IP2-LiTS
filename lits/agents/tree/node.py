@@ -1,4 +1,4 @@
-from typing import List, Tuple, Optional, Callable, Generic, TypeVar
+from typing import Callable, Generic, Iterator, List, Optional, Tuple, TypeVar
 import itertools
 import numpy as np
 from typing import Dict, Any
@@ -61,6 +61,14 @@ class SearchNode(Generic[StateT, ActionT]):
             path.append(node)
             node = node.parent
         return path[::-1]
+
+    def walk(self) -> Iterator['SearchNode']:
+        """Yield this node and its descendants in preorder depth-first order."""
+        stack = [self]
+        while stack:
+            node = stack.pop()
+            yield node
+            stack.extend(reversed(node.children or []))
     
     def get_trace(self) -> List[Tuple[ActionT, StateT, float]]:
         """ Returns the sequence of actions and states from the root to the current node """

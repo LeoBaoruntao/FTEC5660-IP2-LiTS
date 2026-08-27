@@ -249,17 +249,9 @@ class BaseTreeSearch(ABC):
 
     def collect_terminal_nodes(self) -> list[SearchNode]:
         """Walk ``self.root`` and return all terminal nodes."""
-        terminals: list[SearchNode] = []
-
-        def _walk(node: SearchNode):
-            if node.is_terminal:
-                terminals.append(node)
-            for child in (node.children or []):
-                _walk(child)
-
-        if self.root is not None:
-            _walk(self.root)
-        return terminals
+        if self.root is None:
+            return []
+        return [node for node in self.root.walk() if node.is_terminal]
 
     def save_full_tree(self, query_idx: int) -> None:
         """Serialize the entire search tree (all nodes incl. un-simulated siblings).

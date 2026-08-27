@@ -10,6 +10,7 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 
 ### Added
 - `SearchNode.get_path()` for reusable root-to-node path reconstruction [T5]
+- `SearchNode.walk()` for reusable preorder tree traversal [T6]
 - Inference metric field schema and snapshot subtraction utility [T6]
 
 ## 2026-08-26 Unreleased (`docs/lm/LLAMA_CPP_TAILSCALE_SETUP.md`)

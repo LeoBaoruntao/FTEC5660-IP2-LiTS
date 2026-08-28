@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-08-28 Unreleased (`0820-major-selection-interface/tasks`)
+
+### Fixed
+- `ConcatTransition` empty termination-constraint validation [T7]
+
 ## 2026-08-27 Unreleased (`0820-major-selection-interface/tasks`)
 
 ### Added

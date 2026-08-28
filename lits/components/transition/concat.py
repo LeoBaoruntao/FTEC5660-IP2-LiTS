@@ -75,6 +75,10 @@ class ConcatTransition(LlmTransition):
     
     def __init__(self, base_model, terminate_ORM=None, terminate_constraints=['binary_sampling'], r_terminating=0.9, sample_size_terminate=10, sample_threshold_terminate=0.8, sample_threshold_verify=0.9, max_length=None, max_new_tokens=None, **kwargs):
         super().__init__(base_model=base_model, **kwargs)
+        if not terminate_constraints:
+            raise ValueError(
+                "ConcatTransition requires at least one termination constraint"
+            )
         for constraint in terminate_constraints:
             assert constraint in ['binary_sampling', 'reward_threshold', 'verify'], f"Unknown terminate constraint: {constraint}"
             if constraint == 'reward_threshold':

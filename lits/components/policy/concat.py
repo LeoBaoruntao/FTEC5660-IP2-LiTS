@@ -6,6 +6,7 @@ from ...lm.base import HfChatModel
 from ...structures import State, Action, ThoughtStep
 from ..utils import verbalize_concat_state, extract_existing_steps
 from ...log import log_event
+from ...utils.formatted_text_parser import parse_json_string
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +58,9 @@ class ConcatPolicy(Policy):
         max_length: Maximum sequence length for LLM (default: 32768)
         force_terminating_on_depth_limit: Force termination at max_steps (default: False)
         check_action_sim: Enable embedding-based action similarity checking (default: False)
+
+    Config Args (via component_args):
+        output_format: ``free_form`` or ``structured`` (default: ``free_form``)
     """
     
     # Interface category for this policy type
@@ -67,6 +71,14 @@ class ConcatPolicy(Policy):
     MAX_TOKEN_LENGTH = 1000
     MAX_RETRY_REPEAT = 2
     STEP_PREFIX_PATTERN = r"Step \d+:"
+    STRUCTURED_FIELDS = {"step", "answer"}
+    STRUCTURED_PLACEHOLDERS = {
+        "...",
+        "<answer>",
+        "<step>",
+        "final answer",
+        "one next reasoning step",
+    }
     
     @classmethod
     def from_config(cls, base_model, search_args: dict, component_args: dict, **kwargs):
@@ -81,7 +93,8 @@ class ConcatPolicy(Policy):
                 - max_length: Maximum sequence length (default: 32768)
                 - max_new_tokens: Maximum new tokens per generation (default: None, no limit)
                 - check_action_sim: Enable action similarity checking (default: False)
-            component_args: Component parameters (not used for ConcatPolicy)
+            component_args: Component parameters:
+                - output_format: ``free_form`` or ``structured`` (default: ``free_form``)
             **kwargs: Additional arguments (task_name, task_prompt_spec)
         
         Returns:
@@ -98,11 +111,27 @@ class ConcatPolicy(Policy):
             max_length=component_args.get('max_length', 32768),
             max_new_tokens=component_args.get('max_new_tokens'),
             check_action_sim=search_args.get('check_action_sim', False),
+            output_format=component_args.get('output_format', 'free_form'),
         )
     
     def __init__(self, **kwargs):
         """Initialize ConcatPolicy with action similarity checking option."""
         self.check_action_sim = kwargs.pop('check_action_sim', False)
+        self.output_format = kwargs.pop('output_format', 'free_form')
+        if self.output_format not in {'free_form', 'structured'}:
+            raise ValueError(
+                "ConcatPolicy output_format must be 'free_form' or 'structured'"
+            )
+
+        if self.output_format == 'structured' and kwargs.get('task_prompt_spec') is None:
+            from ...prompts.registry import PromptRegistry
+
+            kwargs['task_prompt_spec'] = PromptRegistry.get(
+                'policy',
+                'concat_structured',
+                task_name=kwargs.get('task_name'),
+                task_type=self.TASK_TYPE,
+            )
         
         logger.debug(f"ConcatPolicy.__init__: kwargs keys = {kwargs.keys()}")
         logger.debug(f"ConcatPolicy.__init__: task_prompt_spec = {kwargs.get('task_prompt_spec', 'NOT PROVIDED')}")
@@ -234,6 +263,36 @@ class ConcatPolicy(Policy):
         """
         return output_text not in existing_steps and query not in output_text
 
+    @classmethod
+    def _parse_structured_output(cls, output_text: str) -> dict[str, str]:
+        """Parse and validate one exclusive ``step`` or ``answer`` field."""
+        payload, feedback = parse_json_string(output_text)
+        if feedback or not isinstance(payload, dict):
+            raise ValueError("Structured output must be a JSON object")
+        if len(payload) != 1:
+            raise ValueError("Structured output must contain exactly one field")
+
+        field, content = next(iter(payload.items()))
+        if field not in cls.STRUCTURED_FIELDS:
+            raise ValueError("Structured output field must be 'step' or 'answer'")
+        if not isinstance(content, str) or not content.strip():
+            raise ValueError("Structured output content must be a non-empty string")
+
+        content = content.strip()
+        if content.lower() in cls.STRUCTURED_PLACEHOLDERS:
+            raise ValueError("Structured output content must not be a placeholder")
+        return {field: content}
+
+    @staticmethod
+    def _structured_payload_to_step(payload: dict[str, str]) -> ThoughtStep:
+        """Convert a validated structured payload into a canonical thought step."""
+        if "answer" in payload:
+            return ThoughtStep(
+                action=f"The answer is {payload['answer']}",
+                terminate=True,
+            )
+        return ThoughtStep(action=payload["step"], terminate=False)
+
     def _log_validation_failure(self, reason: str, output_text: str, temperature: float, prompt: str):
         """Log details when output validation fails."""
         log_event(logger, "VALIDATION", f"{reason}", level="debug")
@@ -248,7 +307,7 @@ class ConcatPolicy(Policy):
         temperature: float,
         existing_steps: list[str],
         existing_embeddings: list
-    ) -> tuple[str, any]:
+    ) -> tuple[ThoughtStep, any]:
         """
         Generate a single action with retry logic for validation failures.
         
@@ -262,13 +321,33 @@ class ConcatPolicy(Policy):
             existing_embeddings: List of existing embeddings (if similarity checking enabled)
         
         Returns:
-            Tuple of (output_text, embedding)
+            Tuple of (thought_step, embedding)
         """
         n_retry_repeat = 0
+        n_retry_structured = 0
         
         while True:
             # Generate output (uses _call_model which auto-constructs role)
             output_text, embedding = self._generate_single_output(prompt, temperature)
+            structured_payload = None
+
+            if self.output_format == 'structured':
+                try:
+                    structured_payload = self._parse_structured_output(output_text)
+                except ValueError as error:
+                    self._log_validation_failure(
+                        str(error), output_text, temperature, prompt
+                    )
+                    n_retry_structured += 1
+                    if n_retry_structured > 1:
+                        raise
+                    continue
+
+            candidate_text = (
+                next(iter(structured_payload.values()))
+                if structured_payload is not None
+                else output_text
+            )
             
             # Check similarity if enabled
             if self.check_action_sim:
@@ -283,22 +362,24 @@ class ConcatPolicy(Policy):
                     continue
             
             # Check token length
-            num_tokens = count_tokens(output_text, self.base_model)
+            num_tokens = count_tokens(candidate_text, self.base_model)
             if num_tokens > self.MAX_TOKEN_LENGTH:
                 self._log_validation_failure("Output is larger than 1000 tokens", output_text, temperature, prompt)
                 continue
             
-            # Clean output text
-            output_text = self._clean_output_text(output_text)
+            if structured_payload is None:
+                candidate_text = self._clean_output_text(candidate_text)
             
             # Check for repetition
-            if self._is_valid_output(output_text, query, existing_steps):
-                return output_text, embedding
+            if self._is_valid_output(candidate_text, query, existing_steps):
+                if structured_payload is not None:
+                    return self._structured_payload_to_step(structured_payload), embedding
+                return ThoughtStep(action=candidate_text), embedding
             else:
                 self._log_validation_failure("Output is in existing steps", output_text, temperature, prompt)
                 n_retry_repeat += 1
                 if n_retry_repeat > self.MAX_RETRY_REPEAT:
-                    return "ALWAY REPEAT. TERMINATE", embedding
+                    return ThoughtStep(action="ALWAY REPEAT. TERMINATE"), embedding
 
     def _get_actions(
         self,
@@ -353,16 +434,13 @@ class ConcatPolicy(Policy):
         existing_steps = extract_existing_steps(state)
         
         for _ in range(n_actions):
-            output_text, embedding = self._generate_action_with_retry(
+            thought_step, embedding = self._generate_action_with_retry(
                 prompt=prompt,
                 query=query,
                 temperature=temperature,
                 existing_steps=existing_steps,
                 existing_embeddings=embeddings
             )
-            
-            # Wrap the output text in a ThoughtStep
-            thought_step = ThoughtStep(action=output_text)
             outputs.append(thought_step)
             
             if self.check_action_sim and embedding is not None:

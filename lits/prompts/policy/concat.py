@@ -14,3 +14,8 @@ Please follow the restricted output format:
 * DO NOT repeat Problem or any Existing Steps.
 * Your output should be a complete reasoning step that includes calculations, reasoning, choosing answers, etc. 
 * When the final answer is/has been reached, begin the step with EXACTLY the phrase:\"Now we can answer the question: The answer is \", followed by EXACTLY one number. Do not include any other words, punctuation, or explanation after the number."""
+
+
+task_prompt_spec_structured_math_qa = """Your task is to give the correct next step, given a science problem and an existing partial solution.
+
+Return only one valid JSON object with exactly one non-empty string field. Use the field \"step\" when another reasoning operation is needed; its value must perform the actual next operation. Use the field \"answer\" only when the final answer has been established; its value must contain only that answer. Never return both fields. Do not use Markdown or explanatory text outside the JSON object."""

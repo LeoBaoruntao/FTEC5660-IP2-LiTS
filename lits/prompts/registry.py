@@ -335,6 +335,13 @@ def load_default_prompts():
         # Concat policy for language_grounded tasks
         if hasattr(concat_policy, 'task_prompt_spec_math_qa'):
             PromptRegistry.register('policy', 'concat', 'language_grounded', concat_policy.task_prompt_spec_math_qa)
+        if hasattr(concat_policy, 'task_prompt_spec_structured_math_qa'):
+            PromptRegistry.register(
+                'policy',
+                'concat_structured',
+                'language_grounded',
+                concat_policy.task_prompt_spec_structured_math_qa,
+            )
         
         # ToolUse policy (default for all tool_use tasks)
         if hasattr(tool_use_policy, 'task_prompt_spec'):

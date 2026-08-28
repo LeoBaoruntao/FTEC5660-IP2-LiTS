@@ -11,6 +11,8 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 ### Added
 - `ConcatTransition` step-signal termination [T1]
 - `unit_test/components/test_concat_step_signal.py` [T1]
+- `ConcatPolicy` structured `step`/`answer` output [T2]
+- `unit_test/components/test_concat_structured_policy.py` [T2]
 
 ### Changed
 - `Step.terminate` completion-signal contract [T1]

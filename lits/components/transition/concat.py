@@ -1,4 +1,5 @@
 import logging
+from copy import copy
 from typing import Union, Tuple, Optional
 from ...structures import ThoughtStep, log_state, StateT
 from ..base import LlmTransition
@@ -30,13 +31,13 @@ to the problem.
 class ConcatTransition(LlmTransition):
     """World model for ReST-style reasoning that concatenates steps.
     
-    State: [Action 1, Action 2, ...]
-    Action: Action string
+    State: [ThoughtStep 1, ThoughtStep 2, ...]
+    Input: ThoughtStep
     
     Handles state transitions and terminal detection for step-by-step reasoning.
     
     Config Args (via --search-arg):
-        terminate_constraints: List of termination methods: 'binary_sampling', 'reward_threshold', 'verify' (default: ['binary_sampling'])
+        terminate_constraints: List of termination methods: 'step_signal', 'binary_sampling', 'reward_threshold', 'verify' (default: ['binary_sampling'])
         r_terminating: Reward threshold for termination when using 'reward_threshold' (default: 0.9)
         sample_size_terminate: Number of samples for binary termination check (default: 10)
         sample_threshold_terminate: Threshold ratio for termination (default: 0.8)
@@ -80,7 +81,7 @@ class ConcatTransition(LlmTransition):
                 "ConcatTransition requires at least one termination constraint"
             )
         for constraint in terminate_constraints:
-            assert constraint in ['binary_sampling', 'reward_threshold', 'verify'], f"Unknown terminate constraint: {constraint}"
+            assert constraint in ['step_signal', 'binary_sampling', 'reward_threshold', 'verify'], f"Unknown terminate constraint: {constraint}"
             if constraint == 'reward_threshold':
                 assert r_terminating is not None, "r_terminating must be provided when using reward_threshold"
         self.terminate_ORM = terminate_ORM
@@ -104,17 +105,21 @@ Do not explain anything. Do not add extra text.
         return []
 
     def _step(self, state: StateT, step_or_action, query_or_goals: str = None, **kwargs) -> Union[StateT, Tuple[StateT, dict]]:
-        # Extract the action string if a ThoughtStep is passed
-        if isinstance(step_or_action, ThoughtStep):
-            action = step_or_action.get_action()
-        else:
-            action = step_or_action
+        if not isinstance(step_or_action, ThoughtStep):
+            raise TypeError(
+                "ConcatTransition requires a ThoughtStep so terminate is preserved"
+            )
+        next_step = copy(step_or_action)
         new_state = state.copy()
-        new_state.append(ThoughtStep(action=action))
+        new_state.append(next_step)
         log_state(logger, new_state, header="ConcatTransition.step")
         return new_state, {"confidence": 1.}
 
     def _is_terminal(self, state: StateT, query_or_goals: str, fast_reward: float = None, **kwargs) -> bool:
+        if "step_signal" in self.terminate_constraints:
+            if not state or not state[-1].terminate:
+                return False
+
         if "reward_threshold" in self.terminate_constraints:
             
             if self.terminate_ORM:

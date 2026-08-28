@@ -6,9 +6,16 @@ from abc import ABC, abstractmethod
 
 @dataclass
 class Step(ABC):
+    """Base step exchanged between policies, transitions, and agent runtimes.
+
+    ``terminate`` is the component-independent completion signal. A policy or
+    transition may set it to indicate that the step completes the current
+    trajectory and must not be expanded further.
+    """
+
     # error attribute to capture any errors during step generation
     error: Union[None, str] = None
-    # terminate flag: if True, this error should stop trajectory generation
+    # True when this step completes the current trajectory.
     terminate: bool = False
     
     def to_dict(self) -> dict:

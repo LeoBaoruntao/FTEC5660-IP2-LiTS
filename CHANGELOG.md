@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-08-28 Unreleased (`0828-major-structured-policy-termination/tasks`)
+
+### Added
+- `ConcatTransition` step-signal termination [T1]
+- `unit_test/components/test_concat_step_signal.py` [T1]
+
+### Changed
+- `Step.terminate` completion-signal contract [T1]
+
 ## 2026-08-28 Unreleased (`0820-major-selection-interface/tasks`)
 
 ### Fixed

@@ -16,6 +16,7 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 
 ### Changed
 - `Step.terminate` completion-signal contract [T1]
+- `docs/components/transitions/TRANSITION.md` structured termination configuration [T1-T2]
 
 ## 2026-08-28 Unreleased (`0820-major-selection-interface/tasks`)
 

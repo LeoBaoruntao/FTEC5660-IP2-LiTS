@@ -12,23 +12,21 @@ The `Transition` abstract base class defines three core methods that all transit
 
 ## Key Design Principles
 
-### 1. Flexible Input Handling
+### 1. Explicit Input Contracts
 
-Transitions receive `step_or_action` which can be either:
+Transitions declare whether `step_or_action` accepts:
 - **Step objects** (e.g., `ToolUseStep`, `EnvStep`) - Contains action + metadata from policy
 - **Action objects** (e.g., `ToolUseAction`, `EnvAction`) - Raw action only
 
-**Best Practice:** Always handle both cases by extracting the action when needed:
+Preserve the complete `Step` whenever transition behavior depends on step fields. For example,
+`ConcatTransition` requires `ThoughtStep` because a raw action cannot carry `terminate`.
+Environment transitions may accept raw actions when no policy metadata is required.
 
 ```python
 def step(self, state, step_or_action, ...):
-    # Extract action from Step if needed
-    if isinstance(step_or_action, EnvStep):
-        action = step_or_action.action
-    else:
-        action = step_or_action
-    
-    # Execute action...
+    if not isinstance(step_or_action, ThoughtStep):
+        raise TypeError("This transition requires ThoughtStep")
+    # Preserve and execute the complete step.
 ```
 
 ### 2. Consistent Method Signatures
@@ -120,23 +118,19 @@ def is_terminal(self, state, query_or_goals, **kwargs):
     pass
 ```
 
-### Pitfall 3: Not Handling Step Objects
+### Pitfall 3: Discarding Step Fields
 
-**Problem:** Policy returns `Step` objects but transition expects raw `Action` objects.
+**Problem:** A caller extracts `step.action` before invoking a transition that needs fields such as
+`step.terminate`.
 
 **Error:**
 ```
-AssertionError: Action must be of type EnvAction
+TypeError: ConcatTransition requires a ThoughtStep so terminate is preserved
 ```
 
-**Solution:** Extract action from Step when needed:
+**Solution:** Pass the complete step:
 ```python
-def step(self, state, step_or_action, ...):
-    if isinstance(step_or_action, EnvStep):
-        action = step_or_action.action
-    else:
-        action = step_or_action
-    # Now use action...
+transition.step(state, step, query_or_goals=query)
 ```
 
 ### Pitfall 4: Incorrect init_state_kwargs
@@ -161,6 +155,20 @@ def init_state(self, **kwargs):
 ```
 
 ## Implementation Examples
+
+### Structured Concat Termination
+
+Structured reasoning output and step-based termination must be enabled together:
+
+```python
+component_args = {"output_format": "structured"}
+search_args = {"terminate_constraints": ["step_signal"]}
+```
+
+`ConcatPolicy` returns exactly one non-empty `step` or `answer` field. It converts `step` into a
+continuing `ThoughtStep` and `answer` into a terminating `ThoughtStep`. `ConcatTransition` reads
+that signal without an auxiliary completion-model call. The defaults remain free-form policy
+output and `binary_sampling` termination.
 
 ### Example 1: ToolUseTransition
 

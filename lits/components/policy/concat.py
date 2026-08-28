@@ -71,6 +71,7 @@ class ConcatPolicy(Policy):
     MAX_TOKEN_LENGTH = 1000
     MAX_RETRY_REPEAT = 2
     STEP_PREFIX_PATTERN = r"Step \d+:"
+    ANSWER_PREFIX_PATTERN = r"^(?:The answer is\s*)+"
     STRUCTURED_FIELDS = {"step", "answer"}
     STRUCTURED_PLACEHOLDERS = {
         "...",
@@ -283,12 +284,20 @@ class ConcatPolicy(Policy):
             raise ValueError("Structured output content must not be a placeholder")
         return {field: content}
 
-    @staticmethod
-    def _structured_payload_to_step(payload: dict[str, str]) -> ThoughtStep:
+    @classmethod
+    def _structured_payload_to_step(cls, payload: dict[str, str]) -> ThoughtStep:
         """Convert a validated structured payload into a canonical thought step."""
         if "answer" in payload:
+            answer = re.sub(
+                cls.ANSWER_PREFIX_PATTERN,
+                "",
+                payload["answer"],
+                flags=re.IGNORECASE,
+            ).strip()
+            if not answer:
+                raise ValueError("Structured answer must contain content after its prefix")
             return ThoughtStep(
-                action=f"The answer is {payload['answer']}",
+                action=f"The answer is {answer}",
                 terminate=True,
             )
         return ThoughtStep(action=payload["step"], terminate=False)

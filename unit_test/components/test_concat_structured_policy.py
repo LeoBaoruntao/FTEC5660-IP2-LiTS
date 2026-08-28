@@ -43,5 +43,15 @@ def check_structured_concat_policy() -> None:
     breakpoint()  # inspect: one ThoughtStep with canonical action and terminate
 
 
+def inspect_prefixed_answer_normalization() -> None:
+    """Inspect canonicalization when a model repeats the answer wrapper."""
+    step = ConcatPolicy._structured_payload_to_step(
+        {"answer": "The answer is 42."}
+    )
+    print("normalized prefixed answer:", step.to_dict())
+    breakpoint()  # inspect: action is "The answer is 42.", not a doubled prefix
+
+
 if __name__ == "__main__":
+    inspect_prefixed_answer_normalization()
     check_structured_concat_policy()

@@ -2,6 +2,17 @@
 
 Register dataset-specific evaluation functions so `lits-eval` uses your comparison logic instead of the default numeric matcher.
 
+## Contents
+
+- [Why](#why)
+- [Usage](#usage)
+- [How It Works](#how-it-works)
+- [Example: DBBench](#example-dbbench)
+- [In-Memory Evaluation](#in-memory-evaluation)
+- [API](#api)
+- [Dataset Loader Convention](#dataset-loader-convention)
+- [Evaluator Signature Contract](#evaluator-signature-contract)
+
 ## Why
 
 The default `lits-eval` accuracy check uses `eval_output(type="number_exact")`, which works for math QA but not for benchmarks that need float tolerance, set comparison, or special value normalization (e.g., DBBench, KG F1).
@@ -21,11 +32,17 @@ def evaluate_my_dataset(predicted, ground_truth) -> bool:
 
 ## How It Works
 
-`lits-eval` uses a three-way dispatch for accuracy comparison:
+After output selection, correctness checking follows this order:
 
-1. `env_grounded` tasks — goal check (applied during answer extraction, then exact string match)
-2. Registered evaluator — `@register_evaluator("dataset_name")` if available
-3. Default — `eval_output(type="number_exact")` for math QA
+1. `env_grounded`: goal check; other correctness evaluators are ignored.
+2. Registered evaluator: use its bool/float result, with configured LLM fallback on
+   non-full matches or exceptions. Only a float score of `1.0` counts as correct.
+3. Without a registered evaluator: use the configured LLM judge; otherwise use
+   `eval_output(type="number_exact")`, with exact-string fallback on numeric parsing errors.
+
+CLI defaults are unchanged: tool-use tasks enable `--llm-eval binary`; use `f1` for
+continuous judging or `none` to disable it. F1 fallback retains the larger registered/LLM
+score; binary fallback changes correctness without replacing the registered score.
 
 ## Example: DBBench
 
@@ -48,6 +65,58 @@ Run evaluation:
 lits-eval --result_dir results/dbbench_rest/run_0 \
     --include lits_benchmark.dbbench
 ```
+
+## In-Memory Evaluation
+
+Use the same tree evaluation without saving/reloading files. Given a completed search
+`result`, its `query`, and the dataset `example`:
+
+```python
+import lits_benchmark.dbbench  # register the benchmark evaluator
+from lits.benchmarks.registry import get_evaluator
+from lits.eval.search import evaluate_search_result
+
+outcome = evaluate_search_result(
+    result.terminal_nodes_collected,
+    query,
+    example["answer"],
+    task_type="tool_use",
+    custom_evaluator=get_evaluator("dbbench"),
+)
+```
+
+The caller supplies terminal nodes, task type, query/reference, and configured callbacks.
+Benchmark imports, dataset/resource setup, and model creation remain outside this function.
+The CLI calls it after loading saved tree terminals; chain/pass-at-N loading stays in the CLI.
+
+**Output selection chooses what to score; correctness checking compares that output with
+the reference.** The reference never chooses the terminal or vote winner.
+
+| `task_type` | Output selection (unchanged defaults) | Caller setup |
+|---|---|---|
+| `language_grounded` | Vote over extracted terminal answers | Supply `retrieve_answer(state, query)`, e.g. `get_fn_retrieve_answer(model)` from `lits.components.utils` |
+| `tool_use` | Default `terminal_selection="q-mean"`; also `q-max` or `first` | Supply the registered checker; answer retrieval from the selected node is built in |
+| `env_grounded` | Maximum backed-up terminal return | Supply `goal_check(query, final_env_state)` returning `(goal_reached, progress)` |
+
+`q-mean`/`q-max` rank `cum_rewards`, not `fast_reward`. Missing/empty returns rank as
+negative infinity; ties retain input order, including when all returns are absent.
+
+Unlike the CLI, direct calls default to `llm_evaluator=None`: no LLM judge is created.
+To enable judging, supply a configured `lits.eval.general_eval.GeneralEvaluator` and
+matching `llm_eval_mode`: `"binary"` with a `correct` yes/no perspective, or `"f1"`
+with a float `score` perspective. Answer-extraction callbacks may independently call an LLM.
+
+| Returned field | Meaning |
+|---|---|
+| `prediction` | Selected/voted answer; `"correct"` or `"incorrect"` for environment tasks |
+| `correct` | Boolean correctness of that output, not whether any terminal is correct |
+| `score` | Continuous checker score or `None`; not a search reward or `float(correct)` |
+| `environment_progress` | Goal-check progress for environment tasks; otherwise `None` |
+
+Empty terminals yield `"incorrect"` and progress `0.0` for environment tasks;
+other tasks pass an empty prediction through their configured checker. This preserves
+benchmark-specific empty-answer behavior. Required callbacks must still be supplied.
+Full parameter details: [`evaluate_search_result`](../../lits/eval/search.py).
 
 ## API
 
@@ -90,4 +159,4 @@ This means the evaluator and dataset loader must agree on the `ground_truth` typ
 |---------|--------------------------|-------------------|
 | KGQA | `dict` (`{"names": [...], "ids": [...]}`) | Extracts IDs, does set comparison after splitting predicted by comma |
 | DBBench | `str` or `list[str]` | Float tolerance, set comparison |
-| Math QA | `str` (numeric) | Exact string match |
+| Math QA | `str` (numeric) | Default numeric comparison |

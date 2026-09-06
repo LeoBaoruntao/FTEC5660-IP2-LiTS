@@ -21,6 +21,7 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 
 ### Changed
 - CLI shared tree-result evaluation [T3.1]
+- Shared evaluation usage in `docs/eval/CUSTOM_EVALUATORS.md` [T4]
 
 ### Fixed
 - `select_env_terminal` nonterminal-input validation [T2.1]

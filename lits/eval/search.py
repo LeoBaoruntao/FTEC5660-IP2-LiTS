@@ -17,7 +17,128 @@ from typing import TYPE_CHECKING, Any, Callable, Sequence
 from lits.structures.env_grounded import EnvState
 
 if TYPE_CHECKING:
+    from logging import Logger
+
     from lits.agents.tree.node import SearchNode
+    from lits.components.registry import TaskType
+    from lits.eval.general_eval import GeneralEvaluator
+
+
+def evaluate_search_result(
+    terminal_nodes: Sequence[SearchNode],
+    query: str,
+    ground_truth: Any,
+    *,
+    task_type: TaskType,
+    retrieve_answer: Callable[[Any, str], Any] | None = None,
+    terminal_selection: str = "q-mean",
+    custom_evaluator: Callable[[Any, Any], bool | float] | None = None,
+    llm_evaluator: GeneralEvaluator | None = None,
+    llm_eval_mode: str = "binary",
+    goal_check: Callable[[str, Any], tuple[bool, float]] | None = None,
+    eval_logger: Logger | None = None,
+    label: str = "",
+) -> dict[str, Any]:
+    """Select a prediction from one tree result and evaluate it.
+
+    Args:
+        terminal_nodes: Collected terminal nodes, in their original order.
+        query: Task question or environment goal description.
+        ground_truth: Reference passed to correctness checking, never selection.
+            The caller applies dataset-specific formatting. Ignored for env_grounded.
+        task_type: "language_grounded", "tool_use", or "env_grounded".
+        retrieve_answer: Required for language_grounded: (state, query) -> answer,
+            e.g. the callback returned by get_fn_retrieve_answer(model). For tool_use,
+            an optional (node, query) -> answer callback overrides step retrieval.
+            Unused for env_grounded.
+        terminal_selection: Tool-use ranking: "first", "q-max", or "q-mean" (default).
+            Language tasks vote over answers; environment tasks use maximum returns.
+        custom_evaluator: Optional (prediction, ground_truth) -> bool or float checker.
+        llm_evaluator: Optional configured GeneralEvaluator; see check_answer for
+            fallback precedence. Omit it to disable LLM judging.
+        llm_eval_mode: "binary" or "f1", used only by the supplied LLM evaluator.
+        goal_check: Required for env_grounded: (query, final_env_state) ->
+            (goal_reached, progress). Overrides other correctness checkers.
+        eval_logger: Optional logger passed to check_answer.
+        label: Optional per-example label for checking logs.
+
+    Returns:
+        A dictionary with prediction, correct (bool), score (float or None),
+        and environment_progress (float or None). score is a continuous checker
+        score, not a search reward or float(correct). Environment prediction is
+        "correct"/"incorrect", with score=None. Other tasks have environment_progress=None.
+
+        Empty terminals produce "incorrect" with progress=0.0 for environment tasks,
+        or an empty prediction for other tasks. That empty prediction still goes
+        through configured correctness checking. Required callbacks must be supplied
+        even for empty terminals, but retrieval/goal checking is not invoked on them.
+        Without custom/LLM checkers, non-environment tasks use numeric comparison,
+        falling back to exact string matching on AssertionError or ValueError.
+
+    Raises:
+        ValueError: Unsupported task_type, a missing required callback, or invalid
+            terminal inputs/selection options rejected by the selection helpers.
+        Other retrieval, goal-checking, and LLM errors propagate to the caller.
+
+    Example:
+        outcome = evaluate_search_result(
+            result.terminal_nodes_collected, query, reference,
+            task_type="language_grounded", retrieve_answer=answer_retriever,
+        )
+    """
+    environment_progress = None
+    if task_type == "env_grounded":
+        if goal_check is None:
+            raise ValueError("goal_check is required for env_grounded evaluation")
+        best_node = select_env_terminal(terminal_nodes)
+        prediction, environment_progress = retrieve_answer_from_env_node(
+            best_node, query, goal_check,
+        )
+    elif task_type == "tool_use":
+        best_node = select_tool_use_terminal(terminal_nodes, terminal_selection)
+        if retrieve_answer is None:
+            retrieve_answer = retrieve_answer_from_tool_use_node
+        prediction = retrieve_answer(best_node, query) if best_node is not None else ""
+    elif task_type == "language_grounded":
+        if retrieve_answer is None:
+            raise ValueError("retrieve_answer is required for language_grounded evaluation")
+        from lits.agents.tree.common import extract_answers_from_terminal_nodes
+
+        vote_answers, *_ = extract_answers_from_terminal_nodes(
+            terminal_nodes_collected=terminal_nodes,
+            retrieve_answer=retrieve_answer,
+            query=query,
+        )
+        prediction = max(vote_answers, key=lambda a: vote_answers[a]) if vote_answers else ""
+    else:
+        raise ValueError(f"Unknown task_type={task_type!r}")
+
+    score = None
+    if task_type == "env_grounded":
+        correct = prediction == "correct"
+    elif custom_evaluator or llm_evaluator:
+        correct, score = check_answer(
+            prediction, ground_truth,
+            custom_evaluator=custom_evaluator,
+            llm_evaluator=llm_evaluator,
+            llm_eval_mode=llm_eval_mode,
+            eval_logger=eval_logger,
+            label=label,
+        )
+    else:
+        from lits.components.utils import eval_output
+
+        try:
+            correct = eval_output(str(ground_truth), prediction, type="number_exact")
+        except (AssertionError, ValueError):
+            correct = prediction == str(ground_truth)
+
+    return {
+        "prediction": prediction,
+        "correct": correct,
+        "score": score,
+        "environment_progress": environment_progress,
+    }
 
 
 def select_tool_use_terminal(

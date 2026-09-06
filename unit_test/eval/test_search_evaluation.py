@@ -1,4 +1,4 @@
-"""Capture eval_search.py::evaluate_from_checkpoints behavior before refactoring.
+"""Compare CLI and shared tree evaluation against recorded baseline expectations.
 
 Run from lits_llm/ with demos/ on PYTHONPATH:
     PYTHONBREAKPOINT=0 python -m unit_test.eval.test_search_evaluation
@@ -11,8 +11,9 @@ own the benchmark comparators. Their registered implementations are used directl
 All additional cases use real LiTS nodes and steps with controlled field values.
 The CLI constructs a real OpenAI-compatible client but these deterministic cases
 need no inference, dataset download, or database connection. LLM fallback checks
-remain in agents/test_extract_answers.py. Logs and outcomes remain in a fresh
-temporary directory for comparison with the later shared evaluation interface.
+remain in agents/test_extract_answers.py. Each CLI fixture is also evaluated
+directly from its original nodes and from its reloaded terminal records.
+Logs and all three outcomes remain in a fresh temporary directory.
 """
 
 from __future__ import annotations
@@ -35,7 +36,10 @@ from lits.benchmarks.registry import (
 )
 from lits.cli.eval_search import evaluate_from_checkpoints, load_terminal_nodes_from_file
 from lits.cli.search import save_terminal_nodes
-from lits.eval.search import check_answer, select_env_terminal
+from lits.components.registry import ComponentRegistry
+from lits.components.utils import get_fn_retrieve_answer
+from lits.eval.search import check_answer, evaluate_search_result, select_env_terminal
+from lits.lm import get_lm
 from lits.structures.base import TrajectoryState
 from lits.structures.env_grounded import EnvState, EnvStep
 from lits.structures.qa import ThoughtStep
@@ -100,12 +104,14 @@ def terminal(step=None, *, returns=(), fast_reward=0.5, node_class=MCTSNode):
 
 def check_case(output_dir, name, dataset, nodes, truth, expected, *, query="Test query",
                selection=None):
-    """Save real nodes, run the CLI pipeline, and verify its logged/saved outcome.
+    """Compare CLI, original-node, and reloaded-node evaluation on the same fixture.
 
     References: search.py::save_terminal_nodes,
     eval_search.py::load_terminal_nodes_from_file,
-    eval_search.py::evaluate_from_checkpoints.
+    eval_search.py::evaluate_from_checkpoints, search.py::evaluate_search_result.
     expected is (prediction, correct, optional_score, environment_progress).
+    Shared calls receive nodes/reference and caller-configured retrieval/checkers,
+    without a result directory, dataset name, or model-creation arguments.
     """
     case_dir = output_dir / name
     case_dir.mkdir()
@@ -135,8 +141,35 @@ def check_case(output_dir, name, dataset, nodes, truth, expected, *, query="Test
         raise RuntimeError(f"{name}: {observed!r} != {expected!r}; inspect {case_dir}")
     if matches[0][1] != str(item["correct"]) or report["accuracy"] != float(item["correct"]):
         raise RuntimeError(f"{name}: logged and saved correctness disagree")
-    print(f"PASS {name}: {observed}")
-    return {"case": name, "expected": expected, "observed": observed}
+    shared_options = dict(options)
+    if dataset == MATH_DATASET:
+        task_type = "language_grounded"
+        shared_options["retrieve_answer"] = get_fn_retrieve_answer(get_lm(MODEL_NAME))
+    elif dataset == "blocksworld":
+        task_type = "env_grounded"
+        shared_options["goal_check"] = ComponentRegistry.get_transition(dataset).goal_check
+    else:
+        task_type = "tool_use"
+        shared_options["custom_evaluator"] = get_evaluator(dataset)
+
+    saved = load_terminal_nodes_from_file(case_dir / "terminal_nodes" / "terminal_nodes_0.json")
+    expected_shared = dict(zip(
+        ("prediction", "correct", "score", "environment_progress"), expected,
+    ))
+    shared_results = {}
+    for source, terminals, source_query in (
+        ("in_memory", nodes, query),
+        ("reloaded", saved["terminal_nodes"], saved["query"]),
+    ):
+        outcome = evaluate_search_result(
+            terminals, source_query, truth, task_type=task_type, **shared_options,
+        )
+        if outcome != expected_shared:
+            raise RuntimeError(f"{name}/{source}: {outcome!r} != {expected_shared!r}")
+        shared_results[source] = outcome
+
+    print(f"PASS {name}: CLI = in-memory = reloaded: {observed}")
+    return {"case": name, "expected": expected, "observed": observed, **shared_results}
 
 
 def check_language(output_dir):
@@ -296,7 +329,7 @@ def check_answer_outcomes():
 
 
 def main():
-    """Run deterministic CLI checks and retain inputs, logs, and baseline outcomes."""
+    """Compare deterministic evaluation paths and retain inputs, logs, and outcomes."""
     os.environ.setdefault("OPENAI_API_KEY", "no-key")
     os.environ.setdefault("OPENAI_API_BASE", "http://localhost:8000/v1")
     register_examples()
@@ -308,7 +341,7 @@ def main():
     checks.extend(check_environment(output_dir))
     checks.extend(check_answer_outcomes())
     (output_dir / "baseline.json").write_text(json.dumps(checks, indent=2) + "\n")
-    print(f"Passed {len(checks)} checks (29 CLI cases, 1 retrieval, "
+    print(f"Passed {len(checks)} checks (29 CLI/in-memory/reloaded comparisons, 1 retrieval, "
           "2 terminal validation, 5 answer checking). "
           f"Baseline: {output_dir / 'baseline.json'}")
     breakpoint()  # inspect: checks, output_dir; each case contains terminal_nodes/ and eval.log

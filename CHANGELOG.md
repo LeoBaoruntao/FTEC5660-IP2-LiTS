@@ -13,6 +13,8 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 - Tree-evaluation regression checks [T1, T2.1]
 - `lits.eval.search.check_answer` and LLM judging helper [T2.2]
 - Answer-checking regression checks [T2.2]
+- `lits.eval.search.evaluate_search_result` [T2.3]
+- CLI, in-memory, and reloaded-tree evaluation comparisons [T2.4]
 
 ### Fixed
 - `select_env_terminal` nonterminal-input validation [T2.1]

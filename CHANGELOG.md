@@ -16,6 +16,7 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 - `lits.eval.search.evaluate_search_result` [T2.3]
 - CLI, in-memory, and reloaded-tree evaluation comparisons [T2.4]
 - Live binary-fallback regression checks [T3.3]
+- Chain/pass-at-N evaluation compatibility checks [T3.2]
 
 ### Changed
 - CLI shared tree-result evaluation [T3.1]

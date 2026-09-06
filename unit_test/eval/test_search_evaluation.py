@@ -3,6 +3,7 @@
 Run from lits_llm/ with demos/ on PYTHONPATH:
     PYTHONBREAKPOINT=0 python -m unit_test.eval.test_search_evaluation
     PYTHONBREAKPOINT=0 python -m unit_test.eval.test_search_evaluation --llm-model ollama/llama3.2:latest
+    PYTHONBREAKPOINT=0 python -m unit_test.eval.test_search_evaluation --compare-chain-cli-ref dd98ce6
 
 This checks the saved-result pipeline, not individual benchmark algorithms.
 agents/test_extract_answers.py owns extraction/voting checks and the saved RAP
@@ -16,6 +17,9 @@ fallback checks remain in agents/test_extract_answers.py; --llm-model additional
 checks live binary correctness judging here. Each CLI fixture is also evaluated
 directly from its original nodes and from its reloaded terminal records.
 Logs and all three outcomes remain in a fresh temporary directory.
+--compare-chain-cli-ref additionally runs the current and specified Git revision's
+CLI on matching chain/pass-at-N fixtures without inference. State serialization
+itself is covered in test_state_serialization.py; these checks cover evaluation.
 """
 
 from __future__ import annotations
@@ -27,7 +31,9 @@ import logging
 import os
 from pathlib import Path
 import re
+import subprocess
 import tempfile
+import types
 
 from lits.agents.tree.node import MCTSNode, SearchNode
 from lits.agents.tree.search_base import SearchResult
@@ -50,7 +56,7 @@ from lits.lm import get_lm, setup_inference_logging
 from lits.structures.base import TrajectoryState
 from lits.structures.env_grounded import EnvState, EnvStep
 from lits.structures.qa import ThoughtStep
-from lits.structures.tool_use import ToolUseStep
+from lits.structures.tool_use import ToolUseState, ToolUseStep
 
 import lits_benchmark.blocksworld  # noqa: F401 -- registers the real goal checker
 from lits_benchmark.dbbench import load_dbbench_resource
@@ -386,10 +392,135 @@ def check_live_fallback(output_dir, model_name):
     return checks
 
 
+def check_chain_checkpoints(output_dir, legacy_ref):
+    """Compare eval_search.py::evaluate_from_checkpoints with a trusted local Git revision.
+
+    Real ToolUseStates are saved through base.py::TrajectoryState.save. String
+    fixture values are final answers; dictionaries are deliberately invalid records.
+    Each implementation receives identical inputs in a separate temporary directory.
+    Compare full returned/saved reports, predictions, and per-file errors, excluding
+    only the different result-directory paths. No models are called.
+    """
+    repo = Path(__file__).resolve().parents[2]
+    source_path = "lits/cli/eval_search.py"
+    source = subprocess.check_output(
+        ["git", "show", f"{legacy_ref}:{source_path}"], cwd=repo, text=True,
+    )
+    legacy = types.ModuleType("lits.cli._eval_search_baseline")
+    legacy.__file__ = str(repo / source_path)
+    exec(compile(source, f"{legacy_ref}:{source_path}", "exec"), legacy.__dict__)
+
+    truths = [["10"], ["42"], ["43"], ["0"]]
+    single = {
+        "0.json": "10",
+        "1.json": ToolUseState([ToolUseStep(assistant_message="<answer>42</answer>")]),
+        "2.json": "42",
+        "3.json": ToolUseState(),
+        "99_a9_incomplete.json": {},
+        "pass_at_n_summary.json": {},
+    }
+    attempts = {
+        "0_a0.json": "11", "0_a1.json": "10", "0_a2.json": "11",
+        "1_a0.json": "42", "1_a1.json": "43", "2_a1.json": "43",
+        "3.json": ToolUseState(),
+        "99_a9_incomplete.json": {}, "pass_at_n_summary.json": {},
+    }
+    # Preserve the first-available-attempt rule when attempt 0 is absent, and
+    # the mixed single-attempt file accepted alongside pass-at-N checkpoints.
+    attempt_outcomes = [
+        (0, [0.0, 1.0, 0.0], False, True),
+        (1, [1.0, 0.0], True, True),
+        (2, [1.0], True, True), (3, [1.0], True, True),
+    ]
+    cases = (
+        ("chain_full", DB_DATASET, single, truths, {},
+         {"n_attempts": 1, "accuracy": 0.75}, [(0, True), (1, True), (2, False), (3, True)]),
+        ("chain_filtered", DB_DATASET, single, truths, {"offset": 1, "limit": 2},
+         {"n_attempts": 1, "accuracy": 0.5}, [(1, True), (2, False)]),
+        ("chain_empty_range", DB_DATASET, single, truths, {"offset": 10},
+         {"n_attempts": 1, "accuracy": 0.0}, []),
+        ("chain_missing_answer", DB_DATASET,
+         {"0.json": ToolUseState(),
+          "1.json": ToolUseState([ToolUseStep(answer="42"), ToolUseStep(think="Continue")])},
+         [["42"], ["42"]], {}, {"accuracy": 0.0}, [(0, False), (1, False)]),
+        ("chain_numeric", MATH_DATASET, {"0.json": "42.0", "1.json": "43", "2.json": ""},
+         ["42"] * 3, {}, {"accuracy": 1 / 3}, [(0, True), (1, False), (2, False)]),
+        ("chain_float", FLOAT_DATASET,
+         {"0.json": "Obedient, Intelligent", "1.json": "Obedient", "2.json": ""},
+         [["Obedient", "Intelligent"]] * 3, {},
+         {"accuracy": 1 / 3, "mean_score": (1.0 + 2 / 3) / 3},
+         [(0, True), (1, False), (2, False)]),
+        ("chain_malformed", DB_DATASET, {"0.json": "10", "1.json": {}, "2.json": "43"},
+         truths, {}, {"accuracy": 1.0}, [(0, True), (2, True)]),
+        ("pass_at_n_full", DB_DATASET, attempts, truths, {},
+         {"n_attempts": 3, "pass_at_1": 0.75, "pass_at_n": 1.0}, attempt_outcomes),
+        ("pass_at_n_filtered", DB_DATASET, attempts, truths, {"offset": 1, "limit": 2},
+         {"n_attempts": 3, "pass_at_1": 1.0, "pass_at_n": 1.0}, attempt_outcomes[1:3]),
+        ("pass_at_n_empty_range", DB_DATASET, attempts, truths, {"offset": 10},
+         {"n_attempts": 3, "pass_at_1": 0.0, "pass_at_n": 0.0}, []),
+    )
+    checks = []
+    for name, dataset, files, references, options, expected, expected_examples in cases:
+        compared = {}
+        for version, evaluate in (
+            ("legacy", legacy.evaluate_from_checkpoints), ("current", evaluate_from_checkpoints),
+        ):
+            case_dir = output_dir / name / version
+            checkpoint_dir = case_dir / "checkpoints"
+            checkpoint_dir.mkdir(parents=True)
+            for filename, content in files.items():
+                path = checkpoint_dir / filename
+                if isinstance(content, dict):
+                    path.write_text(json.dumps(content))
+                else:
+                    state = ToolUseState([ToolUseStep(answer=content)]) if isinstance(content, str) else content
+                    state.save(str(path), "Test query")
+            with (case_dir / "console.log").open("w") as console:
+                with contextlib.redirect_stdout(console), contextlib.redirect_stderr(console):
+                    report = evaluate(
+                        str(case_dir), dataset, MODEL_NAME, llm_eval_mode="none",
+                        dataset_kwargs={"examples": [{"answer": truth} for truth in references]},
+                        **options,
+                    )
+            if report is None or json.loads((case_dir / "eval_results.json").read_text()) != report:
+                raise RuntimeError(f"{name}/{version}: missing or inconsistent saved report")
+            if report["result_dir"] != str(case_dir):
+                raise RuntimeError(f"{name}/{version}: incorrect recorded result directory")
+            if any(report.get(key) != value for key, value in expected.items()):
+                raise RuntimeError(f"{name}/{version}: {report!r} does not match {expected!r}")
+            if "pass_at_n" in report:
+                examples = [(row["idx"], row["attempts"], row["pass_at_1"], row["pass_at_n"])
+                            for row in report["examples"]]
+            else:
+                examples = [(row["idx"], row["correct"]) for row in report["examples"]]
+                if any(row["score"] != float(row["correct"]) for row in report["examples"]):
+                    raise RuntimeError(f"{name}/{version}: per-example score is no longer binary")
+            if examples != expected_examples:
+                raise RuntimeError(f"{name}/{version}: unexpected examples {examples!r}")
+            log = (case_dir / "eval.log").read_text()
+            compared[version] = {
+                "report": {key: value for key, value in report.items() if key != "result_dir"},
+                "predictions": re.findall(r"\[\d+(?:_a\d+)?\] Pred=.*", log),
+                "errors": re.findall(r"Error processing .*[/]([^/]+\.json): (.*)", log),
+            }
+        for filename in files:
+            case_dir = output_dir / name
+            if ((case_dir / "legacy" / "checkpoints" / filename).read_bytes()
+                    != (case_dir / "current" / "checkpoints" / filename).read_bytes()):
+                raise RuntimeError(f"{name}: input checkpoint differs between implementations")
+        if compared["legacy"] != compared["current"]:
+            raise RuntimeError(f"{name}: legacy/current mismatch: {compared!r}")
+        print(f"PASS {name}: legacy = current: {expected}, examples={expected_examples}")
+        checks.append({"case": name, "legacy_ref": legacy_ref, **compared})
+    breakpoint()  # inspect: checks; each case has legacy/ and current/ inputs, logs, and reports
+    return checks
+
+
 def main():
     """Compare evaluation paths, optionally run live judging, and retain logs/outcomes."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--llm-model", help="LiTS model name for optional live binary fallback checks")
+    parser.add_argument("--compare-chain-cli-ref", help="Trusted local Git revision for chain/pass-at-N comparison")
     args = parser.parse_args()
     os.environ.setdefault("OPENAI_API_KEY", "no-key")
     os.environ.setdefault("OPENAI_API_BASE", "http://localhost:8000/v1")
@@ -401,11 +532,14 @@ def main():
     checks.extend(check_tool_use(output_dir))
     checks.extend(check_environment(output_dir))
     checks.extend(check_answer_outcomes())
+    if args.compare_chain_cli_ref:
+        checks.extend(check_chain_checkpoints(output_dir, args.compare_chain_cli_ref))
     if args.llm_model:
         checks.extend(check_live_fallback(output_dir, args.llm_model))
     (output_dir / "baseline.json").write_text(json.dumps(checks, indent=2) + "\n")
     print(f"Passed {len(checks)} checks (29 CLI/in-memory/reloaded comparisons, 1 retrieval, "
           "2 terminal validation, 5 answer checking"
+          f"{', 10 chain/pass-at-N comparisons' if args.compare_chain_cli_ref else ''}"
           f"{', 3 live binary fallback cases' if args.llm_model else ''}). "
           f"Baseline: {output_dir / 'baseline.json'}")
     breakpoint()  # inspect: checks, output_dir; each case contains terminal_nodes/ and eval.log

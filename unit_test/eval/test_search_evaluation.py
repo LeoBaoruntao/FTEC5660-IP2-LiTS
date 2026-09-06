@@ -35,7 +35,7 @@ from lits.benchmarks.registry import (
 )
 from lits.cli.eval_search import evaluate_from_checkpoints, load_terminal_nodes_from_file
 from lits.cli.search import save_terminal_nodes
-from lits.eval.search import select_env_terminal
+from lits.eval.search import check_answer, select_env_terminal
 from lits.structures.base import TrajectoryState
 from lits.structures.env_grounded import EnvState, EnvStep
 from lits.structures.qa import ThoughtStep
@@ -271,6 +271,30 @@ def check_environment(output_dir):
     return checks
 
 
+def check_answer_outcomes():
+    """Check search.py::check_answer exact matching, precedence, and error handling."""
+    kgqa_evaluator = get_evaluator("kgqa")
+    checks = []
+    for name, pred, truth, evaluator, expected in (
+        ("exact_match", "42", 42, None, (True, None)),
+        ("exact_mismatch", "42", "43", None, (False, None)),
+        ("exact_format", "42.0", "42", None, (False, None)),
+        # KGQA expects entity lists; a parsed integer reference yields no gold
+        # entities. A custom failure must not fall through to exact matching.
+        ("custom_before_exact", "42", "42", kgqa_evaluator, (False, 0.0)),
+        # A non-iterable gold-answer field makes the real comparator raise.
+        ("custom_exception", "Obedient", {"names": 42, "ids": []},
+         kgqa_evaluator, (False, None)),
+    ):
+        observed = check_answer(pred, truth, custom_evaluator=evaluator)
+        if observed != expected:
+            raise RuntimeError(f"{name}: {observed!r} != {expected!r}")
+        print(f"PASS {name}: {observed}")
+        checks.append({"case": name, "expected": expected, "observed": observed})
+    breakpoint()  # inspect: checks; no LLM evaluator is supplied
+    return checks
+
+
 def main():
     """Run deterministic CLI checks and retain inputs, logs, and baseline outcomes."""
     os.environ.setdefault("OPENAI_API_KEY", "no-key")
@@ -282,8 +306,10 @@ def main():
     checks.extend(check_language(output_dir))
     checks.extend(check_tool_use(output_dir))
     checks.extend(check_environment(output_dir))
+    checks.extend(check_answer_outcomes())
     (output_dir / "baseline.json").write_text(json.dumps(checks, indent=2) + "\n")
-    print(f"Passed {len(checks)} checks (29 CLI cases, 1 retrieval, 2 terminal validation). "
+    print(f"Passed {len(checks)} checks (29 CLI cases, 1 retrieval, "
+          "2 terminal validation, 5 answer checking). "
           f"Baseline: {output_dir / 'baseline.json'}")
     breakpoint()  # inspect: checks, output_dir; each case contains terminal_nodes/ and eval.log
 

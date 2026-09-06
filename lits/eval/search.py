@@ -1,4 +1,4 @@
-"""Terminal selection and answer retrieval for tree-search results.
+"""Terminal selection, answer retrieval, and correctness checking for tree-search results.
 
 Input paths::
 
@@ -7,6 +7,7 @@ Input paths::
     Saved files -> CLI loads nodes -----+
 
 File loading remains the caller's responsibility.
+Callers also supply configured evaluators; this module does not create models.
 """
 
 from __future__ import annotations
@@ -140,3 +141,74 @@ def retrieve_answer_from_env_node(
         is_reached, env_score = goal_check(query, node.state.env_state)
         return ("correct" if is_reached else "incorrect"), env_score
     return "incorrect", 0.0
+
+
+def check_answer(pred: str, truth, custom_evaluator=None, llm_evaluator=None,
+                 llm_eval_mode: str = "binary",
+                 eval_logger=None, label: str = "") -> tuple:
+    """Evaluate a single predicted answer against ground truth.
+
+    Use the dataset-specific custom_evaluator first, with an optional LLM
+    fallback when it reports an incorrect answer or raises an exception.
+    Without a custom evaluator, use the supplied LLM evaluator. Exact string
+    matching applies only when neither evaluator is supplied.
+
+    Args:
+        pred: Predicted answer string.
+        truth: Ground truth (any type - passed directly to custom_evaluator;
+            converted to str only for the fallback exact-match path).
+        custom_evaluator: Registered evaluator function, or None.
+        llm_evaluator: Configured GeneralEvaluator instance, or None.
+        llm_eval_mode: "binary" (yes/no) or "f1" (float score).
+        eval_logger: Logger for debug messages (optional).
+        label: Human-readable label for log lines (e.g. "[3_a2]").
+
+    Returns:
+        (correct, score), where correct is bool and score is Optional[float].
+        Float-returning custom evaluators and F1 mode supply a score; only
+        1.0 counts as correct. F1 fallback retains the greater custom/LLM
+        score; binary fallback leaves any prior custom score unchanged.
+
+    Exceptions from the LLM evaluator propagate to the caller.
+    """
+    score = None
+
+    if custom_evaluator:
+        try:
+            result = custom_evaluator(pred, truth)
+            if isinstance(result, float):
+                score = result
+                correct = (result == 1.0)
+            else:
+                correct = bool(result)
+        except Exception as e:
+            correct = False
+            if eval_logger:
+                eval_logger.debug(f"  {label} custom evaluator failed: {e}")
+        if not correct and llm_evaluator:
+            correct, score = _llm_judge(llm_evaluator, llm_eval_mode, pred, truth, score)
+            if eval_logger:
+                eval_logger.debug(f"  {label} LLM fallback: correct={correct}, score={score}")
+        return correct, score
+
+    if llm_evaluator:
+        correct, score = _llm_judge(llm_evaluator, llm_eval_mode, pred, truth, score)
+        if eval_logger:
+            eval_logger.debug(f"  {label} LLM evaluator: correct={correct}, score={score}")
+        return correct, score
+
+    return (pred == str(truth)), None
+
+
+def _llm_judge(llm_evaluator, llm_eval_mode, pred, truth, prior_score=None):
+    """Return (correct, score) from a caller-supplied LLM evaluator.
+
+    F1 mode retains the higher of prior_score and the LLM score. Binary
+    judging changes correctness without replacing prior_score.
+    """
+    if llm_eval_mode == "f1":
+        llm_score = llm_evaluator.check_score(pred, truth)
+        final = max(prior_score, llm_score) if prior_score is not None else llm_score
+        return (final == 1.0), final
+    else:
+        return llm_evaluator.check_correct(pred, truth), prior_score

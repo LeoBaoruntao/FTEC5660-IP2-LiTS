@@ -33,6 +33,7 @@ from lits.components.utils import get_fn_retrieve_answer
 from lits.lm import get_lm
 from lits.eval.inference_report import generate_report
 from lits.eval.search import (
+    check_answer,
     retrieve_answer_from_env_node,
     retrieve_answer_from_tool_use_node,
     select_env_terminal,
@@ -198,71 +199,6 @@ def _should_include_file(filepath: Path, offset: int, end_idx: int = None) -> bo
     if end_idx is not None and idx >= end_idx:
         return False
     return True
-
-
-def _check_answer(pred: str, truth, custom_evaluator=None, llm_evaluator=None,
-                  llm_eval_mode: str = "binary",
-                  eval_logger=None, label: str = "") -> tuple:
-    """Evaluate a single predicted answer against ground truth.
-
-    Tries evaluators in priority order:
-    1. ``custom_evaluator`` (dataset-specific, e.g. dbbench float tolerance)
-    2. ``llm_evaluator`` fallback (LLM-as-judge for verbose answers)
-    3. Exact string match
-
-    Args:
-        pred: Predicted answer string.
-        truth: Ground truth (any type — passed directly to custom_evaluator;
-            converted to str only for the fallback exact-match path).
-        custom_evaluator: Registered evaluator function, or *None*.
-        llm_evaluator: ``GeneralEvaluator`` instance, or *None*.
-        llm_eval_mode: ``"binary"`` (yes/no) or ``"f1"`` (float score).
-        eval_logger: Logger for debug messages (optional).
-        label: Human-readable label for log lines (e.g. ``"[3_a2]"``).
-
-    Returns:
-        ``(correct, score)`` where *correct* is bool and *score* is
-        ``Optional[float]`` (non-None when the evaluator returns a
-        continuous score, e.g. F1 mode or a float-returning custom
-        evaluator).
-    """
-    score = None
-
-    if custom_evaluator:
-        try:
-            result = custom_evaluator(pred, truth)
-            if isinstance(result, float):
-                score = result
-                correct = (result == 1.0)
-            else:
-                correct = bool(result)
-        except Exception as e:
-            correct = False
-            if eval_logger:
-                eval_logger.debug(f"  {label} custom evaluator failed: {e}")
-        if not correct and llm_evaluator:
-            correct, score = _llm_judge(llm_evaluator, llm_eval_mode, pred, truth, score)
-            if eval_logger:
-                eval_logger.debug(f"  {label} LLM fallback: correct={correct}, score={score}")
-        return correct, score
-
-    if llm_evaluator:
-        correct, score = _llm_judge(llm_evaluator, llm_eval_mode, pred, truth, score)
-        if eval_logger:
-            eval_logger.debug(f"  {label} LLM evaluator: correct={correct}, score={score}")
-        return correct, score
-
-    return (pred == str(truth)), None
-
-
-def _llm_judge(llm_evaluator, llm_eval_mode, pred, truth, prior_score=None):
-    """Run LLM evaluator. Returns ``(correct, score)``."""
-    if llm_eval_mode == "f1":
-        llm_score = llm_evaluator.check_score(pred, truth)
-        final = max(prior_score, llm_score) if prior_score is not None else llm_score
-        return (final == 1.0), final
-    else:
-        return llm_evaluator.check_correct(pred, truth), prior_score
 
 
 def _create_llm_evaluator(base_model, llm_eval_mode: str, eval_logger):
@@ -511,7 +447,7 @@ def evaluate_from_checkpoints(
                 correct = (answer_pred == ground_truth)
                 score = None
             elif custom_evaluator or llm_evaluator:
-                correct, score = _check_answer(
+                correct, score = check_answer(
                     answer_pred, ground_truth,
                     custom_evaluator=custom_evaluator,
                     llm_evaluator=llm_evaluator,

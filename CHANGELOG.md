@@ -11,6 +11,8 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 ### Added
 - `lits.eval.search` terminal selection and answer retrieval helpers [T2.1]
 - Tree-evaluation regression checks [T1, T2.1]
+- `lits.eval.search.check_answer` and LLM judging helper [T2.2]
+- Answer-checking regression checks [T2.2]
 
 ### Fixed
 - `select_env_terminal` nonterminal-input validation [T2.1]

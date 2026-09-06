@@ -25,7 +25,7 @@ import lits_benchmark.formulations.rap  # noqa: F401
 
 from lits.agents.tree.node import SearchNode, MCTSNode
 from lits.agents.tree.common import extract_answers_from_terminal_nodes
-from lits.components.utils import get_fn_retrieve_answer
+from lits.components.utils import get_fn_retrieve_answer, retrieve_answer_from_last_step
 from lits.lm import get_lm
 
 
@@ -335,6 +335,29 @@ def load_terminal_nodes_from_json_str(json_str: str):
 # =============================================================================
 # Test Classes
 # =============================================================================
+
+def check_saved_rap_retrieval_inputs():
+    """Characterize common.py::extract_answers_from_terminal_nodes input fallback.
+
+    The saved SubQAStep objects have sub_question/sub_answer but no action field.
+    The current helper consequently supplies synthetic ThoughtSteps made from
+    node.action to the retriever. Capture this without invoking an LLM.
+    """
+    data = load_terminal_nodes_from_json_str(REAL_TERMINAL_NODES_JSON)
+    received = []
+
+    def retrieve(state, query):
+        """Record the actual retrieval input and use LiTS's numeric parser."""
+        received.append(state[-1].get_answer())
+        return retrieve_answer_from_last_step(state[-1])
+
+    votes, *_ = extract_answers_from_terminal_nodes(data['terminal_nodes'], retrieve, data['query'])
+    expected = [str(node.action) for node in data['terminal_nodes']]
+    if received != expected or dict(votes) != {"": len(expected)}:
+        raise RuntimeError(f"RAP retrieval fallback changed: {received!r}, {dict(votes)!r}")
+    breakpoint()  # inspect: received, expected, votes; sub_answer is absent from retrieval input
+    return {"case": "rap_retrieval_inputs", "expected": expected, "observed": received}
+
 
 class TestExtractAnswersFromTerminalNodes:
     """Test the extract_answers_from_terminal_nodes function with mock data."""

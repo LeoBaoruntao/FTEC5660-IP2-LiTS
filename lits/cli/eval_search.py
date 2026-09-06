@@ -32,6 +32,12 @@ from lits.registry import import_custom_modules, load_config_from_result_dir
 from lits.components.utils import get_fn_retrieve_answer
 from lits.lm import get_lm
 from lits.eval.inference_report import generate_report
+from lits.eval.search import (
+    retrieve_answer_from_env_node,
+    retrieve_answer_from_tool_use_node,
+    select_env_terminal,
+    select_tool_use_terminal,
+)
 from lits.log import setup_logging
 from lits.structures import ToolUseState, ToolUseStep  # Import to register types
 from lits.structures.env_grounded import EnvState, EnvStep  # Import to register types
@@ -314,58 +320,6 @@ def _save_eval_results(results: dict, result_dir: "Path", eval_logger):
     eval_logger.info(f"Evaluation results saved to {path}")
 
 
-def _select_tool_use_terminal(terminal_nodes, strategy: str):
-    """Pick which terminal node's answer to evaluate for tool_use tasks.
-
-    Strategies:
-      - "first":   terminal_nodes[0] (legacy save-order behaviour).
-      - "q-max":   argmax over max(cum_rewards) per node — best single
-                   rollout that reached this terminal.
-      - "q-mean":  argmax over mean(cum_rewards) per node — matches
-                   MCTSNode.DEFAULT_Q_FUNC (np.mean), i.e. the same
-                   Q-value MCTS uses for UCT during search.
-
-    Why "q-*" and not "prm-*": the values in `cum_rewards` are per-rollout
-    returns (per-step PRM scores aggregated along the path by
-    `backprop_reward_func`), not raw PRM scores. Across rollouts they're
-    aggregated into the node's Q-value by `cross_rollout_q_func`. So the
-    correct MCTS terminology for "rank terminals by their accumulated
-    score" is "rank by Q-value".
-
-    Empty `cum_rewards` is treated as -inf, so any node with at least one
-    rollout will outrank a never-visited terminal.
-
-    Returns:
-        The selected node, or None if `terminal_nodes` is empty.
-    """
-    if not terminal_nodes:
-        return None
-    if strategy == "first":
-        return terminal_nodes[0]
-
-    import numpy as _np
-    if strategy == "q-max":
-        def _score(n):
-            cr = getattr(n, "cum_rewards", None)
-            if not cr:
-                return -float("inf")
-            return float(max(cr) if isinstance(cr, list) else cr)
-    elif strategy == "q-mean":
-        def _score(n):
-            cr = getattr(n, "cum_rewards", None)
-            if not cr:
-                return -float("inf")
-            if isinstance(cr, list):
-                return float(_np.mean(cr))
-            return float(cr)
-    else:
-        raise ValueError(
-            f"Unknown terminal_selection={strategy!r}; "
-            "expected one of 'first', 'q-max', 'q-mean'"
-        )
-    return max(terminal_nodes, key=_score)
-
-
 def evaluate_from_checkpoints(
     result_dir: str,
     dataset_name: str,
@@ -441,40 +395,13 @@ def evaluate_from_checkpoints(
         base_model = get_lm(eval_model_name)
     
     # Get answer retrieval function
-    if is_env_grounded:
-        # For environment-grounded tasks, check goal satisfaction
-        def retrieve_answer_from_env_node(node, query):
-            """Extract final state and check goal satisfaction."""
-            if hasattr(node, 'state') and node.state:
-                state = node.state
-                if isinstance(state, EnvState):
-                    # Get the final env_state (after all steps)
-                    final_env_state = state.env_state
-                    is_reached, score = goal_check(query, final_env_state)
-                    return "correct" if is_reached else "incorrect"
-            return "incorrect"
-        retrieve_answer = retrieve_answer_from_env_node
-    elif is_tool_use:
-        # For tool use, extract answer from the step (stored in node)
-        def retrieve_answer_from_tool_use_node(node, query):
-            # Check if node has a step with an answer
-            if hasattr(node, 'step') and node.step:
-                step = node.step
-                if hasattr(step, 'answer') and step.answer:
-                    return step.answer
-                # Try to get answer from step dict if not deserialized
-                if isinstance(step, dict) and 'answer' in step:
-                    return step['answer']
-            # Fallback: check state
-            if hasattr(node, 'state') and node.state:
-                if isinstance(node.state, list) and len(node.state) > 0:
-                    last_step = node.state[-1]
-                    if isinstance(last_step, dict) and 'answer' in last_step:
-                        return last_step['answer']
-            return ""
-        retrieve_answer = retrieve_answer_from_tool_use_node
-    else:
-        retrieve_answer = get_fn_retrieve_answer(base_model)
+    # Environment retrieval receives goal_check directly in the evaluation loop.
+    if not is_env_grounded:
+        if is_tool_use:
+            # For tool use, extract answer from the step (stored in node)
+            retrieve_answer = retrieve_answer_from_tool_use_node
+        else:
+            retrieve_answer = get_fn_retrieve_answer(base_model)
     
     # Find result files: terminal_nodes/ (tree search) or checkpoints/ (chain)
     terminal_nodes_dir = result_dir / "terminal_nodes"
@@ -549,33 +476,20 @@ def evaluate_from_checkpoints(
                 terminal_nodes = data['terminal_nodes']
                 _query = data['query']
                 ground_truth = "correct"
-                if terminal_nodes:
-                    def get_best_reward(node):
-                        if hasattr(node, 'cum_rewards') and node.cum_rewards:
-                            return max(node.cum_rewards) if isinstance(node.cum_rewards, list) else node.cum_rewards
-                        return -float('inf')
-                    best_node = sorted(terminal_nodes, key=get_best_reward, reverse=True)[0]
-                    if hasattr(best_node, 'state') and best_node.state and isinstance(best_node.state, EnvState):
-                        is_reached, env_score = goal_check(_query, best_node.state.env_state)
-                        answer_pred = "correct" if is_reached else "incorrect"
-                        soft_scores.append(env_score)
-                    else:
-                        answer_pred = "incorrect"
-                        soft_scores.append(0.0)
-                else:
-                    answer_pred = "incorrect"
-                    soft_scores.append(0.0)
+                best_node = select_env_terminal(terminal_nodes)
+                answer_pred, env_score = retrieve_answer_from_env_node(best_node, _query, goal_check)
+                soft_scores.append(env_score)
             elif is_tool_use:
                 data = load_terminal_nodes_from_file(filepath)
                 terminal_nodes = data['terminal_nodes']
                 _query = data['query']
                 ground_truth = full_dataset[query_idx]['answer']
                 # Select which terminal's answer to evaluate. Strategy is
-                # configurable via --terminal_selection (default prm-mean).
-                # See `_select_tool_use_terminal` docstring and the
+                # configurable via --terminal_selection (default q-mean).
+                # See `select_tool_use_terminal` docstring and the
                 # "Eval pipeline bug" section in
                 # paper/lits_memory/results/summary_wikisql.md for context.
-                best_node = _select_tool_use_terminal(terminal_nodes, terminal_selection)
+                best_node = select_tool_use_terminal(terminal_nodes, terminal_selection)
                 answer_pred = retrieve_answer(best_node, _query) if best_node is not None else ""
                 if "mapeval" in dataset_name:
                     ground_truth = "Option " + str(ground_truth)

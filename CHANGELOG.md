@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-09-06 Unreleased (`0820-major-selection-interface/tasks_task_adapters`)
+
+### Added
+- `lits.eval.search` terminal selection and answer retrieval helpers [T2.1]
+- Tree-evaluation regression checks [T1, T2.1]
+
+### Fixed
+- `select_env_terminal` nonterminal-input validation [T2.1]
+
 ## 2026-08-28 Unreleased (`0828-major-structured-policy-termination/tasks`)
 
 ### Added

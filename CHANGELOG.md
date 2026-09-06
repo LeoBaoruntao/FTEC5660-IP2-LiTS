@@ -17,6 +17,7 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 - CLI, in-memory, and reloaded-tree evaluation comparisons [T2.4]
 - Live binary-fallback regression checks [T3.3]
 - Chain/pass-at-N evaluation compatibility checks [T3.2]
+- Live F1-fallback regression checks [T3.3]
 
 ### Changed
 - CLI shared tree-result evaluation [T3.1]

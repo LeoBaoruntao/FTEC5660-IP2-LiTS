@@ -14,7 +14,7 @@ All additional cases use real LiTS nodes and steps with controlled field values.
 The CLI constructs a real OpenAI-compatible client but these deterministic cases
 need no inference, dataset download, or database connection. Answer-extraction LLM
 fallback checks remain in agents/test_extract_answers.py; --llm-model additionally
-checks live binary correctness judging here. Each CLI fixture is also evaluated
+checks live binary and F1 judging here. Each CLI fixture is also evaluated
 directly from its original nodes and from its reloaded terminal records.
 Logs and all three outcomes remain in a fresh temporary directory.
 --compare-chain-cli-ref additionally runs the current and specified Git revision's
@@ -116,7 +116,7 @@ def terminal(step=None, *, returns=(), fast_reward=0.5, node_class=MCTSNode):
 
 
 def check_case(output_dir, name, dataset, nodes, truth, expected, *, query="Test query",
-               selection=None, llm_model=None):
+               selection=None, llm_model=None, llm_eval_mode="binary"):
     """Compare CLI, original-node, and reloaded-node evaluation on the same fixture.
 
     References: search.py::save_terminal_nodes,
@@ -125,7 +125,7 @@ def check_case(output_dir, name, dataset, nodes, truth, expected, *, query="Test
     expected is (prediction, correct, optional_score, environment_progress).
     Shared calls receive nodes/reference and caller-configured retrieval/checkers,
     without a result directory, dataset name, or model-creation arguments.
-    llm_model optionally enables live binary judging for tool-use fixtures; the
+    llm_model optionally enables live binary or F1 judging for tool-use fixtures; the
     shared calls retain inference usage records, and the CLI retains routing logs.
     """
     case_dir = output_dir / name
@@ -139,7 +139,7 @@ def check_case(output_dir, name, dataset, nodes, truth, expected, *, query="Test
             report = evaluate_from_checkpoints(
                 str(case_dir), dataset, llm_model or MODEL_NAME,
                 dataset_kwargs={"examples": [{"question": query, "answer": truth}]},
-                llm_eval_mode="binary" if llm_model else "none", **options,
+                llm_eval_mode=llm_eval_mode if llm_model else "none", **options,
             )
     log = (case_dir / "eval.log").read_text()
     matches = re.findall(r"\[0\] Pred='(.*?)', Truth=.*?, Correct=(True|False)", log)
@@ -171,8 +171,9 @@ def check_case(output_dir, name, dataset, nodes, truth, expected, *, query="Test
         model = get_lm(llm_model)
         inference_logger = setup_inference_logging(model, root_dir=str(case_dir))
         shared_options["llm_evaluator"] = _create_llm_evaluator(
-            model, "binary", logging.getLogger("lits.test"),
+            model, llm_eval_mode, logging.getLogger("lits.test"),
         )
+        shared_options["llm_eval_mode"] = llm_eval_mode
 
     saved = load_terminal_nodes_from_file(case_dir / "terminal_nodes" / "terminal_nodes_0.json")
     expected_shared = dict(zip(
@@ -209,6 +210,7 @@ def check_case(output_dir, name, dataset, nodes, truth, expected, *, query="Test
             raise RuntimeError(f"{name}: unexpected inference role")
         shared_results["registered_result"] = registered_result
         shared_results["llm_model"] = llm_model
+        shared_results["llm_eval_mode"] = llm_eval_mode
         shared_results["shared_inference_calls"] = len(usage)
 
     print(f"PASS {name}: CLI = in-memory = reloaded: {observed}")
@@ -372,7 +374,7 @@ def check_answer_outcomes():
 
 
 def check_live_fallback(output_dir, model_name):
-    """Exercise search.py::check_answer binary fallback with a real model and DBBench checker.
+    """Exercise search.py::check_answer with real DBBench/KGQA checkers and a model.
 
     Each fixture runs through the CLI and both shared-input paths. Correctness is
     checked on simple answers; this is a routing check, not a judge-quality estimate.
@@ -387,6 +389,19 @@ def check_live_fallback(output_dir, model_name):
             output_dir, f"live_{name}", DB_DATASET,
             [terminal(ToolUseStep(answer=prediction), returns=[0.5])], ["42"],
             (prediction, correct, None, None), llm_model=model_name,
+        ))
+    for name, prediction, truth, expected_score in (
+        ("f1_registered_success", "alpha, beta", ["alpha", "beta"], 1.0),
+        ("f1_partial", "alpha", ["alpha", "beta", "gamma"], 0.5),
+        ("f1_reject", "delta", ["alpha", "beta"], 0.0),
+        # KGQA splits on commas/newlines; the model can recognize this conjunction.
+        ("f1_rescue", "alpha and beta", ["alpha", "beta"], 1.0),
+    ):
+        checks.append(check_case(
+            output_dir, f"live_{name}", FLOAT_DATASET,
+            [terminal(ToolUseStep(answer=prediction), returns=[0.5])], truth,
+            (prediction, expected_score == 1.0, expected_score, None),
+            llm_model=model_name, llm_eval_mode="f1",
         ))
     breakpoint()  # inspect: checks; live_* directories contain eval.log and inferencelogger.log
     return checks
@@ -519,7 +534,7 @@ def check_chain_checkpoints(output_dir, legacy_ref):
 def main():
     """Compare evaluation paths, optionally run live judging, and retain logs/outcomes."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--llm-model", help="LiTS model name for optional live binary fallback checks")
+    parser.add_argument("--llm-model", help="LiTS model name for optional live binary/F1 fallback checks")
     parser.add_argument("--compare-chain-cli-ref", help="Trusted local Git revision for chain/pass-at-N comparison")
     args = parser.parse_args()
     os.environ.setdefault("OPENAI_API_KEY", "no-key")
@@ -540,7 +555,7 @@ def main():
     print(f"Passed {len(checks)} checks (29 CLI/in-memory/reloaded comparisons, 1 retrieval, "
           "2 terminal validation, 5 answer checking"
           f"{', 10 chain/pass-at-N comparisons' if args.compare_chain_cli_ref else ''}"
-          f"{', 3 live binary fallback cases' if args.llm_model else ''}). "
+          f"{', 3 live binary and 4 live F1 cases' if args.llm_model else ''}). "
           f"Baseline: {output_dir / 'baseline.json'}")
     breakpoint()  # inspect: checks, output_dir; each case contains terminal_nodes/ and eval.log
 

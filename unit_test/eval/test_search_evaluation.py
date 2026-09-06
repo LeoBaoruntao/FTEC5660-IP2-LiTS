@@ -2,6 +2,7 @@
 
 Run from lits_llm/ with demos/ on PYTHONPATH:
     PYTHONBREAKPOINT=0 python -m unit_test.eval.test_search_evaluation
+    PYTHONBREAKPOINT=0 python -m unit_test.eval.test_search_evaluation --llm-model ollama/llama3.2:latest
 
 This checks the saved-result pipeline, not individual benchmark algorithms.
 agents/test_extract_answers.py owns extraction/voting checks and the saved RAP
@@ -10,8 +11,9 @@ own the benchmark comparators. Their registered implementations are used directl
 
 All additional cases use real LiTS nodes and steps with controlled field values.
 The CLI constructs a real OpenAI-compatible client but these deterministic cases
-need no inference, dataset download, or database connection. LLM fallback checks
-remain in agents/test_extract_answers.py. Each CLI fixture is also evaluated
+need no inference, dataset download, or database connection. Answer-extraction LLM
+fallback checks remain in agents/test_extract_answers.py; --llm-model additionally
+checks live binary correctness judging here. Each CLI fixture is also evaluated
 directly from its original nodes and from its reloaded terminal records.
 Logs and all three outcomes remain in a fresh temporary directory.
 """
@@ -19,6 +21,7 @@ Logs and all three outcomes remain in a fresh temporary directory.
 from __future__ import annotations
 
 import contextlib
+import argparse
 import json
 import logging
 import os
@@ -34,12 +37,16 @@ from lits.benchmarks.registry import (
     register_evaluator,
     register_resource,
 )
-from lits.cli.eval_search import evaluate_from_checkpoints, load_terminal_nodes_from_file
+from lits.cli.eval_search import (
+    _create_llm_evaluator,
+    evaluate_from_checkpoints,
+    load_terminal_nodes_from_file,
+)
 from lits.cli.search import save_terminal_nodes
 from lits.components.registry import ComponentRegistry
 from lits.components.utils import get_fn_retrieve_answer
 from lits.eval.search import check_answer, evaluate_search_result, select_env_terminal
-from lits.lm import get_lm
+from lits.lm import get_lm, setup_inference_logging
 from lits.structures.base import TrajectoryState
 from lits.structures.env_grounded import EnvState, EnvStep
 from lits.structures.qa import ThoughtStep
@@ -103,7 +110,7 @@ def terminal(step=None, *, returns=(), fast_reward=0.5, node_class=MCTSNode):
 
 
 def check_case(output_dir, name, dataset, nodes, truth, expected, *, query="Test query",
-               selection=None):
+               selection=None, llm_model=None):
     """Compare CLI, original-node, and reloaded-node evaluation on the same fixture.
 
     References: search.py::save_terminal_nodes,
@@ -112,6 +119,8 @@ def check_case(output_dir, name, dataset, nodes, truth, expected, *, query="Test
     expected is (prediction, correct, optional_score, environment_progress).
     Shared calls receive nodes/reference and caller-configured retrieval/checkers,
     without a result directory, dataset name, or model-creation arguments.
+    llm_model optionally enables live binary judging for tool-use fixtures; the
+    shared calls retain inference usage records, and the CLI retains routing logs.
     """
     case_dir = output_dir / name
     case_dir.mkdir()
@@ -122,9 +131,9 @@ def check_case(output_dir, name, dataset, nodes, truth, expected, *, query="Test
     with (case_dir / "console.log").open("w") as console:
         with contextlib.redirect_stdout(console), contextlib.redirect_stderr(console):
             report = evaluate_from_checkpoints(
-                str(case_dir), dataset, MODEL_NAME,
+                str(case_dir), dataset, llm_model or MODEL_NAME,
                 dataset_kwargs={"examples": [{"question": query, "answer": truth}]},
-                llm_eval_mode="none", **options,
+                llm_eval_mode="binary" if llm_model else "none", **options,
             )
     log = (case_dir / "eval.log").read_text()
     matches = re.findall(r"\[0\] Pred='(.*?)', Truth=.*?, Correct=(True|False)", log)
@@ -152,6 +161,13 @@ def check_case(output_dir, name, dataset, nodes, truth, expected, *, query="Test
         task_type = "tool_use"
         shared_options["custom_evaluator"] = get_evaluator(dataset)
 
+    if llm_model:
+        model = get_lm(llm_model)
+        inference_logger = setup_inference_logging(model, root_dir=str(case_dir))
+        shared_options["llm_evaluator"] = _create_llm_evaluator(
+            model, "binary", logging.getLogger("lits.test"),
+        )
+
     saved = load_terminal_nodes_from_file(case_dir / "terminal_nodes" / "terminal_nodes_0.json")
     expected_shared = dict(zip(
         ("prediction", "correct", "score", "environment_progress"), expected,
@@ -167,6 +183,27 @@ def check_case(output_dir, name, dataset, nodes, truth, expected, *, query="Test
         if outcome != expected_shared:
             raise RuntimeError(f"{name}/{source}: {outcome!r} != {expected_shared!r}")
         shared_results[source] = outcome
+
+    if llm_model:
+        registered_result = shared_options["custom_evaluator"](expected[0], truth)
+        registered_correct = (
+            registered_result == 1.0 if isinstance(registered_result, float)
+            else bool(registered_result)
+        )
+        needs_fallback = not registered_correct
+        if ("LLM fallback:" in log) != needs_fallback:
+            raise RuntimeError(f"{name}: unexpected CLI fallback routing")
+        usage = [json.loads(line) for line in Path(inference_logger.filepath).read_text().splitlines()]
+        if needs_fallback:
+            if not 2 <= len(usage) <= 6:
+                raise RuntimeError(f"{name}: expected one to three calls per shared evaluation")
+        elif usage:
+            raise RuntimeError(f"{name}: registered success unnecessarily invoked the LLM")
+        if any(record["role"] != "evaluator_general" for record in usage):
+            raise RuntimeError(f"{name}: unexpected inference role")
+        shared_results["registered_result"] = registered_result
+        shared_results["llm_model"] = llm_model
+        shared_results["shared_inference_calls"] = len(usage)
 
     print(f"PASS {name}: CLI = in-memory = reloaded: {observed}")
     return {"case": name, "expected": expected, "observed": observed, **shared_results}
@@ -328,8 +365,32 @@ def check_answer_outcomes():
     return checks
 
 
+def check_live_fallback(output_dir, model_name):
+    """Exercise search.py::check_answer binary fallback with a real model and DBBench checker.
+
+    Each fixture runs through the CLI and both shared-input paths. Correctness is
+    checked on simple answers; this is a routing check, not a judge-quality estimate.
+    """
+    checks = []
+    for name, prediction, correct in (
+        ("registered_success", "42", True),
+        ("binary_rescue", "There are forty-two records.", True),
+        ("binary_reject", "43", False),
+    ):
+        checks.append(check_case(
+            output_dir, f"live_{name}", DB_DATASET,
+            [terminal(ToolUseStep(answer=prediction), returns=[0.5])], ["42"],
+            (prediction, correct, None, None), llm_model=model_name,
+        ))
+    breakpoint()  # inspect: checks; live_* directories contain eval.log and inferencelogger.log
+    return checks
+
+
 def main():
-    """Compare deterministic evaluation paths and retain inputs, logs, and outcomes."""
+    """Compare evaluation paths, optionally run live judging, and retain logs/outcomes."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--llm-model", help="LiTS model name for optional live binary fallback checks")
+    args = parser.parse_args()
     os.environ.setdefault("OPENAI_API_KEY", "no-key")
     os.environ.setdefault("OPENAI_API_BASE", "http://localhost:8000/v1")
     register_examples()
@@ -340,9 +401,12 @@ def main():
     checks.extend(check_tool_use(output_dir))
     checks.extend(check_environment(output_dir))
     checks.extend(check_answer_outcomes())
+    if args.llm_model:
+        checks.extend(check_live_fallback(output_dir, args.llm_model))
     (output_dir / "baseline.json").write_text(json.dumps(checks, indent=2) + "\n")
     print(f"Passed {len(checks)} checks (29 CLI/in-memory/reloaded comparisons, 1 retrieval, "
-          "2 terminal validation, 5 answer checking). "
+          "2 terminal validation, 5 answer checking"
+          f"{', 3 live binary fallback cases' if args.llm_model else ''}). "
           f"Baseline: {output_dir / 'baseline.json'}")
     breakpoint()  # inspect: checks, output_dir; each case contains terminal_nodes/ and eval.log
 

@@ -25,7 +25,6 @@ from dotenv import load_dotenv, find_dotenv
 from tqdm import tqdm
 
 from lits.agents.tree.node import SearchNode, MCTSNode
-from lits.agents.tree.common import extract_answers_from_terminal_nodes
 from lits.benchmarks.registry import load_dataset, has_resource, has_evaluator, get_evaluator
 from lits.components.registry import ComponentRegistry
 from lits.registry import import_custom_modules, load_config_from_result_dir
@@ -34,10 +33,8 @@ from lits.lm import get_lm
 from lits.eval.inference_report import generate_report
 from lits.eval.search import (
     check_answer,
-    retrieve_answer_from_env_node,
+    evaluate_search_result,
     retrieve_answer_from_tool_use_node,
-    select_env_terminal,
-    select_tool_use_terminal,
 )
 from lits.log import setup_logging
 from lits.structures import ToolUseState, ToolUseStep  # Import to register types
@@ -271,6 +268,9 @@ def evaluate_from_checkpoints(
 ):
     """
     Evaluate tree search results from checkpoint files.
+
+    Loaded tree terminals are evaluated by lits.eval.search.evaluate_search_result.
+    File loading, evaluator setup, chain evaluation, and reporting remain here.
     
     Args:
         result_dir: Directory containing terminal_nodes_*.json files
@@ -309,17 +309,21 @@ def evaluate_from_checkpoints(
     is_tool_use = has_resource(dataset_name)
     
     # Load dataset for ground truths (not needed for env_grounded tasks)
+    goal_check = None
     if is_env_grounded:
+        task_type = "env_grounded"
         # For env_grounded tasks, get goal_check from registry
         goal_check = get_goal_check_from_registry(dataset_name)
         full_dataset = None
         eval_logger.info(f"Evaluating {dataset_name} results (goal checking via registry)")
     elif is_tool_use:
+        task_type = "tool_use"
         # Tool-use datasets are registered via @register_dataset, same as other task types
         full_dataset = load_dataset(dataset_name, **(dataset_kwargs or {}))
         # NOTE: Do NOT slice the dataset here. The query_idx in terminal node files
         # refers to the original dataset index, not the sliced index.
     else:
+        task_type = "language_grounded"
         dataset_kwargs = dataset_kwargs or {}
         full_dataset = load_dataset(dataset_name, **dataset_kwargs)
         # NOTE: Do NOT slice the dataset here. The query_idx in terminal node files
@@ -331,7 +335,8 @@ def evaluate_from_checkpoints(
         base_model = get_lm(eval_model_name)
     
     # Get answer retrieval function
-    # Environment retrieval receives goal_check directly in the evaluation loop.
+    # Shared environment evaluation receives goal_check instead of a retriever.
+    retrieve_answer = None
     if not is_env_grounded:
         if is_tool_use:
             # For tool use, extract answer from the step (stored in node)
@@ -400,69 +405,65 @@ def evaluate_from_checkpoints(
         try:
             # --- Parse query_idx and attempt from filename ---
             query_idx, attempt = _parse_checkpoint_filename(filepath)
+            label = f"[{query_idx}_a{attempt}]" if attempt is not None else f"[{query_idx}]"
 
-            # --- Extract predicted answer ---
+            # --- Extract and score the prediction ---
             if use_chain_checkpoints:
                 from lits.structures.tool_use import ToolUseState
                 _query, state = ToolUseState.load(str(filepath))
                 ground_truth = full_dataset[query_idx]['answer']
                 answer_pred = state.get_final_answer() or ""
-            elif is_env_grounded:
+                if is_env_grounded:
+                    correct = (answer_pred == ground_truth)
+                    score = None
+                elif custom_evaluator or llm_evaluator:
+                    correct, score = check_answer(
+                        answer_pred, ground_truth,
+                        custom_evaluator=custom_evaluator,
+                        llm_evaluator=llm_evaluator,
+                        llm_eval_mode=llm_eval_mode,
+                        eval_logger=eval_logger,
+                        label=label,
+                    )
+                else:
+                    try:
+                        correct = eval_output(str(ground_truth), answer_pred, type="number_exact")
+                    except (AssertionError, ValueError):
+                        correct = (answer_pred == str(ground_truth))
+                    score = None
+            else:
                 data = load_terminal_nodes_from_file(filepath)
                 terminal_nodes = data['terminal_nodes']
                 _query = data['query']
-                ground_truth = "correct"
-                best_node = select_env_terminal(terminal_nodes)
-                answer_pred, env_score = retrieve_answer_from_env_node(best_node, _query, goal_check)
-                soft_scores.append(env_score)
-            elif is_tool_use:
-                data = load_terminal_nodes_from_file(filepath)
-                terminal_nodes = data['terminal_nodes']
-                _query = data['query']
-                ground_truth = full_dataset[query_idx]['answer']
-                # Select which terminal's answer to evaluate. Strategy is
+                ground_truth = "correct" if is_env_grounded else full_dataset[query_idx]['answer']
+                if is_tool_use and not is_env_grounded and "mapeval" in dataset_name:
+                    ground_truth = "Option " + str(ground_truth)
+
+                # Tool-use terminal selection in the shared evaluator is
                 # configurable via --terminal_selection (default q-mean).
                 # See `select_tool_use_terminal` docstring and the
                 # "Eval pipeline bug" section in
                 # paper/lits_memory/results/summary_wikisql.md for context.
-                best_node = select_tool_use_terminal(terminal_nodes, terminal_selection)
-                answer_pred = retrieve_answer(best_node, _query) if best_node is not None else ""
-                if "mapeval" in dataset_name:
-                    ground_truth = "Option " + str(ground_truth)
-            else:
-                data = load_terminal_nodes_from_file(filepath)
-                terminal_nodes = data['terminal_nodes']
-                _query = data['query']
-                ground_truth = full_dataset[query_idx]['answer']
-                vote_answers, *_ = extract_answers_from_terminal_nodes(
-                    terminal_nodes_collected=terminal_nodes,
+                outcome = evaluate_search_result(
+                    terminal_nodes, _query, ground_truth,
+                    task_type=task_type,
                     retrieve_answer=retrieve_answer,
-                    query=_query,
-                )
-                answer_pred = max(vote_answers, key=lambda a: vote_answers[a]) if vote_answers else ''
-
-            # --- Score the prediction ---
-            label = f"[{query_idx}_a{attempt}]" if attempt is not None else f"[{query_idx}]"
-            if is_env_grounded:
-                correct = (answer_pred == ground_truth)
-                score = None
-            elif custom_evaluator or llm_evaluator:
-                correct, score = check_answer(
-                    answer_pred, ground_truth,
+                    terminal_selection=terminal_selection,
                     custom_evaluator=custom_evaluator,
                     llm_evaluator=llm_evaluator,
                     llm_eval_mode=llm_eval_mode,
+                    goal_check=goal_check,
                     eval_logger=eval_logger,
                     label=label,
                 )
-                if score is not None:
-                    eval_scores.append(score)
-            else:
-                try:
-                    correct = eval_output(str(ground_truth), answer_pred, type="number_exact")
-                except (AssertionError, ValueError):
-                    correct = (answer_pred == str(ground_truth))
-                score = None
+                answer_pred = outcome["prediction"]
+                correct = outcome["correct"]
+                score = outcome["score"]
+                if is_env_grounded:
+                    soft_scores.append(outcome["environment_progress"])
+
+            if score is not None:
+                eval_scores.append(score)
 
             eval_logger.info(f"  {label} Pred='{str(answer_pred)[:80]}', Truth='{str(ground_truth)[:80]}', Correct={correct}")
             eval_points.append({"idx": query_idx, "attempt": attempt, "correct": correct, "score": 1.0 if correct else 0.0})

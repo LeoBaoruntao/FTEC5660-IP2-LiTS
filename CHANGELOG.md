@@ -15,6 +15,10 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 - Answer-checking regression checks [T2.2]
 - `lits.eval.search.evaluate_search_result` [T2.3]
 - CLI, in-memory, and reloaded-tree evaluation comparisons [T2.4]
+- Live binary-fallback regression checks [T3.3]
+
+### Changed
+- CLI shared tree-result evaluation [T3.1]
 
 ### Fixed
 - `select_env_terminal` nonterminal-input validation [T2.1]

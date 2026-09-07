@@ -11,7 +11,11 @@ References:
 - ``mcts.py::_select``
 """
 
+import json
 import os
+from itertools import product
+from pathlib import Path
+from tempfile import mkdtemp
 from types import SimpleNamespace
 
 from lits import get_lm
@@ -218,6 +222,88 @@ def check_selected_terminal_backup() -> None:
 
     if failures:
         raise RuntimeError("Selected-terminal backup failed: " + ", ".join(failures))
+    check_early_exit_recording(world_model, policy, reward_model)
+
+
+def check_early_exit_recording(world_model, policy, reward_model) -> None:
+    """Check ``mcts.py::MCTSSearch._handle_early_exit`` ordering without inference.
+
+    Reuse real search components; the supplied callback checks backup statistics
+    and writes an inspection marker. Check trace/checkpoint capture of that marker
+    for all four stages, both stop settings, and checkpointing enabled/disabled.
+    Fresh checkpoint files are retained in the printed temporary directory.
+    """
+    output_dir = Path(mkdtemp(prefix="lits-mcts-early-exit-"))
+    print(f"Early-exit checkpoint checks: {output_dir}")
+    stages = (
+        ("select", None), ("continuation", "continuation"),
+        ("world_model", "expand"), ("pre_simulate", "expand"),
+    )
+    for (stage, phase), stop, save in product(stages, (False, True), (False, True)):
+        case_dir = output_dir / f"{stage}-stop-{stop}-save-{save}"
+        checkpoint = case_dir / "checkpoints" / "0_0.json"
+        config = MCTSConfig(n_iters=1, terminate_on_terminal_node=stop)
+        search = MCTSSearch(
+            config, world_model, policy, reward_model,
+            checkpoint_dir=str(case_dir) if save else None,
+        )
+        query = "What is 6 multiplied by 7?"
+        search._setup(query, query_idx=0)
+        traces, calls = [], []
+
+        def record_completion(path, reward, query_idx, *, from_phase):
+            """Check backup precedes this callback and mark the recorded endpoint."""
+            if [(node.visit_count, node.cum_rewards) for node in path] != expected:
+                raise RuntimeError("Completion callback ran before backup")
+            if traces or checkpoint.exists():
+                raise RuntimeError("Trace or checkpoint was captured before the callback")
+            calls.append((reward, query_idx, from_phase))
+            path[-1].step.error = "completion recorded"
+
+        try:
+            root = search.root
+            root.reward = 0.0
+            step = ThoughtStep(action="The answer is 42.")
+            endpoint = MCTSNode(state=None, action=step.action, parent=root, fast_reward=1.0)
+            endpoint.step = step
+            root.add_child(endpoint)
+            path = endpoint.get_path()
+            expected = [(1, [0.5]), (1, [1.0])]
+
+            if search._handle_early_exit(
+                path, 0, 0, traces, stage=stage, on_trajectory_complete=record_completion,
+            ):
+                raise RuntimeError("A nonterminal path unexpectedly ended its iteration")
+            if traces or calls or checkpoint.exists() or any(node.visit_count or node.cum_rewards for node in path):
+                raise RuntimeError("A non-stopping check changed statistics or records")
+
+            _world_modeling(query, 0, endpoint, world_model, reward_model)
+            ended = search._handle_early_exit(
+                path, 0, 0, traces, stage=stage, on_trajectory_complete=record_completion,
+            )
+            if not ended or [(node.visit_count, node.cum_rewards) for node in path] != expected:
+                raise RuntimeError("Early exit did not back up its terminal path once")
+            expected_calls = [(1.0, 0, phase)] if phase is not None else []
+            if calls != expected_calls:
+                raise RuntimeError(f"Incorrect completion callback: {calls} != {expected_calls}")
+            marker = "completion recorded" if phase is not None else None
+            if len(traces) != 1 or [(node.visit_count, node.cum_rewards) for node in traces[0]] != expected:
+                raise RuntimeError("Trace did not capture post-backup statistics")
+            endpoint.step.error = "changed after exit"
+            if traces[0][-1].step.error != marker:
+                raise RuntimeError("Trace did not preserve an independent post-callback copy")
+            if save:
+                saved = json.loads(checkpoint.read_text())
+                if [(node["visit_count"], node["cum_rewards"]) for node in saved] != expected:
+                    raise RuntimeError("Checkpoint did not capture post-backup statistics")
+                if saved[-1]["step"].get("error") != marker:
+                    raise RuntimeError("Checkpoint did not capture the callback update")
+            elif case_dir.exists():
+                raise RuntimeError("Disabled checkpointing created an output directory")
+            print(f"  PASS: {stage}, stop={stop}, checkpoint={save}")
+            breakpoint()  # inspect: calls, traces, checkpoint, expected
+        finally:
+            search._teardown()
 
 
 def main() -> None:

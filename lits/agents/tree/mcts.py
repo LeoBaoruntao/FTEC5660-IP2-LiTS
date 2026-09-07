@@ -723,8 +723,78 @@ class MCTSSearch(BaseTreeSearch):
         else:
             _back_propagate(path, config.backprop_reward_func, config.backprop_broadcast_mode)
 
+    def _handle_early_exit(
+        self, path, query_idx, iteration, trace_in_each_iter, *,
+        stage: str, on_trajectory_complete=None,
+    ) -> bool:
+        """Check and finalize an iteration that stops before simulation.
+
+        Args:
+            path: Selected root-to-endpoint path; terminal backup mutates it.
+            query_idx: Example identifier for callbacks, logs, and checkpoints.
+            iteration: Current zero-based MCTS iteration.
+            trace_in_each_iter: Receives a copy after backup and callback updates.
+            stage: ``select``, ``continuation``, ``world_model``, or ``pre_simulate``.
+                Select skips the completion callback; the other stages use
+                ``continuation``, ``expand``, and ``expand`` respectively.
+            on_trajectory_complete: Optional existing trajectory callback.
+
+        Returns:
+            True when the existing stop predicate holds. The caller must then
+            break or continue according to ``terminate_on_terminal_node``.
+            False leaves the path and records unchanged.
+
+        Materialized terminals receive one backup, including revisits. Nonterminal
+        cutoffs keep their existing callback behavior without terminal backup.
+        The callback runs before trace capture and optional checkpoint saving.
+        Do not call after rollout: that path already performs its own backup.
+        """
+        config = self.config
+        endpoint = path[-1]
+        if not _is_terminal_with_depth_limit_and_r_threshold(
+            endpoint, config.max_steps, config.force_terminating_on_depth_limit,
+            config.r_terminating,
+        ):
+            return False
+
+        position, from_phase = {
+            "select": ("after select", None),
+            "continuation": ("after continuation", "continuation"),
+            "world_model": ("after world modeling", "expand"),
+            "pre_simulate": ("before simulate", "expand"),
+        }[stage]
+        if endpoint.is_terminal and endpoint.state is not None:
+            self._do_backpropagate(path)
+        if from_phase is not None and on_trajectory_complete is not None:
+            on_trajectory_complete(path, endpoint.reward, query_idx, from_phase=from_phase)
+        trace_in_each_iter.append(deepcopy(path))
+        if self._checkpoint_path:
+            from ...structures.trace import _serialize_obj
+            self.save_checkpoint(query_idx, iteration, _serialize_obj(path))
+
+        if config.terminate_on_terminal_node:
+            log_event(logger, "MCTS", f"Terminates due to terminal node ({position})", level="debug")
+            n_terminals = len(self.collect_terminal_nodes())
+            tree_str = visualize_tree(self.root)
+            logger.info(
+                f"[MCTS] Iteration {iteration}/{config.n_iters} (example={query_idx}) "
+                f"| terminals={n_terminals} | early_stop={stage}\n{tree_str}"
+            )
+        else:
+            log_event(
+                logger, "MCTS",
+                f"Continues to next iteration due to terminal node ({position})", level="debug",
+            )
+        return True
+
     def search(self, query, query_idx) -> MCTSResult:
-        """Run MCTS iterations.  ``self.root`` is ready."""
+        """Run MCTS iterations.  ``self.root`` is ready.
+
+        A selected path ending at a materialized terminal is backed up before
+        its iteration exits, without another rollout. Terminal revisits reuse
+        the stored reward and count as another traversal. Nonterminal depth
+        and repetition exits retain their existing behavior.
+        """
         logger.debug(f"Question: {query}")
         log_phase(logger, "MCTS", f"Begin (example={query_idx})")
 
@@ -786,17 +856,12 @@ class MCTSSearch(BaseTreeSearch):
             update_traj_key(path[-1])
 
             # ====== Terminate Check (after select) ======
-            if _is_terminal_with_depth_limit_and_r_threshold(path[-1], config.max_steps, config.force_terminating_on_depth_limit, config.r_terminating):
-                trace_in_each_iter.append(deepcopy(path))
+            if self._handle_early_exit(
+                path, query_idx, idx_iter, trace_in_each_iter, stage="select",
+            ):
                 if config.terminate_on_terminal_node:
-                    log_event(logger, "MCTS", "Terminates due to terminal node (after select)", level="debug")
-                    n_terminals = len(self.collect_terminal_nodes())
-                    tree_str = visualize_tree(self.root)
-                    logger.info(f"[MCTS] Iteration {idx_iter}/{config.n_iters} (example={query_idx}) | terminals={n_terminals} | early_stop=select\n{tree_str}")
                     break
-                else:
-                    log_event(logger, "MCTS", "Continues to next iteration due to terminal node (after select)", level="debug")
-                    continue
+                continue
 
             # ====== Continuation ======
             if config.add_continuation:
@@ -818,39 +883,27 @@ class MCTSSearch(BaseTreeSearch):
                 # Update trajectory_key after continuation (path[-1] changed)
                 update_traj_key(path[-1])
 
-                if _is_terminal_with_depth_limit_and_r_threshold(path[-1], config.max_steps, config.force_terminating_on_depth_limit, config.r_terminating):
-                    trace_in_each_iter.append(deepcopy(path))
-                    # Trigger per-trajectory augmentors — continuation just created a terminal node
-                    if on_trajectory_complete is not None:
-                        on_trajectory_complete(path, path[-1].reward, query_idx, from_phase="continuation")
+                # Notify per-trajectory augmentors when continuation completes a trajectory.
+                if self._handle_early_exit(
+                    path, query_idx, idx_iter, trace_in_each_iter, stage="continuation",
+                    on_trajectory_complete=on_trajectory_complete,
+                ):
                     if config.terminate_on_terminal_node:
-                        log_event(logger, "MCTS", "Terminates due to terminal node (after continuation)", level="debug")
-                        n_terminals = len(self.collect_terminal_nodes())
-                        tree_str = visualize_tree(self.root)
-                        logger.info(f"[MCTS] Iteration {idx_iter}/{config.n_iters} (example={query_idx}) | terminals={n_terminals} | early_stop=continuation\n{tree_str}")
                         break
-                    else:
-                        log_event(logger, "MCTS", "Continues to next iteration due to terminal node (after continuation)", level="debug")
-                        continue
+                    continue
 
             # ====== Expansion ======
             if path[-1].state is None:
                 _world_modeling(query, query_idx, path[-1], transition_model=self.world_model, reward_model=self.reward_model, from_phase="expand")
 
-            if _is_terminal_with_depth_limit_and_r_threshold(path[-1], config.max_steps, config.force_terminating_on_depth_limit, config.r_terminating):
-                trace_in_each_iter.append(deepcopy(path))
-                # Trigger per-trajectory augmentors — world_modeling just revealed a terminal node
-                if on_trajectory_complete is not None:
-                    on_trajectory_complete(path, path[-1].reward, query_idx, from_phase="expand")
+            # World-model completions notify per-trajectory augmentors as expansion.
+            if self._handle_early_exit(
+                path, query_idx, idx_iter, trace_in_each_iter, stage="world_model",
+                on_trajectory_complete=on_trajectory_complete,
+            ):
                 if config.terminate_on_terminal_node:
-                    log_event(logger, "MCTS", "Terminates due to terminal node (after world modeling)", level="debug")
-                    n_terminals = len(self.collect_terminal_nodes())
-                    tree_str = visualize_tree(self.root)
-                    logger.info(f"[MCTS] Iteration {idx_iter}/{config.n_iters} (example={query_idx}) | terminals={n_terminals} | early_stop=world_model\n{tree_str}")
                     break
-                else:
-                    log_event(logger, "MCTS", "Continues to next iteration due to terminal node (after world modeling)", level="debug")
-                    continue
+                continue
 
             self._do_expand(
                 query, query_idx, path[-1], self.policy,
@@ -866,21 +919,14 @@ class MCTSSearch(BaseTreeSearch):
             if path[-1].state is None:
                 _world_modeling(query, query_idx, path[-1], self.world_model, self.reward_model, from_phase="expand")
 
-            if _is_terminal_with_depth_limit_and_r_threshold(path[-1], config.max_steps, config.force_terminating_on_depth_limit, config.r_terminating):
-                trace_in_each_iter.append(deepcopy(path))
-                # Trigger per-trajectory augmentors — expand just created a terminal node,
-                # this is a new completed trajectory worth reflecting on
-                if on_trajectory_complete is not None:
-                    on_trajectory_complete(path, path[-1].reward, query_idx, from_phase="expand")
+            # Notify per-trajectory augmentors when expansion completes a trajectory.
+            if self._handle_early_exit(
+                path, query_idx, idx_iter, trace_in_each_iter, stage="pre_simulate",
+                on_trajectory_complete=on_trajectory_complete,
+            ):
                 if config.terminate_on_terminal_node:
-                    log_event(logger, "MCTS", "Terminates due to terminal node (before simulate)", level="debug")
-                    n_terminals = len(self.collect_terminal_nodes())
-                    tree_str = visualize_tree(self.root)
-                    logger.info(f"[MCTS] Iteration {idx_iter}/{config.n_iters} (example={query_idx}) | terminals={n_terminals} | early_stop=pre_simulate\n{tree_str}")
                     break
-                else:
-                    log_event(logger, "MCTS", "Continues to next iteration due to terminal node (before simulate)", level="debug")
-                    continue
+                continue
 
             is_terminal_for_repeat, unselected_terminal_paths = self._do_simulate(
                 query, query_idx, path, config,

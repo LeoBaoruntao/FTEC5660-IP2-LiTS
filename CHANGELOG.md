@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-09-07 Unreleased (`0907-minor-mcts-terminal-backpropagation`)
+
+### Added
+- MCTS terminal-completion and revisit regression checks [T1.1, T1.2]
+
 ## 2026-09-06 Unreleased (`0820-major-selection-interface/tasks_task_adapters`)
 
 ### Added

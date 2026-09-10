@@ -13,16 +13,20 @@ References:
 
 import json
 import os
+from cProfile import Profile
 from itertools import product
 from pathlib import Path
 from tempfile import mkdtemp
 from types import SimpleNamespace
 
 from lits import get_lm
+from lits.agents.tree.augmentor_setup import build_search_callbacks
 from lits.agents.tree.bfs import BFSSearch
 from lits.agents.tree.common import _world_modeling
+from lits.agents.tree.continuation import _continuation
 from lits.agents.tree.mcts import MCTSConfig, MCTSSearch, _select
 from lits.agents.tree.node import MCTSNode, SearchNode
+from lits.components.context_augmentor.reflection import ReflectionAugmentor
 from lits.components.policy.concat import ConcatPolicy
 from lits.components.reward.generative import GenerativePRM
 from lits.components.transition.concat import ConcatTransition
@@ -116,11 +120,20 @@ def check_selected_terminal_backup() -> None:
     ``generative.py::GenerativePRM.reward`` reuses the supplied fast reward;
     neither action generation nor LLM evaluation is needed.
 
-    Both stop settings run one iteration to isolate this exit from later revisits.
-    A third case materializes two equal-reward terminal siblings with
+    Exercise cumulative/decay updates with per-node/terminal broadcasting.
+    World-model completion records one iteration under both stop settings;
+    stop cases leave unused iterations to verify the early break.
+    Continuation materializes its selected endpoint at entry, without generating
+    another action; its continue case then revisits that terminal. Two sibling
+    cases materialize equal-reward terminals with
     ``common.py::_world_modeling`` before three search iterations. UCT should
     select A, B, A: visit the unvisited sibling, then break the equal-score tie
-    in tree order. A's second traversal must also be backed up.
+    in tree order. One case seeds earlier root/parent estimates to check decay
+    values, not just return-list length. Each selected traversal gets one backup.
+
+    Profiling counts the real completion callback and reflection analysis calls.
+    Successful rewards skip reflection generation. Fresh checkpoint files retain
+    each iteration's post-backup statistics in the printed temporary directory.
     A failing check raises only after reporting all cases and their statistics.
     Configure the real client with LITS_TEST_MODEL_NAME and, optionally,
     LITS_TEST_BASE_URL / LITS_TEST_API_KEY; no inference is expected.
@@ -147,27 +160,49 @@ def check_selected_terminal_backup() -> None:
         r_terminating=0.9,
     )
     query = "What is 6 multiplied by 7?"
+    output_dir = Path(mkdtemp(prefix="lits-mcts-backup-modes-"))
+    print(f"Backup-mode checkpoint checks: {output_dir}")
     failures = []
     cases = (
-        ("transition_stop", True, 1, False),
-        ("transition_continue", False, 1, False),
-        ("terminal_revisits", False, 3, True),
+        ("transition_stop", True, 1, False, False),
+        ("transition_continue", False, 1, False, False),
+        ("continuation_stop", True, 1, False, True),
+        ("continuation_continue", False, 2, False, True),
+        ("terminal_revisits", False, 3, True, False),
+        ("seeded_revisits", False, 3, True, False),
     )
-    for label, stop_on_terminal, n_iters, revisit in cases:
+    modes = product(cases, ("cumulative", "decay"), ("per_node", "terminal"))
+    for (label, stop_on_terminal, n_iters, revisit, continuation), mode, broadcast in modes:
+        case_name = f"{label}-{mode}-{broadcast}"
+        case_dir = output_dir / case_name
+        seeded = label == "seeded_revisits"
         config = MCTSConfig(
-            n_iters=n_iters,
+            n_iters=3 if stop_on_terminal else n_iters,
             max_steps=5,
             force_terminating_on_depth_limit=False,
             terminate_on_terminal_node=stop_on_terminal,
+            add_continuation=continuation,
+            backprop_mode=mode,
+            backprop_broadcast_mode=broadcast,
+            decay_gamma=0.5,
         )
-        search = MCTSSearch(config, world_model, policy, reward_model)
+        search = MCTSSearch(
+            config, world_model, policy, reward_model,
+            checkpoint_dir=str(case_dir),
+            augmentors=[ReflectionAugmentor(base_model, persist=False)],
+        )
         search._setup(query, query_idx=0)
         try:
             root = search.root
             root.reward = 0.0
             step = ThoughtStep(action="Compute six groups of seven.")
             parent = MCTSNode(state=[step], action=step.action, parent=root, fast_reward=0.5)
+            parent.step = step
             root.add_child(parent)
+            if seeded:
+                for node in (root, parent):
+                    node.cum_rewards = [0.0]
+                    node.visit_count = 1
             answer = ThoughtStep(action="The answer is 42.")
             endpoint = MCTSNode(state=None, action=answer.action, parent=parent, fast_reward=1.0)
             endpoint.step = answer
@@ -185,7 +220,8 @@ def check_selected_terminal_backup() -> None:
                     _world_modeling(query, 0, node, world_model, reward_model)
                 if any(not node.is_terminal or node.cum_rewards or node.visit_count for node in terminals):
                     raise RuntimeError("Expected materialized terminals with no previous backup")
-            result = search.search(query, query_idx=0)
+            profiler = Profile()
+            result = profiler.runcall(search.search, query, query_idx=0)
         finally:
             search._teardown()
 
@@ -196,29 +232,72 @@ def check_selected_terminal_backup() -> None:
         if len(result.trace_in_each_iter) != n_iters:
             raise RuntimeError(f"Expected {n_iters} completed search iterations")
 
-        # Default per-node mean backup of rewards [0.0, 0.5, 1.0].
-        observed = [(node.visit_count, node.cum_rewards) for node in [root, parent, *terminals]]
-        endpoint_visits = 2 if revisit else 1
-        expected = [
-            (n_iters, [0.5] * n_iters),
-            (n_iters, [0.75] * n_iters),
-            (endpoint_visits, [1.0] * endpoint_visits),
-        ]
-        expected_ids = [endpoint.id]
-        if revisit:
-            expected.append((1, [1.0]))
-            expected_ids = [endpoint.id, sibling.id, endpoint.id]
-        selected_ids = [path[-1].id for path in result.trace_in_each_iter]
-        print(f"{label}: stop_on_terminal={stop_on_terminal}, terminal reward={endpoint.reward}")
-        print(f"  selected IDs: {selected_ids}; expected: {expected_ids}")
-        print(f"  root, parent, terminal(s) observed: {observed}")
-        print(f"  expected:                         {expected}")
-        breakpoint()  # inspect: selected_ids, expected_ids, observed, expected, result.trace_in_each_iter
-        if observed != expected or selected_ids != expected_ids:
-            failures.append(label)
-            print("  FAIL: selected-terminal backup accounting differs")
+        # Explicit return oracles for rewards [0, .5, 1] and gamma=.5.
+        if mode == "cumulative":
+            root_updates = [0.5 if broadcast == "per_node" else 1.0] * n_iters
+            parent_updates = [0.75 if broadcast == "per_node" else 1.0] * n_iters
+        elif seeded:
+            root_updates = [0.25, 0.5, 0.6875] if broadcast == "per_node" else [0.5, 0.75, 0.875]
+            parent_updates = [0.5, 0.75, 0.875]
         else:
-            print("  PASS: selected path backed up once per iteration")
+            root_updates = parent_updates = [1.0] * n_iters
+
+        expected_ids = [endpoint.id, sibling.id, endpoint.id] if revisit else [endpoint.id] * n_iters
+        selected_ids = [path[-1].id for path in result.trace_in_each_iter]
+        errors = []
+        if selected_ids != expected_ids:
+            errors.append(f"selected IDs {selected_ids} != {expected_ids}")
+        for iteration, path in enumerate(result.trace_in_each_iter):
+            count = iteration + 1
+            root_returns = ([0.0] if seeded else []) + root_updates[:count]
+            parent_returns = ([0.0] if seeded else []) + parent_updates[:count]
+            leaf_count = expected_ids[:count].count(path[-1].id)
+            leaf_returns = [1.0] * leaf_count
+            if mode == "decay":
+                root_returns, parent_returns, leaf_returns = (
+                    root_returns[-1:], parent_returns[-1:], leaf_returns[-1:],
+                )
+            expected = [
+                (count + int(seeded), root_returns),
+                (count + int(seeded), parent_returns),
+                (leaf_count, leaf_returns),
+            ]
+            observed = [(node.visit_count, node.cum_rewards) for node in path]
+            saved = json.loads((case_dir / "checkpoints" / f"0_{iteration}.json").read_text())
+            saved_stats = [(node["visit_count"], node["cum_rewards"]) for node in saved]
+            if observed != expected or saved_stats != expected:
+                errors.append(f"iteration {iteration}: trace={observed}, saved={saved_stats}, expected={expected}")
+            if saved[-1]["id"] != expected_ids[iteration]:
+                errors.append(f"iteration {iteration}: saved the wrong endpoint")
+
+        # Compare live statistics with each node's last recorded traversal.
+        for node in (root, parent, *terminals):
+            recorded = next(
+                item for path in reversed(result.trace_in_each_iter)
+                for item in path if item.id == node.id
+            )
+            if (node.visit_count, node.cum_rewards) != (recorded.visit_count, recorded.cum_rewards):
+                errors.append(f"node {node.id}: live statistics differ from its last trace")
+
+        callback_count = sum(
+            entry.callcount for entry in profiler.getstats()
+            if getattr(entry.code, "co_filename", None) == build_search_callbacks.__code__.co_filename
+            and getattr(entry.code, "co_name", None) == "on_trajectory_complete"
+        )
+        call_counts = {entry.code: entry.callcount for entry in profiler.getstats()}
+        expected_callbacks = 0 if revisit else 1
+        if callback_count != expected_callbacks:
+            errors.append(f"completion callbacks {callback_count} != {expected_callbacks}")
+        if call_counts.get(ReflectionAugmentor._analyze.__code__, 0) != expected_callbacks:
+            errors.append("completion callback did not reach reflection analysis once")
+        if call_counts.get(_continuation.__code__, 0) != int(continuation):
+            errors.append("unexpected number of continuation invocations")
+        print(f"  {'FAIL' if errors else 'PASS'}: {case_name}; iterations={n_iters}, callbacks={callback_count}")
+        for error in errors:
+            print(f"    {error}")
+        breakpoint()  # inspect: errors, result.trace_in_each_iter, call_counts, case_dir
+        if errors:
+            failures.append(case_name)
 
     if failures:
         raise RuntimeError("Selected-terminal backup failed: " + ", ".join(failures))
@@ -230,17 +309,21 @@ def check_early_exit_recording(world_model, policy, reward_model) -> None:
 
     Reuse real search components; the supplied callback checks backup statistics
     and writes an inspection marker. Check trace/checkpoint capture of that marker
-    for all four stages, both stop settings, and checkpointing enabled/disabled.
+    for all four stages, both stop settings, and checkpointing enabled/disabled,
+    with the callback supplied or omitted independently of stage. Search-loop
+    checks above verify the actual selection caller omits the callback.
     Fresh checkpoint files are retained in the printed temporary directory.
     """
     output_dir = Path(mkdtemp(prefix="lits-mcts-early-exit-"))
     print(f"Early-exit checkpoint checks: {output_dir}")
     stages = (
-        ("select", None), ("continuation", "continuation"),
+        ("select", "select"), ("continuation", "continuation"),
         ("world_model", "expand"), ("pre_simulate", "expand"),
     )
-    for (stage, phase), stop, save in product(stages, (False, True), (False, True)):
-        case_dir = output_dir / f"{stage}-stop-{stop}-save-{save}"
+    for (stage, phase), stop, save, with_callback in product(
+        stages, (False, True), (False, True), (False, True),
+    ):
+        case_dir = output_dir / f"{stage}-stop-{stop}-save-{save}-callback-{with_callback}"
         checkpoint = case_dir / "checkpoints" / "0_0.json"
         config = MCTSConfig(n_iters=1, terminate_on_terminal_node=stop)
         search = MCTSSearch(
@@ -260,6 +343,7 @@ def check_early_exit_recording(world_model, policy, reward_model) -> None:
             calls.append((reward, query_idx, from_phase))
             path[-1].step.error = "completion recorded"
 
+        callback_args = {"on_trajectory_complete": record_completion} if with_callback else {}
         try:
             root = search.root
             root.reward = 0.0
@@ -271,7 +355,7 @@ def check_early_exit_recording(world_model, policy, reward_model) -> None:
             expected = [(1, [0.5]), (1, [1.0])]
 
             if search._handle_early_exit(
-                path, 0, 0, traces, stage=stage, on_trajectory_complete=record_completion,
+                path, 0, 0, traces, stage=stage, **callback_args,
             ):
                 raise RuntimeError("A nonterminal path unexpectedly ended its iteration")
             if traces or calls or checkpoint.exists() or any(node.visit_count or node.cum_rewards for node in path):
@@ -279,14 +363,14 @@ def check_early_exit_recording(world_model, policy, reward_model) -> None:
 
             _world_modeling(query, 0, endpoint, world_model, reward_model)
             ended = search._handle_early_exit(
-                path, 0, 0, traces, stage=stage, on_trajectory_complete=record_completion,
+                path, 0, 0, traces, stage=stage, **callback_args,
             )
             if not ended or [(node.visit_count, node.cum_rewards) for node in path] != expected:
                 raise RuntimeError("Early exit did not back up its terminal path once")
-            expected_calls = [(1.0, 0, phase)] if phase is not None else []
+            expected_calls = [(1.0, 0, phase)] if with_callback else []
             if calls != expected_calls:
                 raise RuntimeError(f"Incorrect completion callback: {calls} != {expected_calls}")
-            marker = "completion recorded" if phase is not None else None
+            marker = "completion recorded" if with_callback else None
             if len(traces) != 1 or [(node.visit_count, node.cum_rewards) for node in traces[0]] != expected:
                 raise RuntimeError("Trace did not capture post-backup statistics")
             endpoint.step.error = "changed after exit"
@@ -300,7 +384,7 @@ def check_early_exit_recording(world_model, policy, reward_model) -> None:
                     raise RuntimeError("Checkpoint did not capture the callback update")
             elif case_dir.exists():
                 raise RuntimeError("Disabled checkpointing created an output directory")
-            print(f"  PASS: {stage}, stop={stop}, checkpoint={save}")
+            print(f"  PASS: {stage}, stop={stop}, checkpoint={save}, callback={with_callback}")
             breakpoint()  # inspect: calls, traces, checkpoint, expected
         finally:
             search._teardown()

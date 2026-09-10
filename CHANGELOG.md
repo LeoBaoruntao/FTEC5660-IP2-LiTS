@@ -6,15 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-09-10 Unreleased (`0907-minor-mcts-terminal-backpropagation`)
+
+### Changed
+- Expanded MCTS terminal-exit regression coverage across backup modes and callback presence (扩展已有 terminal 退出回归测试，覆盖不同回传模式及传入/省略 callback) [T2.2, T3.1]
+- Continuation coverage: `terminate_on_terminal_node=True` (发现 terminal 后回传并保存，然后停止搜索) [T3.1]
+- Continuation coverage: `terminate_on_terminal_node=False` (继续搜索；再次选中该 terminal 时回传并保存，不重复调用 completion callback) [T3.1]
+- MCTS early-exit completion callback invocation (MCTS 提前结束当前迭代时的 completion callback 调用逻辑) [T2.2]
+
 ## 2026-09-07 Unreleased (`0907-minor-mcts-terminal-backpropagation`)
 
 ### Added
-- MCTS terminal-completion and revisit regression checks [T1.1, T1.2]
-- MCTS early-exit recording regression checks [T2.2]
+- MCTS terminal-completion and revisit regression checks (节点被判定为 terminal 及 terminal 再次被选中的回归测试) [T1.1, T1.2]
+- MCTS early-exit recording regression checks (MCTS 提前结束当前迭代时，trace 与 checkpoint 记录的回归测试) [T2.2]
 
 ### Fixed
-- MCTS selected-terminal backpropagation [T2.1]
-- MCTS early-exit callback and checkpoint ordering [T2.2]
+- MCTS selected-terminal backpropagation (MCTS 选中路径以 terminal 结束时的回传) [T2.1]
+- MCTS early-exit callback and checkpoint ordering (MCTS 提前结束当前迭代时的 callback 调用与 checkpoint 保存顺序) [T2.2]
 
 ## 2026-09-06 Unreleased (`0820-major-selection-interface/tasks_task_adapters`)
 

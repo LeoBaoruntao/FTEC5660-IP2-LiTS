@@ -735,9 +735,11 @@ class MCTSSearch(BaseTreeSearch):
             iteration: Current zero-based MCTS iteration.
             trace_in_each_iter: Receives a copy after backup and callback updates.
             stage: ``select``, ``continuation``, ``world_model``, or ``pre_simulate``.
-                Select skips the completion callback; the other stages use
-                ``continuation``, ``expand``, and ``expand`` respectively.
-            on_trajectory_complete: Optional existing trajectory callback.
+                Identifies the check position for logging; callback phases are
+                ``select``, ``continuation``, ``expand``, and ``expand`` respectively.
+            on_trajectory_complete: Optional existing trajectory callback. Called
+                when supplied; callers omit it after selection because selection
+                does not complete a new trajectory. Stage does not enable callbacks.
 
         Returns:
             True when the existing stop predicate holds. The caller must then
@@ -758,14 +760,14 @@ class MCTSSearch(BaseTreeSearch):
             return False
 
         position, from_phase = {
-            "select": ("after select", None),
+            "select": ("after select", "select"),
             "continuation": ("after continuation", "continuation"),
             "world_model": ("after world modeling", "expand"),
             "pre_simulate": ("before simulate", "expand"),
         }[stage]
         if endpoint.is_terminal and endpoint.state is not None:
             self._do_backpropagate(path)
-        if from_phase is not None and on_trajectory_complete is not None:
+        if on_trajectory_complete is not None:
             on_trajectory_complete(path, endpoint.reward, query_idx, from_phase=from_phase)
         trace_in_each_iter.append(deepcopy(path))
         if self._checkpoint_path:
@@ -856,6 +858,7 @@ class MCTSSearch(BaseTreeSearch):
             update_traj_key(path[-1])
 
             # ====== Terminate Check (after select) ======
+            # Selection does not complete a new trajectory; omit its callback.
             if self._handle_early_exit(
                 path, query_idx, idx_iter, trace_in_each_iter, stage="select",
             ):

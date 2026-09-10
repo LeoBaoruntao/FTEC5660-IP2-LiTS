@@ -8,6 +8,9 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 
 ## 2026-09-10 Unreleased (`0907-minor-mcts-terminal-backpropagation`)
 
+### Added
+- MCTS terminal-quality and pre-simulation first-solution regression cases (terminal 质量门槛与 simulation 前首个解停止的回归用例) [T3.2]
+
 ### Changed
 - Expanded MCTS terminal-exit regression coverage across backup modes and callback presence (扩展已有 terminal 退出回归测试，覆盖不同回传模式及传入/省略 callback) [T2.2, T3.1]
 - Continuation coverage: `terminate_on_terminal_node=True` (发现 terminal 后回传并保存，然后停止搜索) [T3.1]

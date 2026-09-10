@@ -302,6 +302,7 @@ def check_selected_terminal_backup() -> None:
     if failures:
         raise RuntimeError("Selected-terminal backup failed: " + ", ".join(failures))
     check_early_exit_recording(world_model, policy, reward_model)
+    check_terminal_stopping(world_model, policy, reward_model)
 
 
 def check_early_exit_recording(world_model, policy, reward_model) -> None:
@@ -388,6 +389,106 @@ def check_early_exit_recording(world_model, policy, reward_model) -> None:
             breakpoint()  # inspect: calls, traces, checkpoint, expected
         finally:
             search._teardown()
+
+
+def check_terminal_stopping(world_model, policy, reward_model) -> None:
+    """Check terminal quality does not prevent iteration completion.
+
+    ``concat.py::ConcatTransition`` with step_signal marks a low-scoring answer
+    terminal independently of its score. Call ``mcts.py::MCTSSearch._handle_early_exit``
+    directly so a rejected exit cannot proceed to LLM expansion during this check.
+    Separately run ``mcts.py::MCTSSearch.search`` with a qualifying answer completed
+    during world modeling, before simulation; global early stopping should still apply.
+    Profiling checks that these full-search cases never invoke simulation.
+    Controls disable each reward-related stop setting. All actions/rewards are supplied;
+    no inference is needed. Report every case before raising on failed expectations.
+    """
+    output_dir = Path(mkdtemp(prefix="lits-mcts-terminal-stopping-"))
+    print(f"Terminal-stopping checks: {output_dir}")
+    signal_transition = ConcatTransition(
+        base_model=policy.base_model, terminate_constraints=["step_signal"],
+    )
+    # Name, full search or exit helper, search threshold, early stop, expected iterations.
+    cases = (
+        ("low_terminal_control", False, None, False, 1),
+        ("low_terminal_with_threshold", False, 0.9, False, 1),
+        ("qualifying_terminal_control", True, None, False, 3),
+        ("qualifying_terminal_early_stop", True, None, True, 1),
+    )
+    failures = []
+    for label, full_search, threshold, early_stop, expected_iterations in cases:
+        case_dir = output_dir / label
+        score = 1.0 if full_search else 0.2
+        transition = world_model if full_search else signal_transition
+        config = MCTSConfig(
+            n_iters=3, max_steps=5, force_terminating_on_depth_limit=False,
+            terminate_on_terminal_node=False, r_terminating=threshold,
+            terminate_on_first_solution=early_stop, early_stop_reward=0.9,
+        )
+        search = MCTSSearch(
+            config, transition, policy, reward_model, checkpoint_dir=str(case_dir),
+        )
+        query = "What is 6 multiplied by 7?"
+        search._setup(query, query_idx=0)
+        try:
+            root = search.root
+            root.reward = 0.0
+            step = ThoughtStep(
+                action="The answer is 42." if full_search else "The answer is 41.",
+                terminate=not full_search,
+            )
+            endpoint = MCTSNode(state=None, action=step.action, parent=root, fast_reward=score)
+            endpoint.step = step
+            root.add_child(endpoint)
+            if full_search:
+                profiler = Profile()
+                result = profiler.runcall(search.search, query, query_idx=0)
+                traces = result.trace_in_each_iter
+            else:
+                _world_modeling(query, 0, endpoint, transition, reward_model)
+                traces = []
+                ended = search._handle_early_exit(
+                    endpoint.get_path(), 0, 0, traces, stage="world_model",
+                )
+                print(f"  {label}: exit helper returned {ended}; expected True")
+
+            if endpoint.state is None or not endpoint.is_terminal or endpoint.reward != score:
+                raise RuntimeError(f"{label}: fixture did not produce the expected scored terminal")
+            checkpoints = sorted((case_dir / "checkpoints").glob("0_[0-9]*.json"))
+            saved = json.loads(checkpoints[-1].read_text()) if checkpoints else []
+            expected_stats = [
+                (expected_iterations, [score / 2] * expected_iterations),
+                (expected_iterations, [score] * expected_iterations),
+            ]
+            observed = {
+                "iteration_traces": len(traces),
+                "node_stats": [(node.visit_count, node.cum_rewards) for node in (root, endpoint)],
+                "checkpoint_count": len(checkpoints),
+                "saved_stats": [(node["visit_count"], node["cum_rewards"]) for node in saved],
+                "terminal_children": len(endpoint.children),
+            }
+            expected = {
+                "iteration_traces": expected_iterations, "node_stats": expected_stats,
+                "checkpoint_count": expected_iterations, "saved_stats": expected_stats,
+                "terminal_children": 0,
+            }
+            if full_search:
+                observed["simulation_calls"] = sum(
+                    entry.callcount for entry in profiler.getstats()
+                    if entry.code == MCTSSearch._do_simulate.__code__
+                )
+                expected["simulation_calls"] = 0
+            passed = observed == expected and (full_search or ended is True)
+            print(f"  {'PASS' if passed else 'FAIL'}: {label}, terminal={endpoint.is_terminal}, reward={score}")
+            print(f"    observed: {observed}")
+            print(f"    expected: {expected}")
+            breakpoint()  # inspect: observed, expected, traces, checkpoints, config
+            if not passed:
+                failures.append(label)
+        finally:
+            search._teardown()
+    if failures:
+        raise RuntimeError("Terminal-stopping regressions failed: " + ", ".join(failures))
 
 
 def main() -> None:

@@ -9,7 +9,8 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 ## 2026-09-10 Unreleased (`0907-minor-mcts-terminal-backpropagation`)
 
 ### Added
-- MCTS terminal-quality and pre-simulation first-solution regression cases (terminal 质量门槛与 simulation 前首个解停止的回归用例) [T3.2]
+- Regression case: low-score terminal exit rejected by `r_terminating` (低分 terminal 被搜索质量门槛拒绝退出当前迭代的回归用例) [T3.2]
+- Regression case: `terminate_on_first_solution` bypassed before simulation (simulation 前已找到达标 terminal，却未按配置停止整个搜索的回归用例) [T3.2]
 
 ### Changed
 - Expanded MCTS terminal-exit regression coverage across backup modes and callback presence (扩展已有 terminal 退出回归测试，覆盖不同回传模式及传入/省略 callback) [T2.2, T3.1]

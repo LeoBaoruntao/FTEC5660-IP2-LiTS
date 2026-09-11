@@ -487,8 +487,199 @@ def check_terminal_stopping(world_model, policy, reward_model) -> None:
                 failures.append(label)
         finally:
             search._teardown()
+    failures.extend(check_rollout_terminal_stopping(signal_transition, policy, reward_model))
+    failures.extend(check_rollout_iteration_recording(signal_transition, policy, reward_model))
+    failures.extend(check_nonterminal_cutoffs(world_model, policy, reward_model))
     if failures:
         raise RuntimeError("Terminal-stopping regressions failed: " + ", ".join(failures))
+
+
+def check_rollout_terminal_stopping(world_model, policy, reward_model) -> list[str]:
+    """Check terminal entry and completion in ``mcts.py::MCTSSearch._do_simulate``.
+
+    Reuse pre-scored children through the real expansion implementation, then let
+    the real step-signal transition detect completion. No inference is needed.
+    A two-step allowance exposes attempts to continue after a low-score terminal.
+    Neither case sets the separate repetition flag. Return failures so the caller
+    can report all terminal-stopping regressions together.
+    """
+    failures = []
+    for at_entry in (True, False):
+        label = "terminal_at_rollout_entry" if at_entry else "terminal_during_rollout"
+        config = MCTSConfig(
+            r_terminating=0.9, roll_out_steps=2, max_steps=5,
+            force_terminating_on_depth_limit=False, terminate_on_terminal_node=False,
+        )
+        search = MCTSSearch(config, world_model, policy, reward_model)
+        query = "What is 6 multiplied by 7?"
+        search._setup(query, query_idx=0)
+        try:
+            root = search.root
+            step = ThoughtStep(action="The answer is 41.", terminate=True)
+            endpoint = MCTSNode(state=None, action=step.action, parent=root, fast_reward=0.2)
+            endpoint.step = step
+            endpoint.from_expand = True
+            root.add_child(endpoint)
+            path = [root]
+            if at_entry:
+                _world_modeling(query, 0, endpoint, world_model, reward_model)
+                path.append(endpoint)
+            try:
+                repeated, siblings = search._do_simulate(
+                    query, 0, path, config, world_model, policy, reward_model,
+                    roll_out_steps=config.roll_out_steps,
+                )
+            except ValueError as error:
+                print(f"  FAIL: {label}: {type(error).__name__}: {error}")
+                failures.append(label)
+                continue
+            observed = (path == [root, endpoint], endpoint.is_terminal,
+                        endpoint.is_terminal_for_repeat, len(endpoint.children),
+                        repeated, len(siblings), root.visit_count, endpoint.visit_count)
+            expected = (True, True, False, 0, False, 0, 0, 0)
+            print(f"  {'PASS' if observed == expected else 'FAIL'}: {label}: {observed}")
+            breakpoint()  # inspect: path, endpoint, observed, expected
+            if observed != expected:
+                failures.append(label)
+        finally:
+            search._teardown()
+    return failures
+
+
+def check_rollout_iteration_recording(world_model, policy, reward_model) -> list[str]:
+    """Check full-loop rollout backup and recording without generating actions.
+
+    In ``mcts.py::MCTSSearch.search``, a depth-one selection limit chooses the
+    prepared parent. Its reward is below the search threshold, so the existing
+    nonterminal-cutoff rule permits expansion and rollout. Real expansion reuses
+    its pre-scored children. Only the best child is simulated; siblings must keep
+    empty returns and zero visits. A one-step rollout also tests nonterminal
+    exhaustion. Check both stop flags, their threshold boundaries, and saved
+    post-backup statistics with checkpointing on/off. No inference is needed.
+    """
+    output_dir = Path(mkdtemp(prefix="lits-mcts-rollout-recording-"))
+    print(f"Rollout iteration checks: {output_dir}")
+    # Name, terminal signal, reward, first-solution flag, terminal flag, iterations.
+    cases = (
+        ("low_terminal", True, 0.2, False, True, 3),
+        ("first_solution", True, 1.0, True, False, 1),
+        ("terminal_stop", True, 1.0, False, True, 1),
+        ("stopping_disabled", True, 1.0, False, False, 3),
+        ("first_solution_equal", True, 0.9, True, False, 1),
+        ("terminal_threshold_equal", True, 0.9, False, True, 3),
+        ("nonterminal_exhaustion", False, 0.2, True, True, 3),
+    )
+    failures = []
+    for (label, terminal, score, first_stop, terminal_stop, expected_iters), save in product(
+        cases, (False, True),
+    ):
+        case_dir = output_dir / f"{label}-save-{save}"
+        config = MCTSConfig(
+            n_iters=3, max_steps=1, roll_out_steps=1, r_terminating=0.9,
+            terminate_on_terminal_node=terminal_stop,
+            terminate_on_first_solution=first_stop, early_stop_reward=0.9,
+        )
+        search = MCTSSearch(
+            config, world_model, policy, reward_model,
+            checkpoint_dir=str(case_dir) if save else None,
+        )
+        query = "What is 6 multiplied by 7?"
+        search._setup(query, query_idx=0)
+        try:
+            root = search.root
+            root.reward = 0.0
+            parent_step = ThoughtStep(action="Compute six groups of seven.")
+            parent = MCTSNode(state=[parent_step], action=parent_step.action, parent=root, fast_reward=0.5)
+            parent.step = parent_step
+            root.add_child(parent)
+            for index in range(policy.n_actions):
+                step = ThoughtStep(action=f"Candidate {index}: six times seven is 42.", terminate=terminal)
+                child = MCTSNode(state=None, action=step.action, parent=parent, fast_reward=score - index * 0.05)
+                child.step = step
+                child.from_expand = True
+                parent.add_child(child)
+            endpoint = parent.children[0]
+            profiler = Profile()
+            result = profiler.runcall(search.search, query, query_idx=0)
+            expected_stats = [
+                (expected_iters, [(0.5 + score) / 3] * expected_iters),
+                (expected_iters, [(0.5 + score) / 2] * expected_iters),
+                (expected_iters, [score] * expected_iters),
+            ]
+            checkpoints = sorted((case_dir / "checkpoints").glob("0_[0-9]*.json"))
+            saved = [json.loads(path.read_text()) for path in checkpoints]
+            observed = {
+                "iterations": len(result.trace_in_each_iter),
+                "node_stats": [(node.visit_count, node.cum_rewards) for node in (root, parent, endpoint)],
+                "terminal": endpoint.is_terminal,
+                "simulation_calls": sum(entry.callcount for entry in profiler.getstats()
+                                        if entry.code == MCTSSearch._do_simulate.__code__),
+                "checkpoints": len(saved),
+                "siblings_untouched": all(node.visit_count == 0 and not node.cum_rewards
+                                          for node in parent.children[1:]),
+            }
+            expected = {
+                "iterations": expected_iters, "node_stats": expected_stats,
+                "terminal": terminal, "simulation_calls": expected_iters,
+                "checkpoints": expected_iters if save else 0, "siblings_untouched": True,
+            }
+            copies_match = all(
+                [(node.visit_count, node.cum_rewards) for node in trace]
+                == [(i, returns[:i]) for _, returns in expected_stats]
+                for i, trace in enumerate(result.trace_in_each_iter, start=1)
+            )
+            files_match = all(
+                [(node["visit_count"], node["cum_rewards"]) for node in nodes]
+                == [(i, returns[:i]) for _, returns in expected_stats]
+                for i, nodes in enumerate(saved, start=1)
+            )
+            passed = (observed == expected and copies_match and files_match
+                      and (save or not case_dir.exists()))
+            print(f"  {'PASS' if passed else 'FAIL'}: {label}, save={save}: {observed}")
+            breakpoint()  # inspect: observed, expected, result, saved, copies_match, files_match
+            if not passed:
+                failures.append(f"{label}-save-{save}")
+        finally:
+            search._teardown()
+    return failures
+
+
+def check_nonterminal_cutoffs(world_model, policy, reward_model) -> list[str]:
+    """Check nonterminal cutoffs retain their records-only early-exit behavior."""
+    failures = []
+    # Name, depth limit, repetition, threshold, reward, expected path exit.
+    cases = (
+        ("depth_stop", True, False, None, 0.2, True),
+        ("depth_below_threshold", True, False, 0.9, 0.2, False),
+        ("depth_above_threshold", True, False, 0.9, 1.0, True),
+        ("repeat_stop", False, True, None, 0.2, True),
+        ("repeat_below_threshold", False, True, 0.9, 0.2, False),
+        ("nonterminal_no_cutoff", False, False, None, 1.0, False),
+    )
+    for label, depth_limit, repeated, threshold, score, expected_exit in cases:
+        config = MCTSConfig(max_steps=1, force_terminating_on_depth_limit=depth_limit,
+                            r_terminating=threshold, terminate_on_first_solution=True)
+        search = MCTSSearch(config, world_model, policy, reward_model)
+        search._setup("What is 6 multiplied by 7?", query_idx=0)
+        try:
+            step = ThoughtStep(action="Compute six groups of seven.")
+            endpoint = MCTSNode(state=[step], action=step.action, parent=search.root, fast_reward=score)
+            endpoint.step = step
+            endpoint.is_terminal_for_repeat = repeated
+            search.root.add_child(endpoint)
+            path, traces = endpoint.get_path(), []
+            ended = search._handle_early_exit(path, 0, 0, traces, stage="select")
+            observed = (ended, len(traces), endpoint.is_terminal,
+                        [(node.visit_count, node.cum_rewards) for node in path],
+                        search._should_stop_search(endpoint))
+            expected = (expected_exit, int(expected_exit), False, [(0, []), (0, [])], expected_exit)
+            print(f"  {'PASS' if observed == expected else 'FAIL'}: {label}: {observed}")
+            breakpoint()  # inspect: observed, expected, path, traces
+            if observed != expected:
+                failures.append(label)
+        finally:
+            search._teardown()
+    return failures
 
 
 def main() -> None:

@@ -39,7 +39,7 @@ class BaseSearchConfig(BaseConfig):
     terminate_constraints: list[str] = field(default_factory=list)
     terminate_ORM_name: str = None
     transition_model_name: str = None
-    r_terminating: Optional[float] = None  # if set, will terminate the search if the reward is below this threshold
+    r_terminating: Optional[float] = None  # optional fast-reward threshold for stopping (strict > in MCTS)
     sample_size_terminate: int = None
     sample_threshold_terminate: float = None
     sample_threshold_verify: float = None
@@ -66,4 +66,3 @@ class BaseSearchConfig(BaseConfig):
     think_for_correctness: bool = True
     n_for_correctness: int = 5
     n_for_usefulness: int = 5
-    

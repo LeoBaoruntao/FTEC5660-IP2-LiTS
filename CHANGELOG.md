@@ -17,6 +17,11 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 - Continuation coverage: `terminate_on_terminal_node=True` (发现 terminal 后回传并保存，然后停止搜索) [T3.1]
 - Continuation coverage: `terminate_on_terminal_node=False` (继续搜索；再次选中该 terminal 时回传并保存，不重复调用 completion callback) [T3.1]
 - MCTS early-exit completion callback invocation (MCTS 提前结束当前迭代时的 completion callback 调用逻辑) [T2.2]
+- Shared MCTS iteration finalization (MCTS 提前退出与 rollout 后共用回传、callback、trace 和 checkpoint 记录) [T3.2]
+
+### Fixed
+- Reward-threshold rejection of low-score terminal exits and downstream empty-child `argmax` failures (质量门槛拒绝低分 terminal 退出及后续 rollout 对空 children 执行 `argmax` 的问题) [T3.2]
+- Qualifying terminals bypassing `terminate_on_first_solution` before simulation or `terminate_on_terminal_node` after rollout (达标 terminal 在 simulation 前绕过首个解停止配置、在 rollout 后绕过 terminal 停止配置的问题) [T3.2]
 
 ## 2026-09-07 Unreleased (`0907-minor-mcts-terminal-backpropagation`)
 

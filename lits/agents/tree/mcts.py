@@ -124,6 +124,11 @@ class MCTSConfig(BaseSearchConfig):
         transition_before_evaluate: Whether to run transition before reward scoring in _expand().
             False (default) = Q(s,a) estimate: score action without observation.
             True = V(s') estimate: run transition first, then score with observation (LATS §4.2).
+        terminate_on_terminal_node: Stop the search on an accepted terminal, before
+            or after rollout. With r_terminating set, require fast_reward > that threshold.
+        terminate_on_first_solution: Independently stop on a terminal whose fast_reward
+            meets early_stop_reward (>=), or any terminal when that threshold is unset.
+            Both rules run after iteration recording; neither keeps a terminal path open.
     """
     # selection
     w_exp: float = 1.
@@ -199,6 +204,17 @@ class MCTSConfig(BaseSearchConfig):
 # ~~~~~~~ Search Config (BEGIN ~~~~~~~~~
 
 ##### SELECT (Begin) #####
+def _should_end_path(node: MCTSNode, config: MCTSConfig) -> bool:
+    """End actual terminal paths regardless of reward; retain nonterminal cutoff rules.
+
+    Used before and during rollout. This decides whether this path can continue,
+    not whether its result is good enough to stop the entire search.
+    """
+    return node.is_terminal or bool(_is_terminal_with_depth_limit_and_r_threshold(
+        node, config.max_steps, config.force_terminating_on_depth_limit, config.r_terminating,
+    ))
+
+
 def _select(w_exp: float, node: MCTSNode, max_steps: int, force_terminating_on_depth_limit: bool) -> list[MCTSNode]:
     """
     Select a path from root to a leaf node using UCT (Upper Confidence Bound for Trees).
@@ -428,6 +444,10 @@ def _simulate(
     expand_func: callable = _expand,
 ):
     """Simulate phase of MCTS.
+
+    Actual terminals return without child selection, including terminals supplied
+    at entry or found during rollout. Their quality affects global search stopping,
+    not whether rollout continues beyond them. The caller performs backup and recording.
     
     Args:
         on_step: Optional callback called with each new node during simulation.
@@ -445,6 +465,9 @@ def _simulate(
     log_phase(logger, "Simulate", "Begin")
     node = path[-1]
     unselected_terminal_paths = []
+    if node.is_terminal:
+        log_phase(logger, "Simulate", "End")
+        return node.is_terminal_for_repeat, unselected_terminal_paths
     for i in range(roll_out_steps):
         log_event(logger, "Simulate", f"Rollout step {i+1}", level="debug")
         
@@ -484,7 +507,7 @@ def _simulate(
             if i != selected_idx and node.children[i].is_terminal:
                 unselected_terminal_paths.append(deepcopy(path + [node.children[i]]))
         # ====== Terminate Check (Begin) ======
-        if _is_terminal_with_depth_limit_and_r_threshold(node,  mcts_search_config.max_steps, mcts_search_config.force_terminating_on_depth_limit, mcts_search_config.r_terminating):
+        if _should_end_path(node, mcts_search_config):
             log_phase(logger, "Simulate", "End")
             return False, unselected_terminal_paths
         # ====== Terminate Check (End) ======
@@ -723,6 +746,56 @@ class MCTSSearch(BaseTreeSearch):
         else:
             _back_propagate(path, config.backprop_reward_func, config.backprop_broadcast_mode)
 
+    def _should_stop_search(self, endpoint: MCTSNode) -> bool:
+        """Apply global stop flags to a path that has finished its iteration.
+
+        ``terminate_on_terminal_node`` uses the strict ``r_terminating`` threshold
+        when set. ``terminate_on_first_solution`` independently accepts actual
+        terminals at or above ``early_stop_reward`` (any terminal if unset).
+        Either rule can stop the search. Pre-rollout nonterminal cutoffs retain
+        their configured stop behavior; after rollout, call only for actual terminals.
+        """
+        config = self.config
+        if config.terminate_on_terminal_node and _is_terminal_with_depth_limit_and_r_threshold(
+            endpoint, config.max_steps, config.force_terminating_on_depth_limit,
+            config.r_terminating,
+        ):
+            return True
+        return bool(
+            config.terminate_on_first_solution and endpoint.is_terminal
+            and (config.early_stop_reward is None or endpoint.fast_reward >= config.early_stop_reward)
+        )
+
+    def _finalize_iteration(
+        self, path, query_idx, iteration, trace_in_each_iter, *,
+        from_phase: str, backpropagate: bool = True, on_trajectory_complete=None,
+    ) -> None:
+        """Back up, notify, and record one completed iteration without stop checks.
+
+        Args:
+            path: Selected path; backup and the optional callback may mutate its nodes.
+            query_idx: Example identifier for callbacks and checkpoint filenames.
+            iteration: Zero-based iteration index.
+            trace_in_each_iter: Receives an independent post-callback copy of the path.
+            from_phase: Phase label passed to the supplied callback.
+            backpropagate: False only for pre-rollout cutoffs without a materialized
+                terminal. Completed rollouts always back up their available rewards,
+                even when the rollout allowance ends at a nonterminal node.
+            on_trajectory_complete: Optional callback; omit for terminal revisits.
+
+        Call once per completed iteration, before either break or continue. Enabled
+        checkpoints capture the same post-backup, post-callback state as the trace.
+        No lifetime deduplication is performed: revisits are separate iterations.
+        """
+        if backpropagate:
+            self._do_backpropagate(path)
+        if on_trajectory_complete is not None:
+            on_trajectory_complete(path, path[-1].reward, query_idx, from_phase=from_phase)
+        trace_in_each_iter.append(deepcopy(path))
+        if self._checkpoint_path:
+            from ...structures.trace import _serialize_obj
+            self.save_checkpoint(query_idx, iteration, _serialize_obj(path))
+
     def _handle_early_exit(
         self, path, query_idx, iteration, trace_in_each_iter, *,
         stage: str, on_trajectory_complete=None,
@@ -742,21 +815,19 @@ class MCTSSearch(BaseTreeSearch):
                 does not complete a new trajectory. Stage does not enable callbacks.
 
         Returns:
-            True when the existing stop predicate holds. The caller must then
-            break or continue according to ``terminate_on_terminal_node``.
+            True when the path ends and its iteration has been recorded. The caller
+            then uses ``_should_stop_search`` to choose break or continue.
             False leaves the path and records unchanged.
 
         Materialized terminals receive one backup, including revisits. Nonterminal
         cutoffs keep their existing callback behavior without terminal backup.
         The callback runs before trace capture and optional checkpoint saving.
-        Do not call after rollout: that path already performs its own backup.
+        After rollout, call ``_finalize_iteration`` directly: its available rewards
+        need backup even when its endpoint is nonterminal.
         """
         config = self.config
         endpoint = path[-1]
-        if not _is_terminal_with_depth_limit_and_r_threshold(
-            endpoint, config.max_steps, config.force_terminating_on_depth_limit,
-            config.r_terminating,
-        ):
+        if not _should_end_path(endpoint, config):
             return False
 
         position, from_phase = {
@@ -765,16 +836,13 @@ class MCTSSearch(BaseTreeSearch):
             "world_model": ("after world modeling", "expand"),
             "pre_simulate": ("before simulate", "expand"),
         }[stage]
-        if endpoint.is_terminal and endpoint.state is not None:
-            self._do_backpropagate(path)
-        if on_trajectory_complete is not None:
-            on_trajectory_complete(path, endpoint.reward, query_idx, from_phase=from_phase)
-        trace_in_each_iter.append(deepcopy(path))
-        if self._checkpoint_path:
-            from ...structures.trace import _serialize_obj
-            self.save_checkpoint(query_idx, iteration, _serialize_obj(path))
+        self._finalize_iteration(
+            path, query_idx, iteration, trace_in_each_iter, from_phase=from_phase,
+            backpropagate=endpoint.is_terminal and endpoint.state is not None,
+            on_trajectory_complete=on_trajectory_complete,
+        )
 
-        if config.terminate_on_terminal_node:
+        if self._should_stop_search(endpoint):
             log_event(logger, "MCTS", f"Terminates due to terminal node ({position})", level="debug")
             n_terminals = len(self.collect_terminal_nodes())
             tree_str = visualize_tree(self.root)
@@ -796,6 +864,8 @@ class MCTSSearch(BaseTreeSearch):
         its iteration exits, without another rollout. Terminal revisits reuse
         the stored reward and count as another traversal. Nonterminal depth
         and repetition exits retain their existing behavior.
+        Global terminal-stop rules apply both before and after rollout, only
+        after backup and recording; a low-scoring terminal never keeps its path open.
         """
         logger.debug(f"Question: {query}")
         log_phase(logger, "MCTS", f"Begin (example={query_idx})")
@@ -862,7 +932,7 @@ class MCTSSearch(BaseTreeSearch):
             if self._handle_early_exit(
                 path, query_idx, idx_iter, trace_in_each_iter, stage="select",
             ):
-                if config.terminate_on_terminal_node:
+                if self._should_stop_search(path[-1]):
                     break
                 continue
 
@@ -891,7 +961,7 @@ class MCTSSearch(BaseTreeSearch):
                     path, query_idx, idx_iter, trace_in_each_iter, stage="continuation",
                     on_trajectory_complete=on_trajectory_complete,
                 ):
-                    if config.terminate_on_terminal_node:
+                    if self._should_stop_search(path[-1]):
                         break
                     continue
 
@@ -904,7 +974,7 @@ class MCTSSearch(BaseTreeSearch):
                 path, query_idx, idx_iter, trace_in_each_iter, stage="world_model",
                 on_trajectory_complete=on_trajectory_complete,
             ):
-                if config.terminate_on_terminal_node:
+                if self._should_stop_search(path[-1]):
                     break
                 continue
 
@@ -927,7 +997,7 @@ class MCTSSearch(BaseTreeSearch):
                 path, query_idx, idx_iter, trace_in_each_iter, stage="pre_simulate",
                 on_trajectory_complete=on_trajectory_complete,
             ):
-                if config.terminate_on_terminal_node:
+                if self._should_stop_search(path[-1]):
                     break
                 continue
 
@@ -940,40 +1010,27 @@ class MCTSSearch(BaseTreeSearch):
                 on_step_complete=on_step_complete,
             )
 
-            # ====== Terminate on First Solution ======
-            if config.terminate_on_first_solution and path[-1].is_terminal:
-                reward = path[-1].fast_reward if hasattr(path[-1], 'fast_reward') else 0.0
-                meets_threshold = config.early_stop_reward is None or reward >= config.early_stop_reward
-                if meets_threshold:
-                    log_event(logger, "MCTS", f"Terminates due to first solution found (reward={reward:.3f})", level="debug")
-                    self._do_backpropagate(path)
-                    # Trigger per-trajectory augmentors
-                    if on_trajectory_complete is not None:
-                        on_trajectory_complete(path, path[-1].reward, query_idx, from_phase="simulate")
-                    n_terminals = len(self.collect_terminal_nodes())
-                    tree_str = visualize_tree(self.root)
-                    logger.info(f"[MCTS] Iteration {idx_iter}/{config.n_iters} (example={query_idx}) | terminals={n_terminals} | early_stop=first_solution\n{tree_str}")
-                    trace_in_each_iter.append(deepcopy(path))
-                    break
-
-            self._do_backpropagate(path)
-
-            # Trigger per-trajectory augmentors
-            if on_trajectory_complete is not None:
-                on_trajectory_complete(path, path[-1].reward, query_idx, from_phase="simulate")
+            # Back up, trigger per-trajectory augmentors, and save before any stop.
+            self._finalize_iteration(
+                path, query_idx, idx_iter, trace_in_each_iter, from_phase="simulate",
+                on_trajectory_complete=on_trajectory_complete,
+            )
 
             # Log tree snapshot
             n_terminals = len(self.collect_terminal_nodes())
             tree_str = visualize_tree(self.root)
             logger.info(f"[MCTS] Iteration {idx_iter}/{config.n_iters} (example={query_idx}) | terminals={n_terminals}\n{tree_str}")
 
-            trace_in_each_iter.append(deepcopy(path))
-            unselected_terminal_paths_during_simulate.extend(unselected_terminal_paths)
+            # ====== Terminal / First-Solution Search Stop ======
+            if path[-1].is_terminal and self._should_stop_search(path[-1]):
+                log_event(
+                    logger, "MCTS",
+                    f"Terminates on accepted terminal (reward={path[-1].fast_reward:.3f})",
+                    level="debug",
+                )
+                break
 
-            # Save incremental checkpoint
-            if self._checkpoint_path:
-                from ...structures.trace import _serialize_obj
-                self.save_checkpoint(query_idx, idx_iter, _serialize_obj(path))
+            unselected_terminal_paths_during_simulate.extend(unselected_terminal_paths)
 
         # Retrieve the path with maximum cumulative reward
         if config.output_strategy == 'max_reward':

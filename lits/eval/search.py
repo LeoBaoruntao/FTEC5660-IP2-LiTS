@@ -53,6 +53,8 @@ def evaluate_search_result(
             Unused for env_grounded.
         terminal_selection: Tool-use ranking: "first", "q-max", or "q-mean" (default).
             Language tasks vote over answers; environment tasks use maximum returns.
+            Return-based ranking falls back per node to fast_reward when its
+            cum_rewards are missing, None, or an empty list.
         custom_evaluator: Optional (prediction, ground_truth) -> bool or float checker.
         llm_evaluator: Optional configured GeneralEvaluator; see check_answer for
             fallback precedence. Omit it to disable LLM judging.
@@ -161,8 +163,10 @@ def select_tool_use_terminal(
     correct MCTS terminology for "rank terminals by their accumulated
     score" is "rank by Q-value".
 
-    Empty `cum_rewards` is treated as -inf, so any node with at least one
-    rollout will outrank a never-visited terminal. Ties retain input order.
+    Missing, None, or empty-list `cum_rewards` falls back to that node's
+    `fast_reward`. Available returns, including zero, take precedence for that
+    node. A fallback score can outrank another node's backed-up score. Ties retain
+    input order; neither score source nor the node's statistics are modified.
 
     Returns:
         The selected node, or None if `terminal_nodes` is empty.
@@ -175,17 +179,17 @@ def select_tool_use_terminal(
     import numpy as _np
     if strategy == "q-max":
         def _score(n):
-            """Return the best backed-up return, or negative infinity."""
+            """Return the best backed-up return, falling back to fast_reward."""
             cr = getattr(n, "cum_rewards", None)
-            if not cr:
-                return -float("inf")
+            if cr is None or (isinstance(cr, list) and not cr):
+                return float(n.fast_reward)
             return float(max(cr) if isinstance(cr, list) else cr)
     elif strategy == "q-mean":
         def _score(n):
-            """Return the mean backed-up return, or negative infinity."""
+            """Return the mean backed-up return, falling back to fast_reward."""
             cr = getattr(n, "cum_rewards", None)
-            if not cr:
-                return -float("inf")
+            if cr is None or (isinstance(cr, list) and not cr):
+                return float(n.fast_reward)
             if isinstance(cr, list):
                 return float(_np.mean(cr))
             return float(cr)
@@ -200,8 +204,9 @@ def select_tool_use_terminal(
 def select_env_terminal(terminal_nodes: Sequence[SearchNode]) -> SearchNode | None:
     """Select the environment terminal with the maximum backed-up return.
 
-    Missing/empty returns rank as negative infinity. Equal scores preserve
-    input order. Return None when there are no terminals.
+    Missing, None, or empty-list returns fall back per node to fast_reward.
+    Available returns, including zero, retain maximum-return ranking. Equal
+    scores preserve input order. Return None when there are no terminals.
 
     Args:
         terminal_nodes: Nodes marked is_terminal=True, not necessarily successful.
@@ -216,10 +221,11 @@ def select_env_terminal(terminal_nodes: Sequence[SearchNode]) -> SearchNode | No
             raise ValueError(f"terminal_nodes[{index}] is not terminal")
 
     def get_best_reward(node):
-        """Return a terminal node's maximum backed-up return without changing its type."""
-        if hasattr(node, 'cum_rewards') and node.cum_rewards:
-            return max(node.cum_rewards) if isinstance(node.cum_rewards, list) else node.cum_rewards
-        return -float('inf')
+        """Return maximum backed-up return or fast_reward without changing its type."""
+        cr = getattr(node, "cum_rewards", None)
+        if cr is None or (isinstance(cr, list) and not cr):
+            return node.fast_reward
+        return max(cr) if isinstance(cr, list) else cr
 
     return sorted(terminal_nodes, key=get_best_reward, reverse=True)[0]
 

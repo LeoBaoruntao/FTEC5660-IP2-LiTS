@@ -288,6 +288,8 @@ def evaluate_from_checkpoints(
               - "q-mean":  argmax over mean(cum_rewards)  (default)
                            matches MCTSNode.DEFAULT_Q_FUNC = np.mean,
                            i.e. the same Q-value MCTS uses for UCT
+            Missing/empty returns fall back per node to fast_reward, including
+            environment maximum-return ranking.
             See `paper/lits_memory/results/summary_wikisql.md` for empirical
             comparison of selection strategies on WikiSQL MCTS.
     """
@@ -648,7 +650,7 @@ Examples:
                               "for tool_use tasks. 'first' = legacy save-order behaviour "
                               "(terminal_nodes[0]); 'q-max' = argmax over max(cum_rewards); "
                               "'q-mean' (default) = argmax over mean(cum_rewards), matches "
-                              "MCTSNode.DEFAULT_Q_FUNC. See "
+                              "MCTSNode.DEFAULT_Q_FUNC. Missing returns use fast_reward. See "
                               "paper/lits_memory/results/summary_wikisql.md for the "
                               "empirical comparison on WikiSQL MCTS."))
     

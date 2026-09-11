@@ -98,8 +98,11 @@ the reference.** The reference never chooses the terminal or vote winner.
 | `tool_use` | Default `terminal_selection="q-mean"`; also `q-max` or `first` | Supply the registered checker; answer retrieval from the selected node is built in |
 | `env_grounded` | Maximum backed-up terminal return | Supply `goal_check(query, final_env_state)` returning `(goal_reached, progress)` |
 
-`q-mean`/`q-max` rank `cum_rewards`, not `fast_reward`. Missing/empty returns rank as
-negative infinity; ties retain input order, including when all returns are absent.
+Return-based selectors use `cum_rewards` when available; missing, None, or empty-list
+returns fall back per node to `fast_reward`. This also applies to environment ranking.
+Zero-valued returns are available data, not a fallback trigger. In mixed pools, a
+fallback score may outrank a backed-up score; ties retain input order. Node statistics
+are unchanged. Language-answer voting and tool-use `first` selection are unaffected.
 
 Unlike the CLI, direct calls default to `llm_evaluator=None`: no LLM judge is created.
 To enable judging, supply a configured `lits.eval.general_eval.GeneralEvaluator` and

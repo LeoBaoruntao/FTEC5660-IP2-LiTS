@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-09-11 Unreleased (`0820-major-selection-interface/tasks_task_adapters`)
+
+### Fixed
+- Terminal ranking at negative infinity for missing/empty returns (缺失或空回传记录时的终点排序，改用 fast_reward) [T5.1]
+
 ## 2026-09-11 Unreleased (`x-0907-0911-minor-mcts-terminal-backpropagation`)
 
 ### Added

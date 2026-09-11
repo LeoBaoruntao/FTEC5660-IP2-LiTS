@@ -1,4 +1,4 @@
-"""Compare CLI and shared tree evaluation against recorded baseline expectations.
+"""Compare CLI and shared tree evaluation against explicit expected outcomes.
 
 Run from lits_llm/ with demos/ on PYTHONPATH:
     PYTHONBREAKPOINT=0 python -m unit_test.eval.test_search_evaluation
@@ -51,7 +51,9 @@ from lits.cli.eval_search import (
 from lits.cli.search import save_terminal_nodes
 from lits.components.registry import ComponentRegistry
 from lits.components.utils import get_fn_retrieve_answer
-from lits.eval.search import check_answer, evaluate_search_result, select_env_terminal
+from lits.eval.search import (
+    check_answer, evaluate_search_result, select_env_terminal, select_tool_use_terminal,
+)
 from lits.lm import get_lm, setup_inference_logging
 from lits.structures.base import TrajectoryState
 from lits.structures.env_grounded import EnvState, EnvStep
@@ -268,18 +270,38 @@ def check_tool_use(output_dir):
             terminal(ToolUseStep(answer="42"), returns=[0.7])]
     empty_returns = [terminal(ToolUseStep(answer="43"), fast_reward=0.1),
                      terminal(ToolUseStep(answer="42"), fast_reward=0.9)]
-    missing_returns = [terminal(ToolUseStep(answer="43"), node_class=SearchNode),
-                       terminal(ToolUseStep(answer="42"), node_class=SearchNode)]
+    missing_returns = [terminal(ToolUseStep(answer="43"), fast_reward=0.1, node_class=SearchNode),
+                       terminal(ToolUseStep(answer="42"), fast_reward=0.9, node_class=SearchNode)]
     for name, nodes, expected in (
         ("tied_returns", ties, ("43", False, None, None)),
-        ("empty_returns", empty_returns, ("43", False, None, None)),
-        ("missing_returns", missing_returns, ("43", False, None, None)),
+        ("empty_returns", empty_returns, ("42", True, None, None)),
+        ("missing_returns", missing_returns, ("42", True, None, None)),
         ("visited_beats_empty", [empty_returns[0], ranked[1]], ("42", True, None, None)),
         ("no_terminals", [], ("", False, None, None)),
         ("missing_answer", [terminal()], ("", False, None, None)),
     ):
         checks.append(check_case(output_dir, f"tool_{name}", DB_DATASET, nodes,
                                  ["42"], expected))
+    fallback_cases = (
+        ("missing_returns", missing_returns, "42"),
+        ("empty_returns", empty_returns, "42"),
+        ("mixed_fallback_wins", [ranked[1], terminal(ToolUseStep(answer="43"), fast_reward=0.9)], "43"),
+        ("mixed_tie", [terminal(ToolUseStep(answer="43"), fast_reward=0.7), ranked[1]], "43"),
+        ("backed_overrides_fast", [terminal(ToolUseStep(answer="43"), returns=[0.1], fast_reward=0.99),
+                                   ranked[1]], "42"),
+        ("zero_return", [terminal(ToolUseStep(answer="43"), returns=[0.0], fast_reward=0.99),
+                          terminal(ToolUseStep(answer="42"), fast_reward=0.5)], "42"),
+        ("zero_fast_reward", [terminal(ToolUseStep(answer="43"), fast_reward=-0.1),
+                               terminal(ToolUseStep(answer="42"), fast_reward=0.0)], "42"),
+    )
+    for strategy in ("q-mean", "q-max"):
+        for name, nodes, prediction in fallback_cases:
+            if strategy == "q-mean" and name in ("missing_returns", "empty_returns"):
+                continue  # Covered by default q-mean cases above.
+            checks.append(check_case(
+                output_dir, f"tool_{strategy}_{name}", DB_DATASET, nodes, ["42"],
+                (prediction, prediction == "42", None, None), selection=strategy,
+            ))
     # Characterize the existing zero normalization; this refactor must not silently fix it.
     checks.append(check_case(output_dir, "tool_missing_answer_matches_zero", DB_DATASET,
                              [terminal()], ["0"], ("", True, None, None)))
@@ -317,11 +339,19 @@ def check_environment(output_dir):
         ("complete", [complete], "correct", True, 1.0),
         ("no_terminals", [], "incorrect", False, 0.0),
         ("missing_state", [terminal()], "incorrect", False, 0.0),
-        ("empty_returns", [terminal(EnvStep(next_state=PARTIAL_STATE)),
-                           terminal(EnvStep(next_state=GOALS))], "incorrect", False, 0.5),
-        ("missing_returns", [terminal(EnvStep(next_state=PARTIAL_STATE), node_class=SearchNode),
-                             terminal(EnvStep(next_state=GOALS), node_class=SearchNode)],
+        ("empty_returns", [terminal(EnvStep(next_state=PARTIAL_STATE), fast_reward=0.1),
+                           terminal(EnvStep(next_state=GOALS), fast_reward=0.9)], "correct", True, 1.0),
+        ("missing_returns", [terminal(EnvStep(next_state=PARTIAL_STATE), fast_reward=0.1, node_class=SearchNode),
+                             terminal(EnvStep(next_state=GOALS), fast_reward=0.9, node_class=SearchNode)],
+         "correct", True, 1.0),
+        ("mixed_fallback_wins", [complete, terminal(EnvStep(next_state=PARTIAL_STATE), fast_reward=0.9)],
          "incorrect", False, 0.5),
+        ("mixed_tie", [terminal(EnvStep(next_state=PARTIAL_STATE), fast_reward=0.7), complete],
+         "incorrect", False, 0.5),
+        ("backed_overrides_fast", [terminal(EnvStep(next_state=PARTIAL_STATE), returns=[0.1], fast_reward=0.99),
+                                   complete], "correct", True, 1.0),
+        ("zero_return", [terminal(EnvStep(next_state=PARTIAL_STATE), returns=[0.0], fast_reward=0.99),
+                          terminal(EnvStep(next_state=GOALS), fast_reward=0.5)], "correct", True, 1.0),
         ("tied_returns", [terminal(EnvStep(next_state=PARTIAL_STATE), returns=[0.7]),
                           complete], "incorrect", False, 0.5),
     ):
@@ -346,6 +376,28 @@ def check_environment(output_dir):
         print(f"PASS env_{name}: {observed}")
         checks.append({"case": f"env_{name}", "expected": expected, "observed": observed})
         breakpoint()  # inspect: nodes, invalid_index, observed
+    return checks
+
+
+def check_scalar_zero_returns():
+    """Check search.py selectors preserve scalar zero as an available return.
+
+    Live MCTS uses lists; these selectors also accept scalar returns. Verify this
+    directly because the MCTS node serializer expects list-valued cum_rewards.
+    """
+    zero = terminal(ToolUseStep(answer="43"), fast_reward=-0.9)
+    zero.cum_rewards = 0.0
+    other = terminal(ToolUseStep(answer="42"), returns=[-0.1], fast_reward=0.95)
+    checks = []
+    for strategy in ("q-mean", "q-max", "environment"):
+        nodes = [other, zero]
+        chosen = (select_env_terminal(nodes) if strategy == "environment"
+                  else select_tool_use_terminal(nodes, strategy))
+        breakpoint()  # inspect: strategy, chosen, zero.cum_rewards
+        if chosen is not zero or zero.cum_rewards != 0.0:
+            raise RuntimeError(f"{strategy}: scalar zero was treated as missing or mutated")
+        print(f"PASS scalar_zero_{strategy}: zero return outranks -0.1")
+        checks.append({"case": f"scalar_zero_{strategy}", "selected_id": chosen.id})
     return checks
 
 
@@ -546,17 +598,14 @@ def main():
     checks.extend(check_language(output_dir))
     checks.extend(check_tool_use(output_dir))
     checks.extend(check_environment(output_dir))
+    checks.extend(check_scalar_zero_returns())
     checks.extend(check_answer_outcomes())
     if args.compare_chain_cli_ref:
         checks.extend(check_chain_checkpoints(output_dir, args.compare_chain_cli_ref))
     if args.llm_model:
         checks.extend(check_live_fallback(output_dir, args.llm_model))
     (output_dir / "baseline.json").write_text(json.dumps(checks, indent=2) + "\n")
-    print(f"Passed {len(checks)} checks (29 CLI/in-memory/reloaded comparisons, 1 retrieval, "
-          "2 terminal validation, 5 answer checking"
-          f"{', 10 chain/pass-at-N comparisons' if args.compare_chain_cli_ref else ''}"
-          f"{', 3 live binary and 4 live F1 cases' if args.llm_model else ''}). "
-          f"Baseline: {output_dir / 'baseline.json'}")
+    print(f"Passed {len(checks)} checks. Baseline: {output_dir / 'baseline.json'}")
     breakpoint()  # inspect: checks, output_dir; each case contains terminal_nodes/ and eval.log
 
 

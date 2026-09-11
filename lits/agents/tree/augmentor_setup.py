@@ -141,7 +141,9 @@ def build_search_callbacks(
 
     Classifies augmentors into per-step and per-trajectory types, then
     builds two closures that extract trajectory state from tree nodes
-    and invoke the appropriate augmentors.
+    and invoke the appropriate augmentors. Trajectory notifications are attempted
+    once per (query index, endpoint ID) in these closures. Build new callbacks for
+    each search; notification tracking is not persisted on nodes or in checkpoints.
 
     Only used by ``lits-search`` (tree search loop).
 
@@ -157,6 +159,7 @@ def build_search_callbacks(
 
     step_augmentors = [a for a in augmentors if _classify_augmentor(a) == "step"]
     traj_augmentors = [a for a in augmentors if _classify_augmentor(a) == "trajectory"]
+    notified_endpoints = set()
 
     logger.info(
         f"build_search_callbacks: {len(step_augmentors)} per-step, "
@@ -186,7 +189,18 @@ def build_search_callbacks(
                 )
 
     def on_trajectory_complete(path, reward, query_idx, **kwargs):
-        """Called after backpropagation in search()."""
+        """Notify trajectory augmentors once per endpoint after backpropagation.
+
+        Includes truncated rollouts; terminal status is not required. Record the
+        attempt before invoking augmentors: failures are logged, not retried on
+        revisits, and notification does not guarantee successful memory creation.
+        """
+        if not path:
+            return
+        key = (query_idx, path[-1].id)
+        if key in notified_endpoints:
+            return
+        notified_endpoints.add(key)
         traj_state = _extract_trajectory_state(path)
         query_or_goals = query_context.get("query_or_goals", "")
         traj_key_str = (

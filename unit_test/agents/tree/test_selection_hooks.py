@@ -25,12 +25,15 @@ from lits.agents.tree.augmentor_setup import build_search_callbacks
 from lits.agents.tree.bfs import BFSSearch
 from lits.agents.tree.common import _world_modeling
 from lits.agents.tree.continuation import _continuation
-from lits.agents.tree.mcts import MCTSConfig, MCTSSearch, _expand, _select
+from lits.agents.tree.mcts import (
+    MCTSConfig, MCTSSearch, _expand, _reached_depth_limit, _select, _should_end_path,
+)
 from lits.agents.tree.node import MCTSNode, SearchNode
 from lits.components.context_augmentor.reflection import ReflectionAugmentor
 from lits.components.policy.concat import ConcatPolicy
 from lits.components.reward.generative import GenerativePRM
 from lits.components.transition.concat import ConcatTransition
+from lits.components.utils import create_role
 from lits.config import ExperimentConfig
 from lits.structures import ThoughtStep
 
@@ -112,6 +115,44 @@ def inspect_mcts_default() -> None:
     breakpoint()  # inspect: direct_ids, default_ids, direct_path, default_path
 
 
+def check_path_end_checks() -> None:
+    """Check ordered, selective stopping in ``mcts.py::_should_end_path``.
+
+    Profile depth-check calls to distinguish short-circuit evaluation from eager
+    evaluation. No transitions or inference are needed.
+    """
+    config = MCTSConfig(max_steps=0, force_terminating_on_depth_limit=True)
+    node = MCTSNode(state=[], action=None)
+    # Name, checks, terminal, repetition, expected result, depth-check calls.
+    cases = (
+        ("default", None, True, True, True, 0),
+        ("depth_first", ("depth_limit", "terminal", "repeat"), True, True, True, 1),
+        ("repeat_only", ("repeat",), True, False, False, 0),
+        ("terminal_only", ("terminal",), False, True, False, 0),
+        ("depth_only", ("depth_limit",), False, False, True, 1),
+        ("repeat_before_depth", ("repeat", "depth_limit"), False, True, True, 0),
+        ("empty", (), True, True, False, 0),
+    )
+    for name, checks, terminal, repeated, expected, depth_calls in cases:
+        node.is_terminal, node.is_terminal_for_repeat = terminal, repeated
+        profiler = Profile()
+        kwargs = {} if checks is None else {"checks": checks}
+        result = profiler.runcall(_should_end_path, node, config, **kwargs)
+        calls = {entry.code: entry.callcount for entry in profiler.getstats()}
+        observed = (result, calls.get(_reached_depth_limit.__code__, 0))
+        breakpoint()  # inspect: checks, observed, expected, depth_calls
+        if observed != (expected, depth_calls):
+            raise RuntimeError(f"Path-end checks {name}: {observed}")
+        print(f"  PASS: path-end checks {name}: {observed}")
+    for checks, error_type in (("repeat", TypeError), (("unknown",), ValueError)):
+        try:
+            _should_end_path(node, config, checks=checks)
+        except error_type:
+            print(f"  PASS: rejected invalid checks {checks!r}")
+        else:
+            raise RuntimeError(f"Invalid checks accepted: {checks!r}")
+
+
 def check_selected_terminal_backup() -> None:
     """Check terminal completion and revisits in ``mcts.py::MCTSSearch.search``.
 
@@ -125,8 +166,8 @@ def check_selected_terminal_backup() -> None:
     Exercise cumulative/decay updates with per-node/terminal broadcasting.
     World-model completion records one iteration under both stop settings;
     stop cases leave unused iterations to verify the early break.
-    Continuation materializes its selected endpoint at entry, without generating
-    another action; its continue case then revisits that terminal. Two sibling
+    Even with continuation enabled, transition confirms the selected terminal
+    before continuation is called; the continue case then revisits it. Two sibling
     cases materialize equal-reward terminals with
     ``common.py::_world_modeling`` before three search iterations. UCT should
     select A, B, A: visit the unvisited sibling, then break the equal-score tie
@@ -154,6 +195,7 @@ def check_selected_terminal_backup() -> None:
         ),
         **model_kwargs,
     )
+    check_trajectory_notifications(base_model)
     policy = ConcatPolicy(base_model=base_model, task_name="math500")
     reward_model = GenerativePRM(base_model=base_model, task_name="math500")
     world_model = ConcatTransition(
@@ -288,13 +330,13 @@ def check_selected_terminal_backup() -> None:
             and getattr(entry.code, "co_name", None) == "on_trajectory_complete"
         )
         call_counts = {entry.code: entry.callcount for entry in profiler.getstats()}
-        expected_callbacks = 0 if revisit else 1
-        if callback_count != expected_callbacks:
-            errors.append(f"completion callbacks {callback_count} != {expected_callbacks}")
-        if call_counts.get(ReflectionAugmentor._analyze.__code__, 0) != expected_callbacks:
-            errors.append("completion callback did not reach reflection analysis once")
-        if call_counts.get(_continuation.__code__, 0) != int(continuation):
-            errors.append("unexpected number of continuation invocations")
+        expected_analyses = len(set(expected_ids))
+        if callback_count != n_iters:
+            errors.append(f"notification wrapper calls {callback_count} != {n_iters}")
+        if call_counts.get(ReflectionAugmentor._analyze.__code__, 0) != expected_analyses:
+            errors.append("reflection analysis did not run once per distinct selected endpoint")
+        if call_counts.get(_continuation.__code__, 0):
+            errors.append("selected terminal entered continuation")
         print(f"  {'FAIL' if errors else 'PASS'}: {case_name}; iterations={n_iters}, callbacks={callback_count}")
         for error in errors:
             print(f"    {error}")
@@ -309,6 +351,51 @@ def check_selected_terminal_backup() -> None:
     check_selected_step_materialization(policy, reward_model)
 
 
+def check_trajectory_notifications(model) -> None:
+    """Check ``augmentor_setup.py::build_search_callbacks`` notification scope.
+
+    Reuse real reflection augmentors: reward 1.0 skips inference; an invalid
+    reward exercises caught analysis errors before inference. Profile both
+    augmentors to verify per-endpoint attempts, including truncated rollouts,
+    and a fresh callback setup for another search with the same node IDs.
+    """
+    augmentors = [ReflectionAugmentor(model, persist=False) for _ in range(2)]
+    context = {"query_or_goals": "What is 6 multiplied by 7?"}
+    _, notify = build_search_callbacks(augmentors, context)
+    endpoints = []
+    for action, terminal in (("The answer is 42.", True),
+                             ("Compute six groups of seven.", False),
+                             ("Seven groups of six give 42.", True),
+                             ("The answer is 41.", True)):
+        step = ThoughtStep(action=action, terminate=terminal)
+        node = MCTSNode(state=[step], action=action, is_terminal=terminal)
+        node.step = step
+        endpoints.append(node)
+    terminal, truncated, extended, invalid = endpoints
+    cases = (
+        ("first_terminal", [terminal], 1.0, "expand", False, 2),
+        ("terminal_revisit", [terminal], 1.0, "simulate", False, 0),
+        ("truncated_rollout", [truncated], 1.0, "simulate", False, 2),
+        ("truncated_revisit", [truncated], 1.0, "continuation", False, 0),
+        ("extended_path", [truncated, extended], 1.0, "continuation", False, 2),
+        ("empty_path", [], 1.0, "expand", False, 0),
+        ("augmentor_error", [invalid], "invalid reward", "expand", False, 2),
+        ("error_not_retried", [invalid], "invalid reward", "expand", False, 0),
+        ("fresh_search", [terminal], 1.0, "expand", True, 2),
+    )
+    for name, path, reward, phase, fresh, expected in cases:
+        if fresh:
+            _, notify = build_search_callbacks(augmentors, context)
+        profiler = Profile()
+        profiler.runcall(notify, path, reward, 0, from_phase=phase)
+        calls = {entry.code: entry.callcount for entry in profiler.getstats()}
+        observed = calls.get(ReflectionAugmentor._analyze.__code__, 0)
+        breakpoint()  # inspect: name, observed, expected, path
+        if observed != expected:
+            raise RuntimeError(f"Notification {name}: {observed} analyses != {expected}")
+        print(f"  PASS: notification {name}: {observed} augmentor analyses")
+
+
 def check_selected_step_materialization(policy, reward_model) -> None:
     """Check selected lazy answers reach transition, terminal collection, and backup.
 
@@ -318,8 +405,30 @@ def check_selected_step_materialization(policy, reward_model) -> None:
     Execute ``mcts.py::MCTSSearch.search`` with the real step-signal transition.
     The control materializes the same answer through ``common.py::_world_modeling``
     before selection. Check both stop settings, saved traces, and transition calls.
+    With continuation enabled, completed answers must bypass the continuation
+    call entirely. Both answers and intermediate steps at the depth bound must
+    execute transition, receive backup, and retain state in saved checkpoints.
+    Only answers count as terminal completions. Also check
+    repetition-only sentinels, and completion callback phases.
+    Real reflection callbacks count first notifications, including already
+    materialized terminals. The wrapper is still called on revisits; reward 1.0
+    skips reflection generation, so these checks require no inference.
     Report all cases before raising on failed correctness expectations.
     """
+    class RecordingReflection(ReflectionAugmentor):
+        """Record completion phases while retaining real reflection handling."""
+
+        def __init__(self, model):
+            """Initialize a nonpersistent augmentor and its observed phases."""
+            super().__init__(model, persist=False)
+            self.completion_phases = []
+
+        def _analyze(self, traj_state, **kwargs):
+            """Validate and record the phase before running the normal analysis."""
+            create_role("augmentor", kwargs.get("query_idx"), kwargs.get("from_phase", ""))
+            self.completion_phases.append(kwargs.get("from_phase"))
+            return super()._analyze(traj_state, **kwargs)
+
     query = "What is 6 multiplied by 7?"
     transition = ConcatTransition(
         base_model=policy.base_model, terminate_constraints=["step_signal"],
@@ -327,23 +436,42 @@ def check_selected_step_materialization(policy, reward_model) -> None:
     output_dir = Path(mkdtemp(prefix="lits-mcts-selected-step-"))
     print(f"Selected-step materialization checks: {output_dir}")
     failures, records = [], []
-    for materialized, stop in product((False, True), (False, True)):
-        label = f"{'materialized_control' if materialized else 'lazy_answer'}-stop={stop}"
+    cases = (
+        ("lazy_answer", False, False, False, False),
+        ("materialized_control", True, False, False, False),
+        ("lazy_continuation", False, True, False, False),
+        ("lazy_at_depth_limit", False, False, True, False),
+        ("depth_cutoff", False, False, True, False),
+        ("repetition_control", False, False, False, True),
+    )
+    for (name, materialized, continuation, depth_limit, repeated), stop in product(
+        cases, (False, True),
+    ):
+        label = f"{name}-stop={stop}"
         case_dir = output_dir / label
+        cutoff = repeated or name == "depth_cutoff"
         config = MCTSConfig(
-            n_iters=3, max_steps=5, force_terminating_on_depth_limit=False,
+            n_iters=3, max_steps=1 if depth_limit else 5,
+            force_terminating_on_depth_limit=depth_limit, add_continuation=continuation,
             terminate_on_first_solution=stop, early_stop_reward=0.9,
         )
+        reflection = RecordingReflection(policy.base_model)
         search = MCTSSearch(config, transition, policy, reward_model,
-                            checkpoint_dir=str(case_dir))
+                            checkpoint_dir=str(case_dir), augmentors=[reflection])
         search._setup(query, query_idx=0)
         try:
             root = search.root
             root.reward = 0.0
-            step = ThoughtStep(action="The answer is 42.", terminate=True)
+            if repeated:
+                action = "ALWAY REPEAT. TERMINATE"
+            elif cutoff:
+                action = "Compute six groups of seven."
+            else:
+                action = "The answer is 42."
+            step = ThoughtStep(action=action, terminate=not cutoff)
             endpoint = MCTSNode(state=None, action=step.action, parent=root, fast_reward=1.0)
             endpoint.step = step
-            endpoint.is_terminal_for_repeat = step.terminate
+            endpoint.is_terminal_for_repeat = repeated or step.terminate
             endpoint.from_expand = True
             root.add_child(endpoint)
             if materialized:
@@ -361,21 +489,37 @@ def check_selected_step_materialization(policy, reward_model) -> None:
                 "returns": [root.cum_rewards, endpoint.cum_rewards],
                 "iterations": len(result.trace_in_each_iter),
                 "transition_calls": calls.get(_world_modeling.__code__, 0),
+                "continuation_calls": calls.get(_continuation.__code__, 0),
+                "expansion_calls": calls.get(MCTSSearch._do_expand.__code__, 0),
                 "simulation_calls": calls.get(MCTSSearch._do_simulate.__code__, 0),
+                "completion_callbacks": sum(
+                    entry.callcount for entry in profiler.getstats()
+                    if getattr(entry.code, "co_filename", None) == build_search_callbacks.__code__.co_filename
+                    and getattr(entry.code, "co_name", None) == "on_trajectory_complete"
+                ),
+                "completion_phases": reflection.completion_phases,
                 "checkpoints": len(saved),
                 "saved_terminal_states": [
                     path[-1]["is_terminal"] and path[-1]["state"] is not None
                     for path in saved
                 ],
+                "saved_states": [path[-1]["state"] is not None for path in saved],
+                "saved_visits": [[node["visit_count"] for node in path] for path in saved],
             }
-            iterations = 1 if stop else 3
+            iterations = 1 if stop and not cutoff else 3
+            visits = 0 if repeated else iterations
             expected = {
-                "materialized": True, "terminal": True, "collected": True,
-                "visits": [iterations, iterations],
-                "returns": [[0.5] * iterations, [1.0] * iterations],
-                "iterations": iterations, "transition_calls": 0 if materialized else 1,
+                "materialized": not repeated, "terminal": not cutoff, "collected": not cutoff,
+                "visits": [visits, visits],
+                "returns": [[0.5] * visits, [1.0] * visits],
+                "iterations": iterations, "transition_calls": 0 if materialized or repeated else 1,
+                "continuation_calls": 0, "expansion_calls": 0,
                 "simulation_calls": 0, "checkpoints": iterations,
-                "saved_terminal_states": [True] * iterations,
+                "completion_callbacks": 0 if cutoff else iterations,
+                "completion_phases": [] if cutoff else ["expand"],
+                "saved_terminal_states": [not cutoff] * iterations,
+                "saved_states": [not repeated] * iterations,
+                "saved_visits": [[0, 0] if repeated else [i + 1, i + 1] for i in range(iterations)],
             }
             passed = observed == expected
             print(f"  {'PASS' if passed else 'FAIL'}: {label}")
@@ -400,13 +544,13 @@ def check_early_exit_recording(world_model, policy, reward_model) -> None:
     and writes an inspection marker. Check trace/checkpoint capture of that marker
     for all four stages, both stop settings, and checkpointing enabled/disabled,
     with the callback supplied or omitted independently of stage. Search-loop
-    checks above verify the actual selection caller omits the callback.
+    checks above verify the wrapper skips repeated augmentor work on revisits.
     Fresh checkpoint files are retained in the printed temporary directory.
     """
     output_dir = Path(mkdtemp(prefix="lits-mcts-early-exit-"))
     print(f"Early-exit checkpoint checks: {output_dir}")
     stages = (
-        ("select", "select"), ("continuation", "continuation"),
+        ("select", "expand"), ("continuation", "continuation"),
         ("world_model", "expand"), ("pre_simulate", "expand"),
     )
     for (stage, phase), stop, save, with_callback in product(
@@ -743,7 +887,7 @@ def check_rollout_iteration_recording(world_model, policy, reward_model) -> list
 
 
 def check_nonterminal_cutoffs(world_model, policy, reward_model) -> list[str]:
-    """Check nonterminal cutoffs never qualify for completion-based search stopping."""
+    """Check evaluated depth cutoffs receive backup but never count as completion."""
     failures = []
     # Name, depth limit, repetition, threshold, reward, path exit, global stop.
     cases = (
@@ -762,6 +906,7 @@ def check_nonterminal_cutoffs(world_model, policy, reward_model) -> list[str]:
         search = MCTSSearch(config, world_model, policy, reward_model)
         search._setup("What is 6 multiplied by 7?", query_idx=0)
         try:
+            search.root.reward = 0.0
             step = ThoughtStep(action="Compute six groups of seven.")
             endpoint = MCTSNode(state=[step], action=step.action, parent=search.root, fast_reward=score)
             endpoint.step = step
@@ -772,7 +917,8 @@ def check_nonterminal_cutoffs(world_model, policy, reward_model) -> list[str]:
             observed = (ended, len(traces), endpoint.is_terminal,
                         [(node.visit_count, node.cum_rewards) for node in path],
                         search._should_stop_search(endpoint))
-            expected = (expected_exit, int(expected_exit), False, [(0, []), (0, [])], expected_stop)
+            stats = [(1, [score / 2]), (1, [score])] if depth_limit else [(0, []), (0, [])]
+            expected = (expected_exit, int(expected_exit), False, stats, expected_stop)
             print(f"  {'PASS' if observed == expected else 'FAIL'}: {label}: {observed}")
             breakpoint()  # inspect: observed, expected, path, traces
             if observed != expected:
@@ -905,6 +1051,7 @@ def main() -> None:
     inspect_search_node_walk()
     inspect_bfs_default()
     inspect_mcts_default()
+    check_path_end_checks()
     check_selected_terminal_backup()
 
 

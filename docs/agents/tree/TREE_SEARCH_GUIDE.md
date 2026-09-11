@@ -246,6 +246,16 @@ config = BaseSearchConfig(
 
 Terminal status comes from `Transition.is_terminal()`, not a ground-truth correctness
 check. Repetition and depth cutoffs end the path but cannot alone stop the search.
+MCTS executes an eligible selected node's pending transition, then checks path exit
+once before continuation or expansion. Selected actions at the depth bound execute
+transition and back up their evaluated rewards without further expansion. Repetition
+markers do not execute; pending answers override the legacy repetition flag.
+Trajectory augmentors run at most once per notified endpoint within a search,
+including terminals materialized before selection and truncated rollouts.
+Terminal revisits still receive backup but repeat neither transition nor augmentor
+work. Notification tracking resets for each search and does not retry augmentor errors.
+Selected-node transition uses the `expand` log phase; subsequent continuation
+steps use `continuation`.
 
 #### Use Cases
 

@@ -219,13 +219,20 @@ def _reached_depth_limit(node: MCTSNode, config: MCTSConfig) -> bool:
     return config.force_terminating_on_depth_limit and node.depth >= config.max_steps
 
 
-def _should_end_path(node: MCTSNode, config: MCTSConfig) -> bool:
+def _should_end_path(
+    node: MCTSNode, config: MCTSConfig,
+    checks: tuple[str, ...] = ("terminal", "depth_limit", "repeat"),
+) -> bool:
     """End terminal, repetition-stopped, or depth-limited paths regardless of reward.
 
     Used before and during rollout. This decides whether this path can continue,
     not whether its result is good enough to stop the entire search.
 
-    Current decision flow::
+    ``checks`` selects which conditions to evaluate, in order, stopping at the
+    first match. An empty tuple returns False. Before selected-node transition,
+    use ``checks=("repeat",)`` so the depth bound does not skip the selected action.
+
+    Default decision flow::
 
         node.is_terminal?
             |-- yes --> True: end path, regardless of score
@@ -246,9 +253,20 @@ def _should_end_path(node: MCTSNode, config: MCTSConfig) -> bool:
     ``node.is_terminal`` or establish task completion.
     Reward thresholds are checked only by ``_should_stop_search``.
     """
-    return bool(
-        node.is_terminal or _reached_depth_limit(node, config) or node.is_terminal_for_repeat
-    )
+    if isinstance(checks, str):
+        raise TypeError("checks must be a tuple, e.g. ('repeat',), not a string")
+    for check in checks:
+        if check == "terminal":
+            ended = node.is_terminal
+        elif check == "depth_limit":
+            ended = _reached_depth_limit(node, config)
+        elif check == "repeat":
+            ended = node.is_terminal_for_repeat
+        else:
+            raise ValueError(f"Unknown path-end check: {check!r}")
+        if ended:
+            return True
+    return False
 
 
 def _select(w_exp: float, node: MCTSNode, max_steps: int, force_terminating_on_depth_limit: bool) -> list[MCTSNode]:
@@ -830,14 +848,17 @@ class MCTSSearch(BaseTreeSearch):
             iteration: Zero-based iteration index.
             trace_in_each_iter: Receives an independent post-callback copy of the path.
             from_phase: Phase label passed to the supplied callback.
-            backpropagate: False only for pre-rollout cutoffs without a materialized
-                terminal. Completed rollouts always back up their available rewards,
+            backpropagate: Whether the endpoint has an evaluated return to back up.
+                Pre-rollout exits back up materialized terminals and depth cutoffs.
+                Completed rollouts always back up their available rewards,
                 even when the rollout allowance ends at a nonterminal node.
-            on_trajectory_complete: Optional callback; omit for terminal revisits.
+            on_trajectory_complete: Optional callback. The augmentor callback
+                wrapper skips previously notified endpoints, including revisits.
 
         Call once per completed iteration, before either break or continue. Enabled
         checkpoints capture the same post-backup, post-callback state as the trace.
-        No lifetime deduplication is performed: revisits are separate iterations.
+        Revisits are separate backed-up iterations; the augmentor callback wrapper
+        deduplicates only trajectory notifications.
         """
         if backpropagate:
             self._do_backpropagate(path)
@@ -855,24 +876,27 @@ class MCTSSearch(BaseTreeSearch):
         """Check and finalize an iteration that stops before simulation.
 
         Args:
-            path: Selected root-to-endpoint path; terminal backup mutates it.
+            path: Selected root-to-endpoint path; backup mutates its statistics.
             query_idx: Example identifier for callbacks, logs, and checkpoints.
             iteration: Current zero-based MCTS iteration.
             trace_in_each_iter: Receives a copy after backup and callback updates.
             stage: ``select``, ``continuation``, ``world_model``, or ``pre_simulate``.
                 Identifies the check position for logging; callback phases are
-                ``select``, ``continuation``, ``expand``, and ``expand`` respectively.
+                ``expand``, ``continuation``, ``expand``, and ``expand`` respectively.
+                Selected-node work uses ``expand`` regardless of node creation phase.
             on_trajectory_complete: Optional existing trajectory callback. Called
-                when supplied; callers omit it after selection because selection
-                does not complete a new trajectory. Stage does not enable callbacks.
+                when supplied; its wrapper deduplicates notifications by endpoint.
+                Stage does not enable callbacks.
 
         Returns:
             True when the path ends and its iteration has been recorded. The caller
             then uses ``_should_stop_search`` to choose break or continue.
             False leaves the path and records unchanged.
 
-        Materialized terminals receive one backup, including revisits. Nonterminal
-        cutoffs keep their existing callback behavior without terminal backup.
+        ``search()`` handles selected-node transition separately, before continuation.
+        This check never runs transition or continuation.
+        Materialized terminals and evaluated depth cutoffs receive one backup,
+        including revisits. Unexecuted repetition markers receive no backup.
         The callback runs before trace capture and optional checkpoint saving.
         After rollout, call ``_finalize_iteration`` directly: its available rewards
         need backup even when its endpoint is nonterminal.
@@ -883,14 +907,16 @@ class MCTSSearch(BaseTreeSearch):
             return False
 
         position, from_phase = {
-            "select": ("after select", "select"),
+            "select": ("after select", "expand"),
             "continuation": ("after continuation", "continuation"),
             "world_model": ("after world modeling", "expand"),
             "pre_simulate": ("before simulate", "expand"),
         }[stage]
         self._finalize_iteration(
             path, query_idx, iteration, trace_in_each_iter, from_phase=from_phase,
-            backpropagate=endpoint.is_terminal and endpoint.state is not None,
+            backpropagate=endpoint.state is not None and _should_end_path(
+                endpoint, config, checks=("terminal", "depth_limit"),
+            ),
             on_trajectory_complete=on_trajectory_complete,
         )
 
@@ -916,6 +942,10 @@ class MCTSSearch(BaseTreeSearch):
         its iteration exits, without another rollout. Terminal revisits reuse
         the stored reward and count as another traversal. Enabled depth limits
         end the current path regardless of score, without marking it terminal.
+        Selected nodes without state execute transition before continuation.
+        Selected actions at the depth bound execute transition and back up their
+        evaluated reward; repetition markers do not execute. Neither depth cutoffs
+        nor confirmed completion enter continuation or expansion.
         The repetition flag also ends the path independently of reward.
         The global terminal-stop rule applies both before and after rollout, only
         after backup and recording; a low-scoring terminal never keeps its path open.
@@ -981,11 +1011,23 @@ class MCTSSearch(BaseTreeSearch):
             update_traj_key(path[-1])
 
             # ====== Terminate Check (after select) ======
-            # Selection does not complete a new trajectory; omit its callback.
-            if self._handle_early_exit(
-                path, query_idx, idx_iter, trace_in_each_iter, stage="select",
+            endpoint = path[-1]
+            # Execute selected actions at the depth bound; answers override the legacy repeat flag.
+            if endpoint.state is None and (
+                getattr(getattr(endpoint, "step", None), "terminate", False)
+                or not _should_end_path(endpoint, config, checks=("repeat",))
             ):
-                if self._should_stop_search(path[-1]):
+                _world_modeling(
+                    query, query_idx, endpoint, self.world_model, self.reward_model,
+                    from_phase="expand",
+                )
+            completion_callback = on_trajectory_complete if endpoint.is_terminal else None
+            if self._handle_early_exit(
+                path, query_idx, idx_iter, trace_in_each_iter,
+                stage="select",
+                on_trajectory_complete=completion_callback,
+            ):
+                if self._should_stop_search(endpoint):
                     break
                 continue
 
@@ -1019,18 +1061,6 @@ class MCTSSearch(BaseTreeSearch):
                     continue
 
             # ====== Expansion ======
-            if path[-1].state is None:
-                _world_modeling(query, query_idx, path[-1], transition_model=self.world_model, reward_model=self.reward_model, from_phase="expand")
-
-            # World-model completions notify per-trajectory augmentors as expansion.
-            if self._handle_early_exit(
-                path, query_idx, idx_iter, trace_in_each_iter, stage="world_model",
-                on_trajectory_complete=on_trajectory_complete,
-            ):
-                if self._should_stop_search(path[-1]):
-                    break
-                continue
-
             self._do_expand(
                 query, query_idx, path[-1], self.policy,
                 n_actions=self.policy.n_actions,

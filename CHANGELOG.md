@@ -8,6 +8,9 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 
 ## 2026-09-11 Unreleased (`0907-minor-mcts-terminal-backpropagation`)
 
+### Added
+- MCTS lazy-answer transition and backup regression checks (延迟执行的 answer 节点遗漏 transition 与回传的回归测试) [T3.4]
+
 ### Changed
 - Whole-search stopping via `terminate_on_first_solution` and `early_stop_reward` (统一全局停止配置，默认启用，质量门槛使用 `>=`) [T4.1]
 

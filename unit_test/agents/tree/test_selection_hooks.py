@@ -306,6 +306,91 @@ def check_selected_terminal_backup() -> None:
         raise RuntimeError("Selected-terminal backup failed: " + ", ".join(failures))
     check_early_exit_recording(world_model, policy, reward_model)
     check_terminal_stopping(world_model, policy, reward_model)
+    check_selected_step_materialization(policy, reward_model)
+
+
+def check_selected_step_materialization(policy, reward_model) -> None:
+    """Check selected lazy answers reach transition, terminal collection, and backup.
+
+    Supply the node fields produced by ``mcts.py::_expand`` for a completed
+    ``ThoughtStep``: state=None, is_terminal=False, is_terminal_for_repeat=True.
+    Actions and fast rewards are supplied; expansion and inference are not run.
+    Execute ``mcts.py::MCTSSearch.search`` with the real step-signal transition.
+    The control materializes the same answer through ``common.py::_world_modeling``
+    before selection. Check both stop settings, saved traces, and transition calls.
+    Report all cases before raising on failed correctness expectations.
+    """
+    query = "What is 6 multiplied by 7?"
+    transition = ConcatTransition(
+        base_model=policy.base_model, terminate_constraints=["step_signal"],
+    )
+    output_dir = Path(mkdtemp(prefix="lits-mcts-selected-step-"))
+    print(f"Selected-step materialization checks: {output_dir}")
+    failures, records = [], []
+    for materialized, stop in product((False, True), (False, True)):
+        label = f"{'materialized_control' if materialized else 'lazy_answer'}-stop={stop}"
+        case_dir = output_dir / label
+        config = MCTSConfig(
+            n_iters=3, max_steps=5, force_terminating_on_depth_limit=False,
+            terminate_on_first_solution=stop, early_stop_reward=0.9,
+        )
+        search = MCTSSearch(config, transition, policy, reward_model,
+                            checkpoint_dir=str(case_dir))
+        search._setup(query, query_idx=0)
+        try:
+            root = search.root
+            root.reward = 0.0
+            step = ThoughtStep(action="The answer is 42.", terminate=True)
+            endpoint = MCTSNode(state=None, action=step.action, parent=root, fast_reward=1.0)
+            endpoint.step = step
+            endpoint.is_terminal_for_repeat = step.terminate
+            endpoint.from_expand = True
+            root.add_child(endpoint)
+            if materialized:
+                _world_modeling(query, 0, endpoint, transition, reward_model)
+            profiler = Profile()
+            result = profiler.runcall(search.search, query, query_idx=0)
+            calls = {entry.code: entry.callcount for entry in profiler.getstats()}
+            checkpoints = sorted((case_dir / "checkpoints").glob("0_[0-9]*.json"))
+            saved = [json.loads(path.read_text()) for path in checkpoints]
+            observed = {
+                "materialized": endpoint.state is not None,
+                "terminal": endpoint.is_terminal,
+                "collected": result.terminal_nodes_collected == [endpoint],
+                "visits": [root.visit_count, endpoint.visit_count],
+                "returns": [root.cum_rewards, endpoint.cum_rewards],
+                "iterations": len(result.trace_in_each_iter),
+                "transition_calls": calls.get(_world_modeling.__code__, 0),
+                "simulation_calls": calls.get(MCTSSearch._do_simulate.__code__, 0),
+                "checkpoints": len(saved),
+                "saved_terminal_states": [
+                    path[-1]["is_terminal"] and path[-1]["state"] is not None
+                    for path in saved
+                ],
+            }
+            iterations = 1 if stop else 3
+            expected = {
+                "materialized": True, "terminal": True, "collected": True,
+                "visits": [iterations, iterations],
+                "returns": [[0.5] * iterations, [1.0] * iterations],
+                "iterations": iterations, "transition_calls": 0 if materialized else 1,
+                "simulation_calls": 0, "checkpoints": iterations,
+                "saved_terminal_states": [True] * iterations,
+            }
+            passed = observed == expected
+            print(f"  {'PASS' if passed else 'FAIL'}: {label}")
+            print(f"    observed: {observed}")
+            print(f"    expected: {expected}")
+            records.append({"case": label, "passed": passed,
+                            "observed": observed, "expected": expected})
+            breakpoint()  # inspect: endpoint, observed, expected, saved, case_dir
+            if not passed:
+                failures.append(label)
+        finally:
+            search._teardown()
+    (output_dir / "outcomes.json").write_text(json.dumps(records, indent=2) + "\n")
+    if failures:
+        raise RuntimeError("Selected-step materialization failed: " + ", ".join(failures))
 
 
 def check_early_exit_recording(world_model, policy, reward_model) -> None:

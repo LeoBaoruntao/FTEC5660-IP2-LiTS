@@ -125,7 +125,7 @@ config = BaseSearchConfig(
     
     # Termination
     force_terminating_on_depth_limit=True,
-    terminate_on_terminal_node=True,
+    terminate_on_first_solution=True,
     
     # Evaluation
     enable_think_policy=True,
@@ -230,11 +230,9 @@ config = BaseSearchConfig(
     max_steps=10,
     force_terminating_on_depth_limit=True,  # Force stop at max_steps
     
-    # Terminal node handling during selection
-    terminate_on_terminal_node=True,  # Stop iteration when selecting a terminal node
-    
-    # Early termination for feasibility checking
-    terminate_on_first_solution=False,  # Stop MCTS when first solution is found
+    # Whole-search stopping, after the current iteration is recorded
+    terminate_on_first_solution=True,
+    early_stop_reward=None,  # Any terminal; set a score threshold to require >=
 )
 ```
 
@@ -242,21 +240,24 @@ config = BaseSearchConfig(
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `terminate_on_terminal_node` | `True` | When selecting a previously-visited terminal node, stop the current iteration. Set to `False` to continue exploring other branches. |
-| `terminate_on_first_solution` | `False` | When any path reaches a terminal node (goal achieved) during simulation, immediately stop MCTS. Useful for feasibility checking where you only care if a solution exists, not finding the optimal one. |
+| `terminate_on_first_solution` | `True` | Stop MCTS on the first qualifying actual terminal, before or after rollout, after recording the iteration. `False` disables completion-based early stopping. |
+| `early_stop_reward` | `None` | Require terminal `fast_reward >= early_stop_reward`; `None` accepts any terminal. Ignored when the stop flag is `False`. |
+| `r_terminating` | `None` | Used only by the transition model's `reward_threshold` constraint, not by MCTS search stopping. |
+
+Terminal status comes from `Transition.is_terminal()`, not a ground-truth correctness
+check. Repetition and depth cutoffs end the path but cannot alone stop the search.
 
 #### Use Cases
 
-**Finding optimal solutions (default):**
+**Comparing solutions over a fixed search budget:**
 ```python
 config = BaseSearchConfig(
-    terminate_on_terminal_node=True,   # Default
-    terminate_on_first_solution=False,  # Default - explore all iterations
+    terminate_on_first_solution=False,
 )
-# MCTS will run all n_iters iterations to find the best solution
+# Terminal discovery does not end the search early.
 ```
 
-**Feasibility checking (stop on first solution):**
+**Feasibility checking (default: stop on first terminal):**
 ```python
 config = BaseSearchConfig(
     terminate_on_first_solution=True,  # Stop as soon as any solution is found
@@ -265,13 +266,13 @@ config = BaseSearchConfig(
 # that a valid solution exists, not find the optimal one
 ```
 
-**Full exploration (never stop early):**
+**Stop on a sufficiently high-scoring terminal:**
 ```python
 config = BaseSearchConfig(
-    terminate_on_terminal_node=False,  # Continue even when selecting terminal nodes
-    terminate_on_first_solution=False,  # Run all iterations
+    terminate_on_first_solution=True,
+    early_stop_reward=0.9,
 )
-# Maximum exploration - useful for collecting diverse solutions
+# Equality meets the threshold. This does not certify answer correctness.
 ```
 
 ## Result Structure
@@ -890,54 +891,27 @@ policy = RAPPolicy(base_model=model, ...)
 
 ### Q: Why do I only see one checkpoint file per example even with n_iters=30?
 
-This typically happens due to **mode collapse** in action generation. When the LLM generates the same actions repeatedly:
+Check the saved stop configuration, iteration logs, and runtime limit. With
+`terminate_on_first_solution=True` (the default), an accepted terminal ends the
+search after its iteration is recorded. With the flag disabled, terminal revisits
+still produce iteration checkpoints when checkpointing is enabled; `continue` does
+not bypass recording.
 
-1. The tree degenerates to a single path (no branching diversity)
-2. UCT selection always picks the same terminal node
-3. When `terminate_on_terminal_node=false`, selecting a terminal node triggers `continue` which skips checkpoint saving
-4. Only iteration 0 saves a checkpoint (during initial tree construction)
+### Q: How do I migrate `terminate_on_terminal_node` and search-level `r_terminating`?
 
-**Solutions:**
-- Increase temperature in policy to encourage diverse action generation
-- Check if your prompt encourages varied responses
-- Verify the LLM isn't deterministically producing identical outputs
+`terminate_on_terminal_node` is retired. Direct config construction rejects that
+keyword; `ExperimentConfig` reports a migration error instead of ignoring it.
+Remove it and explicitly set `terminate_on_first_solution`: `False` for fixed-budget
+exploration, or `True` for completion-based stopping. Do not merely rename the key
+if the old configuration already contains both flags.
 
-### Q: What's the difference between `terminate_on_terminal_node` and `terminate_on_first_solution`?
-
-These control different aspects of MCTS termination:
-
-| Parameter | Triggers On | Effect |
-|-----------|-------------|--------|
-| `terminate_on_terminal_node=true` | Selecting ANY terminal node (depth-limited OR goal-reached) | Breaks out of current iteration, moves to next iteration |
-| `terminate_on_first_solution=true` | `node.is_terminal=True` from state itself (goal achieved) | Immediately stops entire MCTS search |
-
-**Key distinction:**
-- `terminate_on_terminal_node` checks if the **selected node** during UCT selection is terminal (either from reaching max_steps or from goal achievement)
-- `terminate_on_first_solution` only triggers when a node's state indicates the **actual goal is achieved** (via `Transition.is_terminal()`)
-
-**Example scenarios:**
-
-```python
-# Scenario 1: Feasibility checking (BlocksWorld)
-# Stop as soon as any valid plan is found
-config = BaseSearchConfig(
-    terminate_on_first_solution=True,  # Stop when goal achieved
-    terminate_on_terminal_node=True,   # Default
-)
-
-# Scenario 2: Finding best solution (Crosswords)
-# Explore all iterations to find highest-reward solution
-config = BaseSearchConfig(
-    terminate_on_first_solution=False,  # Run all iterations
-    terminate_on_terminal_node=False,   # Continue exploring even when selecting terminal nodes
-)
-```
+Use `early_stop_reward` for the search quality threshold. Its comparison is `>=`,
+not the retired strict `>` rule. An MCTS config supplying `r_terminating` warns
+that it no longer gates search stopping. Retain `r_terminating` only where needed
+by the transition's `reward_threshold` constraint; it is not an alias.
 
 ### Q: Why does my MCTS stop after iteration 0 even with `terminate_on_first_solution=false`?
 
-Check if `terminate_on_terminal_node=true` (the default). When this is enabled:
-- If UCT selection picks a terminal node, the iteration breaks immediately
-- If all paths lead to terminal nodes, every iteration breaks after selection
-- This can make it appear that only iteration 0 ran
-
-Set `terminate_on_terminal_node=false` to continue exploring other branches when a terminal node is selected.
+The current stop rule cannot do that solely because a terminal was found. Check
+the effective saved configuration, `n_iters`, runtime limits, errors, and any
+custom search implementation. The retired flag cannot override the canonical flag.

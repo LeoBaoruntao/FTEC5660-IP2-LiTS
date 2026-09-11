@@ -1,6 +1,7 @@
 import json
 import logging
 import math
+import warnings
 from collections import defaultdict
 from copy import deepcopy
 from dataclasses import dataclass, field, asdict
@@ -17,7 +18,7 @@ from ...memory.types import TrajectoryKey
 from .node import MCTSNode, SearchNode
 from .base import BaseSearchConfig
 from .search_base import BaseTreeSearch, SearchResult
-from .common import visualize_node, visualize_path, _sample_actions_with_existing, _world_modeling, _is_terminal_with_depth_limit, _is_terminal_with_depth_limit_and_r_threshold, create_child_node
+from .common import visualize_node, visualize_path, _sample_actions_with_existing, _world_modeling, _is_terminal_with_depth_limit, create_child_node
 from .continuation import _continuation
 from .augmentor_setup import setup_augmentors
 from ..registry import register_search
@@ -124,11 +125,11 @@ class MCTSConfig(BaseSearchConfig):
         transition_before_evaluate: Whether to run transition before reward scoring in _expand().
             False (default) = Q(s,a) estimate: score action without observation.
             True = V(s') estimate: run transition first, then score with observation (LATS §4.2).
-        terminate_on_terminal_node: Stop the search on an accepted terminal, before
-            or after rollout. With r_terminating set, require fast_reward > that threshold.
-        terminate_on_first_solution: Independently stop on a terminal whose fast_reward
+        terminate_on_first_solution: Stop at the first terminal whose fast_reward
             meets early_stop_reward (>=), or any terminal when that threshold is unset.
-            Both rules run after iteration recording; neither keeps a terminal path open.
+            Defaults to True; fixed-budget runs set False. The check runs after
+            iteration recording, before or after rollout, and never keeps a path open.
+        r_terminating: Transition-only threshold; does not control search stopping.
     """
     # selection
     w_exp: float = 1.
@@ -178,6 +179,15 @@ class MCTSConfig(BaseSearchConfig):
 
     
     def __post_init__(self):
+        """Resolve the simulation choice and flag transition/search threshold confusion."""
+        if self.r_terminating is not None:
+            warnings.warn(
+                "r_terminating only configures transition termination; it no longer "
+                "gates MCTS search stopping. Use early_stop_reward for that purpose "
+                "(inclusive >=, not the retired strict > comparison).",
+                UserWarning,
+                stacklevel=2,
+            )
         self.simulate_choice = self.default_simulate_strategies.get(self.simulate_strategy, self.simulate_strategy)
 
     def verify(self):
@@ -204,15 +214,41 @@ class MCTSConfig(BaseSearchConfig):
 # ~~~~~~~ Search Config (BEGIN ~~~~~~~~~
 
 ##### SELECT (Begin) #####
+def _reached_depth_limit(node: MCTSNode, config: MCTSConfig) -> bool:
+    """Check the enabled depth bound, independently of terminal status and reward."""
+    return config.force_terminating_on_depth_limit and node.depth >= config.max_steps
+
+
 def _should_end_path(node: MCTSNode, config: MCTSConfig) -> bool:
-    """End actual terminal paths regardless of reward; retain nonterminal cutoff rules.
+    """End terminal, repetition-stopped, or depth-limited paths regardless of reward.
 
     Used before and during rollout. This decides whether this path can continue,
     not whether its result is good enough to stop the entire search.
+
+    Current decision flow::
+
+        node.is_terminal?
+            |-- yes --> True: end path, regardless of score
+            '-- no
+                 |
+                 v
+        _reached_depth_limit(node, config)?
+            |-- yes --> True: end path, regardless of score
+            '-- no
+                 |
+                 v
+        node.is_terminal_for_repeat?
+            |-- yes --> True: end path
+            '-- no  --> False: continue path
+
+    ``is_terminal_for_repeat`` currently combines the repetition sentinel and
+    ``Step.terminate``; it is not a repetition-only flag. A depth cutoff does not change
+    ``node.is_terminal`` or establish task completion.
+    Reward thresholds are checked only by ``_should_stop_search``.
     """
-    return node.is_terminal or bool(_is_terminal_with_depth_limit_and_r_threshold(
-        node, config.max_steps, config.force_terminating_on_depth_limit, config.r_terminating,
-    ))
+    return bool(
+        node.is_terminal or _reached_depth_limit(node, config) or node.is_terminal_for_repeat
+    )
 
 
 def _select(w_exp: float, node: MCTSNode, max_steps: int, force_terminating_on_depth_limit: bool) -> list[MCTSNode]:
@@ -448,6 +484,9 @@ def _simulate(
     Actual terminals return without child selection, including terminals supplied
     at entry or found during rollout. Their quality affects global search stopping,
     not whether rollout continues beyond them. The caller performs backup and recording.
+    Enabled depth limits likewise stop rollout at entry or after a transition,
+    regardless of reward and without marking the endpoint terminal.
+    The repetition flag also stops rollout without further expansion or child selection.
     
     Args:
         on_step: Optional callback called with each new node during simulation.
@@ -465,7 +504,7 @@ def _simulate(
     log_phase(logger, "Simulate", "Begin")
     node = path[-1]
     unselected_terminal_paths = []
-    if node.is_terminal:
+    if _should_end_path(node, mcts_search_config):
         log_phase(logger, "Simulate", "End")
         return node.is_terminal_for_repeat, unselected_terminal_paths
     for i in range(roll_out_steps):
@@ -509,7 +548,7 @@ def _simulate(
         # ====== Terminate Check (Begin) ======
         if _should_end_path(node, mcts_search_config):
             log_phase(logger, "Simulate", "End")
-            return False, unselected_terminal_paths
+            return node.is_terminal_for_repeat, unselected_terminal_paths
         # ====== Terminate Check (End) ======
     
     log_phase(logger, "Simulate", "End")
@@ -747,23 +786,36 @@ class MCTSSearch(BaseTreeSearch):
             _back_propagate(path, config.backprop_reward_func, config.backprop_broadcast_mode)
 
     def _should_stop_search(self, endpoint: MCTSNode) -> bool:
-        """Apply global stop flags to a path that has finished its iteration.
+        """Apply the completion-based search-stop rule after iteration recording.
 
-        ``terminate_on_terminal_node`` uses the strict ``r_terminating`` threshold
-        when set. ``terminate_on_first_solution`` independently accepts actual
-        terminals at or above ``early_stop_reward`` (any terminal if unset).
-        Either rule can stop the search. Pre-rollout nonterminal cutoffs retain
-        their configured stop behavior; after rollout, call only for actual terminals.
+        Require ``endpoint.is_terminal``, set by the transition model, and
+        ``terminate_on_first_solution``. Accept terminals at or above
+        ``early_stop_reward`` (any terminal if unset).
+        Call before or after rollout. Repetition or depth cutoff without actual
+        termination cannot stop the search, regardless of reward.
+
+        Decision flow::
+
+            endpoint.is_terminal?
+                |-- no --> False: continue search
+                '-- yes
+                     |
+                     v
+            config.terminate_on_first_solution?
+                |-- no --> False: continue search
+                '-- yes
+                     |
+                     v
+            config.early_stop_reward is None
+            OR endpoint.fast_reward >= config.early_stop_reward?
+                |-- yes --> True: stop search
+                '-- no  --> False: continue search
         """
-        config = self.config
-        if config.terminate_on_terminal_node and _is_terminal_with_depth_limit_and_r_threshold(
-            endpoint, config.max_steps, config.force_terminating_on_depth_limit,
-            config.r_terminating,
-        ):
-            return True
+        if not endpoint.is_terminal or not self.config.terminate_on_first_solution:
+            return False
         return bool(
-            config.terminate_on_first_solution and endpoint.is_terminal
-            and (config.early_stop_reward is None or endpoint.fast_reward >= config.early_stop_reward)
+            self.config.early_stop_reward is None
+            or endpoint.fast_reward >= self.config.early_stop_reward
         )
 
     def _finalize_iteration(
@@ -862,9 +914,10 @@ class MCTSSearch(BaseTreeSearch):
 
         A selected path ending at a materialized terminal is backed up before
         its iteration exits, without another rollout. Terminal revisits reuse
-        the stored reward and count as another traversal. Nonterminal depth
-        and repetition exits retain their existing behavior.
-        Global terminal-stop rules apply both before and after rollout, only
+        the stored reward and count as another traversal. Enabled depth limits
+        end the current path regardless of score, without marking it terminal.
+        The repetition flag also ends the path independently of reward.
+        The global terminal-stop rule applies both before and after rollout, only
         after backup and recording; a low-scoring terminal never keeps its path open.
         """
         logger.debug(f"Question: {query}")
@@ -1022,10 +1075,10 @@ class MCTSSearch(BaseTreeSearch):
             logger.info(f"[MCTS] Iteration {idx_iter}/{config.n_iters} (example={query_idx}) | terminals={n_terminals}\n{tree_str}")
 
             # ====== Terminal / First-Solution Search Stop ======
-            if path[-1].is_terminal and self._should_stop_search(path[-1]):
+            if self._should_stop_search(path[-1]):
                 log_event(
                     logger, "MCTS",
-                    f"Terminates on accepted terminal (reward={path[-1].fast_reward:.3f})",
+                    f"Search stop accepted (reward={path[-1].fast_reward:.3f})",
                     level="debug",
                 )
                 break

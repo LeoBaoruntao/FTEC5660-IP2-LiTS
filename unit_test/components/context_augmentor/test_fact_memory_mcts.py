@@ -146,7 +146,7 @@ def run():
         roll_out_steps=2,
         w_exp=1.0,
         force_terminating_on_depth_limit=True,
-        terminate_on_terminal_node=False,
+        terminate_on_first_solution=False,
         output_trace_in_each_iter=True,
     )
 

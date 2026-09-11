@@ -41,8 +41,7 @@ _DEFAULT_SEARCH_ARGS: Dict[str, Any] = {
     "sample_threshold_terminate": 0.8,
     "sample_threshold_verify": 0.8,
     "force_terminating_on_depth_limit": False,
-    "terminate_on_terminal_node": True,
-    "terminate_on_first_solution": False,
+    "terminate_on_first_solution": True,
     "early_stop_reward": None,
     # Continuation
     "add_continuation": False,
@@ -133,7 +132,9 @@ class ExperimentConfig:
         - max_steps: Maximum reasoning depth (default: 10)
         - n_iters: MCTS iterations (default: 50)
         - roll_out_steps: MCTS rollout depth (default: 2)
-        - terminate_on_first_solution: Stop when first solution found (default: False)
+        - terminate_on_first_solution: Stop at the first qualifying terminal (default: True)
+        - early_stop_reward: Optional inclusive terminal-score threshold for search stopping
+        - r_terminating: Transition-only threshold for its reward_threshold constraint
         - add_continuation: Enable branching number evaluation (default: False)
         - bn_method: Branching number method ("entropy", "sc", "direct")
     
@@ -238,7 +239,16 @@ class ExperimentConfig:
         
         Returns:
             Dict with all search algorithm parameters ready for use
+
+        Raises:
+            ValueError: If the retired terminate_on_terminal_node argument is supplied.
         """
+        if "terminate_on_terminal_node" in self.search_args:
+            raise ValueError(
+                "terminate_on_terminal_node has been removed; set "
+                "terminate_on_first_solution explicitly and use early_stop_reward "
+                "for search stopping (>=). r_terminating is transition-only."
+            )
         args = dict(_DEFAULT_SEARCH_ARGS)
         
         # Apply CLI overrides

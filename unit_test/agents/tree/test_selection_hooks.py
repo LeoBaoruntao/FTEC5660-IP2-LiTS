@@ -13,6 +13,7 @@ References:
 
 import json
 import os
+import warnings
 from cProfile import Profile
 from itertools import product
 from pathlib import Path
@@ -24,12 +25,13 @@ from lits.agents.tree.augmentor_setup import build_search_callbacks
 from lits.agents.tree.bfs import BFSSearch
 from lits.agents.tree.common import _world_modeling
 from lits.agents.tree.continuation import _continuation
-from lits.agents.tree.mcts import MCTSConfig, MCTSSearch, _select
+from lits.agents.tree.mcts import MCTSConfig, MCTSSearch, _expand, _select
 from lits.agents.tree.node import MCTSNode, SearchNode
 from lits.components.context_augmentor.reflection import ReflectionAugmentor
 from lits.components.policy.concat import ConcatPolicy
 from lits.components.reward.generative import GenerativePRM
 from lits.components.transition.concat import ConcatTransition
+from lits.config import ExperimentConfig
 from lits.structures import ThoughtStep
 
 
@@ -159,6 +161,7 @@ def check_selected_terminal_backup() -> None:
         terminate_constraints=["reward_threshold"],
         r_terminating=0.9,
     )
+    check_stop_configuration(base_model, policy, reward_model)
     query = "What is 6 multiplied by 7?"
     output_dir = Path(mkdtemp(prefix="lits-mcts-backup-modes-"))
     print(f"Backup-mode checkpoint checks: {output_dir}")
@@ -180,7 +183,7 @@ def check_selected_terminal_backup() -> None:
             n_iters=3 if stop_on_terminal else n_iters,
             max_steps=5,
             force_terminating_on_depth_limit=False,
-            terminate_on_terminal_node=stop_on_terminal,
+            terminate_on_first_solution=stop_on_terminal,
             add_continuation=continuation,
             backprop_mode=mode,
             backprop_broadcast_mode=broadcast,
@@ -326,7 +329,7 @@ def check_early_exit_recording(world_model, policy, reward_model) -> None:
     ):
         case_dir = output_dir / f"{stage}-stop-{stop}-save-{save}-callback-{with_callback}"
         checkpoint = case_dir / "checkpoints" / "0_0.json"
-        config = MCTSConfig(n_iters=1, terminate_on_terminal_node=stop)
+        config = MCTSConfig(n_iters=1, terminate_on_first_solution=stop)
         search = MCTSSearch(
             config, world_model, policy, reward_model,
             checkpoint_dir=str(case_dir) if save else None,
@@ -400,7 +403,7 @@ def check_terminal_stopping(world_model, policy, reward_model) -> None:
     Separately run ``mcts.py::MCTSSearch.search`` with a qualifying answer completed
     during world modeling, before simulation; global early stopping should still apply.
     Profiling checks that these full-search cases never invoke simulation.
-    Controls disable each reward-related stop setting. All actions/rewards are supplied;
+    Controls disable the search-stop flag or its threshold. All actions/rewards are supplied;
     no inference is needed. Report every case before raising on failed expectations.
     """
     output_dir = Path(mkdtemp(prefix="lits-mcts-terminal-stopping-"))
@@ -410,10 +413,10 @@ def check_terminal_stopping(world_model, policy, reward_model) -> None:
     )
     # Name, full search or exit helper, search threshold, early stop, expected iterations.
     cases = (
-        ("low_terminal_control", False, None, False, 1),
-        ("low_terminal_with_threshold", False, 0.9, False, 1),
-        ("qualifying_terminal_control", True, None, False, 3),
-        ("qualifying_terminal_early_stop", True, None, True, 1),
+        ("low_terminal_control", False, None, True, 1),
+        ("low_terminal_with_threshold", False, 0.9, True, 1),
+        ("qualifying_terminal_control", True, 0.9, False, 3),
+        ("qualifying_terminal_early_stop", True, 0.9, True, 1),
     )
     failures = []
     for label, full_search, threshold, early_stop, expected_iterations in cases:
@@ -422,8 +425,7 @@ def check_terminal_stopping(world_model, policy, reward_model) -> None:
         transition = world_model if full_search else signal_transition
         config = MCTSConfig(
             n_iters=3, max_steps=5, force_terminating_on_depth_limit=False,
-            terminate_on_terminal_node=False, r_terminating=threshold,
-            terminate_on_first_solution=early_stop, early_stop_reward=0.9,
+            terminate_on_first_solution=early_stop, early_stop_reward=threshold,
         )
         search = MCTSSearch(
             config, transition, policy, reward_model, checkpoint_dir=str(case_dir),
@@ -489,6 +491,7 @@ def check_terminal_stopping(world_model, policy, reward_model) -> None:
             search._teardown()
     failures.extend(check_rollout_terminal_stopping(signal_transition, policy, reward_model))
     failures.extend(check_rollout_iteration_recording(signal_transition, policy, reward_model))
+    failures.extend(check_rollout_path_cutoffs(signal_transition, policy, reward_model))
     failures.extend(check_nonterminal_cutoffs(world_model, policy, reward_model))
     if failures:
         raise RuntimeError("Terminal-stopping regressions failed: " + ", ".join(failures))
@@ -507,8 +510,8 @@ def check_rollout_terminal_stopping(world_model, policy, reward_model) -> list[s
     for at_entry in (True, False):
         label = "terminal_at_rollout_entry" if at_entry else "terminal_during_rollout"
         config = MCTSConfig(
-            r_terminating=0.9, roll_out_steps=2, max_steps=5,
-            force_terminating_on_depth_limit=False, terminate_on_terminal_node=False,
+            early_stop_reward=0.9, roll_out_steps=2, max_steps=5,
+            force_terminating_on_depth_limit=False, terminate_on_first_solution=False,
         )
         search = MCTSSearch(config, world_model, policy, reward_model)
         query = "What is 6 multiplied by 7?"
@@ -549,37 +552,46 @@ def check_rollout_terminal_stopping(world_model, policy, reward_model) -> list[s
 def check_rollout_iteration_recording(world_model, policy, reward_model) -> list[str]:
     """Check full-loop rollout backup and recording without generating actions.
 
-    In ``mcts.py::MCTSSearch.search``, a depth-one selection limit chooses the
-    prepared parent. Its reward is below the search threshold, so the existing
-    nonterminal-cutoff rule permits expansion and rollout. Real expansion reuses
-    its pre-scored children. Only the best child is simulated; siblings must keep
+    A selection-hook subclass chooses the prepared parent on each iteration;
+    it tests ``mcts.py::MCTSSearch.search`` phase execution, not UCT traversal.
+    Real expansion reuses pre-scored children. Only the best child is simulated; siblings must keep
     empty returns and zero visits. A one-step rollout also tests nonterminal
-    exhaustion. Check both stop flags, their threshold boundaries, and saved
+    exhaustion. Check terminal and repetition exits, the stop flag, its threshold, and saved
     post-backup statistics with checkpointing on/off. No inference is needed.
     """
+    class PreparedParentSearch(MCTSSearch):
+        """Fix the selected path while retaining the real expansion and rollout."""
+
+        def _do_select_path(self, query, query_idx, iteration):
+            """Return the prepared parent's path for this iteration."""
+            return self.root.children[0].get_path()
+
     output_dir = Path(mkdtemp(prefix="lits-mcts-rollout-recording-"))
     print(f"Rollout iteration checks: {output_dir}")
-    # Name, terminal signal, reward, first-solution flag, terminal flag, iterations.
+    # Name, terminal signal, reward, stop flag, threshold, iterations, repeat flag.
     cases = (
-        ("low_terminal", True, 0.2, False, True, 3),
-        ("first_solution", True, 1.0, True, False, 1),
-        ("terminal_stop", True, 1.0, False, True, 1),
-        ("stopping_disabled", True, 1.0, False, False, 3),
-        ("first_solution_equal", True, 0.9, True, False, 1),
-        ("terminal_threshold_equal", True, 0.9, False, True, 3),
-        ("nonterminal_exhaustion", False, 0.2, True, True, 3),
+        ("low_terminal", True, 0.2, True, 0.9, 3, False),
+        ("first_solution", True, 1.0, True, 0.9, 1, False),
+        ("stopping_disabled", True, 1.0, False, 0.9, 3, False),
+        ("threshold_equal", True, 0.9, True, 0.9, 1, False),
+        ("no_threshold", True, 0.2, True, None, 1, False),
+        ("nonterminal_exhaustion", False, 0.2, True, None, 3, False),
+        ("low_repeat", False, 0.2, True, 0.9, 3, True),
+        ("repeat_threshold_equal", False, 0.9, True, 0.9, 3, True),
+        ("high_score_repeat", False, 1.0, True, 0.9, 3, True),
+        ("repeat_stopping_disabled", False, 1.0, False, None, 3, True),
+        ("terminal_with_repeat_flag", True, 1.0, True, 0.9, 1, True),
     )
     failures = []
-    for (label, terminal, score, first_stop, terminal_stop, expected_iters), save in product(
+    for (label, terminal, score, stop, threshold, expected_iters, repeated), save in product(
         cases, (False, True),
     ):
         case_dir = output_dir / f"{label}-save-{save}"
         config = MCTSConfig(
-            n_iters=3, max_steps=1, roll_out_steps=1, r_terminating=0.9,
-            terminate_on_terminal_node=terminal_stop,
-            terminate_on_first_solution=first_stop, early_stop_reward=0.9,
+            n_iters=3, max_steps=5, roll_out_steps=1,
+            terminate_on_first_solution=stop, early_stop_reward=threshold,
         )
-        search = MCTSSearch(
+        search = PreparedParentSearch(
             config, world_model, policy, reward_model,
             checkpoint_dir=str(case_dir) if save else None,
         )
@@ -599,6 +611,7 @@ def check_rollout_iteration_recording(world_model, policy, reward_model) -> list
                 child.from_expand = True
                 parent.add_child(child)
             endpoint = parent.children[0]
+            endpoint.is_terminal_for_repeat = repeated
             profiler = Profile()
             result = profiler.runcall(search.search, query, query_idx=0)
             expected_stats = [
@@ -645,20 +658,22 @@ def check_rollout_iteration_recording(world_model, policy, reward_model) -> list
 
 
 def check_nonterminal_cutoffs(world_model, policy, reward_model) -> list[str]:
-    """Check nonterminal cutoffs retain their records-only early-exit behavior."""
+    """Check nonterminal cutoffs never qualify for completion-based search stopping."""
     failures = []
-    # Name, depth limit, repetition, threshold, reward, expected path exit.
+    # Name, depth limit, repetition, threshold, reward, path exit, global stop.
     cases = (
-        ("depth_stop", True, False, None, 0.2, True),
-        ("depth_below_threshold", True, False, 0.9, 0.2, False),
-        ("depth_above_threshold", True, False, 0.9, 1.0, True),
-        ("repeat_stop", False, True, None, 0.2, True),
-        ("repeat_below_threshold", False, True, 0.9, 0.2, False),
-        ("nonterminal_no_cutoff", False, False, None, 1.0, False),
+        ("depth_stop", True, False, None, 0.2, True, False),
+        ("depth_below_threshold", True, False, 0.9, 0.2, True, False),
+        ("depth_above_threshold", True, False, 0.9, 1.0, True, False),
+        ("repeat_no_threshold", False, True, None, 0.2, True, False),
+        ("repeat_below_threshold", False, True, 0.9, 0.2, True, False),
+        ("repeat_at_threshold", False, True, 0.9, 0.9, True, False),
+        ("repeat_above_threshold", False, True, 0.9, 1.0, True, False),
+        ("nonterminal_no_cutoff", False, False, None, 1.0, False, False),
     )
-    for label, depth_limit, repeated, threshold, score, expected_exit in cases:
+    for label, depth_limit, repeated, threshold, score, expected_exit, expected_stop in cases:
         config = MCTSConfig(max_steps=1, force_terminating_on_depth_limit=depth_limit,
-                            r_terminating=threshold, terminate_on_first_solution=True)
+                            early_stop_reward=threshold, terminate_on_first_solution=True)
         search = MCTSSearch(config, world_model, policy, reward_model)
         search._setup("What is 6 multiplied by 7?", query_idx=0)
         try:
@@ -672,7 +687,7 @@ def check_nonterminal_cutoffs(world_model, policy, reward_model) -> list[str]:
             observed = (ended, len(traces), endpoint.is_terminal,
                         [(node.visit_count, node.cum_rewards) for node in path],
                         search._should_stop_search(endpoint))
-            expected = (expected_exit, int(expected_exit), False, [(0, []), (0, [])], expected_exit)
+            expected = (expected_exit, int(expected_exit), False, [(0, []), (0, [])], expected_stop)
             print(f"  {'PASS' if observed == expected else 'FAIL'}: {label}: {observed}")
             breakpoint()  # inspect: observed, expected, path, traces
             if observed != expected:
@@ -680,6 +695,124 @@ def check_nonterminal_cutoffs(world_model, policy, reward_model) -> list[str]:
         finally:
             search._teardown()
     return failures
+
+
+def check_rollout_path_cutoffs(world_model, policy, reward_model) -> list[str]:
+    """Check depth/repetition stops in ``mcts.py::MCTSSearch._do_simulate``.
+
+    Pre-scored children avoid inference. The first transition is nonterminal at
+    depth one; the second is terminal. A depth bound or repetition flag must stop
+    rollout at the first transition regardless of score. At entry, neither should
+    allow expansion. With neither cutoff, rollout reaches the second transition.
+    """
+    failures = []
+    for cutoff, score, at_entry in product(("depth", "repeat", "neither"), (0.2, 0.9, 1.0), (False, True)):
+        enabled = cutoff == "depth"
+        config = MCTSConfig(max_steps=1, force_terminating_on_depth_limit=enabled,
+                            early_stop_reward=0.9, roll_out_steps=2)
+        search = MCTSSearch(config, world_model, policy, reward_model)
+        query = "What is 6 multiplied by 7?"
+        search._setup(query, query_idx=0)
+        try:
+            parent = search.root
+            for text, terminal, reward in (
+                ("Compute six groups of seven.", False, score),
+                ("The answer is 42.", True, 1.0),
+            ):
+                step = ThoughtStep(action=text, terminate=terminal)
+                child = MCTSNode(state=None, action=step.action, parent=parent, fast_reward=reward)
+                child.step = step
+                child.from_expand = True
+                parent.add_child(child)
+                parent = child
+            endpoint = search.root.children[0]
+            endpoint.is_terminal_for_repeat = cutoff == "repeat"
+            path = [search.root]
+            if at_entry:
+                _world_modeling(query, 0, endpoint, world_model, reward_model)
+                path.append(endpoint)
+            profiler = Profile()
+            profiler.runcall(search._do_simulate, query, 0, path, config,
+                             world_model, policy, reward_model, roll_out_steps=config.roll_out_steps)
+            expansion_calls = sum(entry.callcount for entry in profiler.getstats()
+                                  if entry.code == _expand.__code__)
+            depth = 2 if cutoff == "neither" else 1
+            observed = (path[-1].depth, path[-1].is_terminal, expansion_calls)
+            expected = (depth, cutoff == "neither", depth - int(at_entry))
+            print(f"  {'PASS' if observed == expected else 'FAIL'}: rollout cutoff={cutoff}, "
+                  f"score={score}, at_entry={at_entry}: {observed}")
+            breakpoint()  # inspect: path, observed, expected, config
+            if observed != expected:
+                failures.append(f"rollout-{cutoff}-{score}-entry-{at_entry}")
+        finally:
+            search._teardown()
+    return failures
+
+
+def check_stop_configuration(base_model, policy, reward_model) -> None:
+    """Check direct/CLI config migration and independent transition/search thresholds.
+
+    Exercise ``config.py::ExperimentConfig.create_search_config`` and
+    ``concat.py::ConcatTransition.from_config`` using the configured real client
+    without inference. Inspect serialized defaults and explicit migration errors.
+    """
+    failures = []
+
+    def record(label, passed):
+        """Report a check and retain failures for the final exception."""
+        print(f"  {'PASS' if passed else 'FAIL'}: {label}")
+        breakpoint()  # inspect: label, passed, failures
+        if not passed:
+            failures.append(label)
+
+    def experiment(search_args):
+        """Build the same configuration entry point used by the search CLI."""
+        return ExperimentConfig(dataset="math500", policy_model_name="openai/local-instruct",
+                                eval_model_name="openai/local-instruct", search_args=search_args)
+
+    for overrides, expected_stop in (({}, True), ({"terminate_on_first_solution": False}, False)):
+        for source, config in (("direct", MCTSConfig(**overrides)),
+                               ("CLI", experiment(overrides).create_search_config())):
+            saved = json.loads(json.dumps(config.to_dict()))
+            record(f"{source} canonical stop={expected_stop}",
+                   saved["terminate_on_first_solution"] is expected_stop
+                   and saved["early_stop_reward"] is None
+                   and "terminate_on_terminal_node" not in saved)
+
+    for legacy in (True, False):
+        for source in ("direct", "CLI"):
+            try:
+                overrides = {"terminate_on_terminal_node": legacy}
+                if source == "direct":
+                    MCTSConfig(**overrides)
+                else:
+                    experiment(overrides).get_search_args()
+            except (TypeError, ValueError) as error:
+                record(f"{source} rejects retired flag={legacy}",
+                       "terminate_on_terminal_node" in str(error))
+            else:
+                record(f"{source} rejects retired flag={legacy}", False)
+
+    exp = experiment({"terminate_constraints": ["reward_threshold"],
+                      "r_terminating": 0.7, "early_stop_reward": 0.9})
+    with warnings.catch_warnings(record=True) as notices:
+        warnings.simplefilter("always")
+        config = exp.create_search_config()
+    saved = json.loads(json.dumps(exp.to_dict()))["search_args"]
+    record("transition threshold retained with explicit migration warning",
+           saved["r_terminating"] == 0.7 and saved["early_stop_reward"] == 0.9
+           and any("r_terminating only configures transition" in str(n.message) for n in notices))
+    transition = ConcatTransition.from_config(base_model, exp.get_search_args(), exp.get_component_args())
+    search = MCTSSearch(config, transition, policy, reward_model)
+    state = [ThoughtStep(action="The answer is 42.", terminate=True)]
+    for score in (0.6, 0.7, 0.8, 0.9):
+        terminal = transition.is_terminal(state, "What is 6 multiplied by 7?", fast_reward=score)
+        node = MCTSNode(state=state, action=state[-1].action,
+                        fast_reward=score, is_terminal=terminal)
+        record(f"independent thresholds at reward={score}",
+               terminal == (score >= 0.7) and search._should_stop_search(node) == (score >= 0.9))
+    if failures:
+        raise RuntimeError("Stop-configuration checks failed: " + ", ".join(failures))
 
 
 def main() -> None:

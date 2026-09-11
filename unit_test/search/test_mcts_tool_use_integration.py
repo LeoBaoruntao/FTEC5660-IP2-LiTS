@@ -148,7 +148,7 @@ def test_mcts_tool_use_integration():
         roll_out_steps=2,
         w_exp=1.0,
         force_terminating_on_depth_limit=False,
-        terminate_on_terminal_node=True,
+        terminate_on_first_solution=True,
         output_trace_in_each_iter=True,
     )
     print(f"✓ Created MCTS config with {search_config.n_iters} iterations")

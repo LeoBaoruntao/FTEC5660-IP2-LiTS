@@ -7,8 +7,8 @@ Usage (from lits_llm/):
     PYTHONPATH="$PYTHONPATH:$(pwd)/demos" python -m unit_test.search.test_early_stop_reward
 
 Expected behavior:
-    - Low threshold (0.5): stops early (few iterations), because first terminal reward > 0.5
-    - High threshold (0.99): does NOT stop early (runs all iterations), because no terminal reward > 0.99
+    - Low threshold (0.5): stops early if a terminal reward is >= 0.5.
+    - High threshold (0.99): runs all iterations if no terminal reward is >= 0.99.
 """
 
 import sys, os, tempfile, shutil
@@ -61,7 +61,6 @@ def run_mcts_with_early_stop(early_stop_reward, n_iters=5):
         transition_before_evaluate=True,
         simulate_strategy="max",
         force_terminating_on_depth_limit=False,
-        terminate_on_terminal_node=True,
         terminate_on_first_solution=True,
         early_stop_reward=early_stop_reward,
         output_trace_in_each_iter=True,

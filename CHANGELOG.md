@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-09-11 Unreleased (`0907-minor-mcts-terminal-backpropagation`)
+
+### Changed
+- Whole-search stopping via `terminate_on_first_solution` and `early_stop_reward` (统一全局停止配置，默认启用，质量门槛使用 `>=`) [T4.1]
+
+### Removed
+- `terminate_on_terminal_node` search argument (移除重复停止参数，旧配置需显式迁移) [T4.1]
+
+### Fixed
+- MCTS depth limits bypassed by reward thresholds or rollout entry (质量门槛或 rollout 入口绕过已启用深度限制的问题) [T3.2]
+- Nonterminal depth/repetition cutoffs triggering completion-based search stopping (非 terminal 的深度截断或 repetition 错误触发整个搜索停止的问题) [T3.2]
+- Reward-gated repetition path endings allowing extra expansion (质量门槛错误阻止 repetition 路径结束、导致额外 expansion 的问题) [T3.2]
+
 ## 2026-09-10 Unreleased (`0907-minor-mcts-terminal-backpropagation`)
 
 ### Added

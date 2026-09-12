@@ -3,7 +3,7 @@
 Run from lits_llm/ with demos/ on PYTHONPATH:
     PYTHONBREAKPOINT=0 python -m unit_test.eval.test_search_evaluation
     PYTHONBREAKPOINT=0 python -m unit_test.eval.test_search_evaluation --llm-model ollama/llama3.2:latest
-    PYTHONBREAKPOINT=0 python -m unit_test.eval.test_search_evaluation --compare-chain-cli-ref dd98ce6
+    PYTHONBREAKPOINT=0 python -m unit_test.eval.test_search_evaluation --compare-chain-cli-ref 8fdbfb9
     PYTHONBREAKPOINT=0 python -m unit_test.eval.test_search_evaluation --math-llm-model openai/local-instruct
 
 This checks the saved-result pipeline, not individual benchmark algorithms.
@@ -62,7 +62,7 @@ from lits.structures.qa import ThoughtStep
 from lits.structures.tool_use import ToolUseState, ToolUseStep
 
 import lits_benchmark.blocksworld  # noqa: F401 -- registers the real goal checker
-import lits_benchmark.math_qa  # noqa: F401 -- registers real numeric QA checkers
+from lits_benchmark.math_qa_eval import eval_output  # registers real numeric QA checkers
 from lits_benchmark.dbbench import load_dbbench_resource
 from lits_benchmark.kgqa import load_kgqa_resource
 from unit_test.agents.test_extract_answers import (
@@ -404,7 +404,7 @@ def check_scalar_zero_returns():
 
 
 def check_answer_outcomes():
-    """Check search.py::check_answer with registered math_qa.py::evaluate_math_qa."""
+    """Check search.py::check_answer and math_qa_eval.py::eval_output numeric/yes-no matching."""
     kgqa_evaluator = get_evaluator("kgqa")
     math_evaluator = get_evaluator("math500")
     gsm8k_evaluator = get_evaluator("gsm8k")
@@ -431,6 +431,17 @@ def check_answer_outcomes():
          kgqa_evaluator, (False, None)),
     ):
         observed = check_answer(pred, truth, custom_evaluator=evaluator)
+        if observed != expected:
+            raise RuntimeError(f"{name}: {observed!r} != {expected!r}")
+        print(f"PASS {name}: {observed}")
+        checks.append({"case": name, "expected": expected, "observed": observed})
+    for name, answer, output, expected in (
+        ("qa_yes_alias", "yes", "TRUE", True),
+        ("qa_no_alias", "false", "n", True),
+        ("qa_yn_mismatch", "yes", "no", False),
+        ("qa_yn_empty", "yes", "", False),
+    ):
+        observed = eval_output(answer, output, type="yn")
         if observed != expected:
             raise RuntimeError(f"{name}: {observed!r} != {expected!r}")
         print(f"PASS {name}: {observed}")
@@ -502,7 +513,8 @@ def check_chain_checkpoints(output_dir, legacy_ref):
     fixture values are final answers; dictionaries are deliberately invalid records.
     Each implementation receives identical inputs in a separate temporary directory.
     Compare full returned/saved reports, predictions, and per-file errors, excluding
-    only the different result-directory paths. No models are called.
+    only the different result-directory paths. The reference must support the current
+    dependency import paths. No models are called.
     """
     repo = Path(__file__).resolve().parents[2]
     source_path = "lits/cli/eval_search.py"

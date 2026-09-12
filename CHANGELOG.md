@@ -14,6 +14,7 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 ### Changed
 - Deterministic-first optional LLM judging for language and tool-use evaluation (语言与工具任务先确定性检查，再按需调用 LLM 复核) [T5.3.1]
 - Task-independent exact-string fallback in `check_answer()` (通用正确性检查默认使用精确字符串比较) [T5.3.2]
+- QA comparison utilities moved to `lits_benchmark.math_qa_eval` (QA 比较工具移至独立 benchmark 评估模块) [T5.3.2]
 
 ## 2026-09-11 Unreleased (`0820-major-selection-interface/tasks_task_adapters`)
 

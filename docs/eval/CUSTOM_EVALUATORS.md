@@ -42,9 +42,12 @@ After output selection, correctness checking follows this order:
 3. Without a registered evaluator: use exact string matching against `str(ground_truth)`.
    Only a mismatch invokes the configured LLM judge.
 
-Import `lits_benchmark.math_qa` to register the shared numeric checker for `math500`
-and `gsm8k`. It reuses `eval_output(type="number_exact")`; extraction and voting are
-unchanged. Direct callers pass `custom_evaluator=get_evaluator("math500")` or `"gsm8k"`.
+Import `lits_benchmark.math_qa` for MATH-500/GSM8K dataset loaders and checker registration.
+Correctness functions live in `lits_benchmark.math_qa_eval`; evaluation-only callers can
+import that module directly. Pass `custom_evaluator=get_evaluator("math500")` or `"gsm8k"`
+to shared evaluation, or import `eval_output` from `lits_benchmark.math_qa_eval` for direct
+comparison. The helpers no longer live in `lits.components.utils`. Extraction and voting
+are unchanged.
 
 The CLI enables `--llm-eval binary` for language-grounded and tool-use tasks; use `f1`
 for continuous judging or `none` to disable it. Deterministic matches make no judge call.

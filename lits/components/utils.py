@@ -172,61 +172,6 @@ def extract_yes_no_answer(base_model, solution):
     return answer
     
 
-def eval_output(answer, output, type="number_exact"):
-    """Evaluate the output of a model against the expected answer.
-
-    Args:
-        answer (str): The expected answer.
-        output (str): The model's output.
-        type (str, optional): The evaluation type. Available types are:
-            * "number_exact" (exact match of numbers).
-            * "yn" (yes/no answer).
-
-    Returns:
-        bool: True if the output is correct, False otherwise.
-    """     
-    # pre-check whether an answer exists
-    assert output is not None, "Output is None"
-    assert type in ["number_exact", "yn"], f"Unknown evaluation type: {type}"
-    answer = strip_num(answer)
-    if output == "":
-        return False
-    
-    # exact match
-    if type == "number_exact":
-        output, answer = normalize_number_pair(output, answer)
-    elif type == "yn":
-        output = normalize_yn(output)
-        answer = normalize_yn(answer)
-    else:
-        raise ValueError(f"Unknown evaluation type: {type}")
-    return output == answer
-
-def normalize_number_pair(output, answer):
-    """ Normalize the output and answer to a number pair """
-    answer = answer.replace(",", "")
-    try:
-        output = int(output)
-        answer = int(answer)
-        return output, answer
-    except ValueError:
-        pass
-    try:
-        output = float(output)
-        answer = float(answer)
-        return output, answer
-    except ValueError:
-        pass
-    return output, answer
-        
-def normalize_yn(text):
-    text = text.lower()
-    if text in ["yes", "y", "true"]:
-        text = "yes"
-    elif text in ["no", "n", "false"]:
-        text = "no"
-    return text
-
 def get_fn_retrieve_answer(base_model, answer_type="num", append_answer_to_state=False):
     assert isinstance(base_model, LanguageModel), f"`base_model` should be a subclass of `LanguageModel`"
 

@@ -46,13 +46,15 @@ Import `lits_benchmark.math_qa` for MATH-500/GSM8K dataset loaders and checker r
 Correctness functions live in `lits_benchmark.math_qa_eval`; evaluation-only callers can
 import that module directly. Pass `custom_evaluator=get_evaluator("math500")` or `"gsm8k"`
 to shared evaluation, or import `eval_output` from `lits_benchmark.math_qa_eval` for direct
-comparison. The helpers no longer live in `lits.components.utils`. Extraction and voting
-are unchanged.
+comparison. The helpers no longer live in `lits.components.utils`.
 
 The CLI enables `--llm-eval binary` for language-grounded and tool-use tasks; use `f1`
 for continuous judging or `none` to disable it. Deterministic matches make no judge call.
 Environment tasks retain goal checking. F1 fallback retains the larger registered/LLM
 score; binary fallback changes correctness without replacing the registered score.
+Language-tree evaluation always uses the configured evaluation model for answer voting,
+even with `--llm-eval none`. The model must support native tool calls. Tool-use/environment
+selection and chain/pass-at-N checkpoints do not use voting.
 
 ## Example: DBBench
 
@@ -102,9 +104,9 @@ The CLI calls it after loading saved tree terminals; chain/pass-at-N loading sta
 **Output selection chooses what to score; correctness checking compares that output with
 the reference.** The reference never chooses the terminal or vote winner.
 
-| `task_type` | Output selection (unchanged defaults) | Caller setup |
+| `task_type` | Output selection | Caller setup |
 |---|---|---|
-| `language_grounded` | Vote over extracted terminal answers | Supply `retrieve_answer(state, query)` and the registered checker, e.g. `get_fn_retrieve_answer(model)` and `get_evaluator("math500")` |
+| `language_grounded` | LLM groups raw terminal answers; Python counts votes | Supply `voting_model=model` and the registered checker, e.g. `get_evaluator("math500")` |
 | `tool_use` | Default `terminal_selection="q-mean"`; also `q-max` or `first` | Supply the registered checker; answer retrieval from the selected node is built in |
 | `env_grounded` | Maximum backed-up terminal return | Supply `goal_check(query, final_env_state)` returning `(goal_reached, progress)` |
 
@@ -117,7 +119,13 @@ are unchanged. Language-answer voting and tool-use `first` selection are unaffec
 Unlike the CLI, direct calls default to `llm_evaluator=None`: no LLM judge is created.
 To enable judging, supply a configured `lits.eval.general_eval.GeneralEvaluator` and
 matching `llm_eval_mode`: `"binary"` with a `correct` yes/no perspective, or `"f1"`
-with a float `score` perspective. Answer-extraction callbacks may independently call an LLM.
+with a float `score` perspective. Voting is independent of judging; both may reuse the
+same model instance, with inference roles `evaluator_voting` and `evaluator_general`.
+
+Language-tree callers must replace `retrieve_answer=...` with `voting_model=model`.
+There is no numeric-extraction fallback. Invalid tool responses raise an error; valid
+structure does not guarantee correct semantic grouping. Ground truth never reaches the
+voter. See [`vote_answers`](../../lits/eval/answer_voting.py) for grouping and counting.
 
 | Returned field | Meaning |
 |---|---|
@@ -128,7 +136,8 @@ with a float `score` perspective. Answer-extraction callbacks may independently 
 
 Empty terminals yield `"incorrect"` and progress `0.0` for environment tasks;
 other tasks pass an empty prediction through their configured checker. This preserves
-benchmark-specific empty-answer behavior. Required callbacks must still be supplied.
+benchmark-specific empty-answer behavior. Required callbacks/models must still be supplied;
+empty/all-blank language answers make no voting call.
 Full parameter details: [`evaluate_search_result`](../../lits/eval/search.py).
 
 ## API

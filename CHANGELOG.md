@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-09-13 Unreleased (`0820-major-selection-interface/tasks_task_adapters`)
+
+### Changed
+- Mandatory language-tree `voting_model` and shared CLI evaluation model (语言树评估必需的 voting_model 与 CLI 共享评估模型) [T5.2.1]
+
 ## 2026-09-12 Unreleased (`0820-major-selection-interface/tasks_task_adapters`)
 
 ### Added

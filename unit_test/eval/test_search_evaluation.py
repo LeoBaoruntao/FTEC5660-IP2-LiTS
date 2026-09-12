@@ -13,10 +13,11 @@ fixture reused here; tools/test_dbbench_loader.py and tools/test_kgqa_registry.p
 own the benchmark comparators. Their registered implementations are used directly.
 
 All additional cases use real LiTS nodes and steps with controlled field values.
-The CLI constructs a real OpenAI-compatible client but these deterministic cases
-need no inference, dataset download, or database connection. Answer-extraction LLM
-fallback checks remain in agents/test_extract_answers.py; --llm-model additionally
-checks live binary and F1 judging here. Each CLI fixture is also evaluated
+Default cases need no inference, dataset download, or database connection. Empty
+language results use a real configured client without calling it. --voting-model
+checks language-tree CLI routing and semantic grouping; --llm-model additionally
+checks live binary and F1 judging. Legacy extraction utility checks remain in
+agents/test_extract_answers.py. Each CLI fixture is also evaluated
 directly from its original nodes and from its reloaded terminal records.
 Logs and all three outcomes remain in a fresh temporary directory.
 --compare-chain-cli-ref additionally runs the current and specified Git revision's
@@ -52,10 +53,10 @@ from lits.cli.eval_search import (
 )
 from lits.cli.search import save_terminal_nodes
 from lits.components.registry import ComponentRegistry
-from lits.components.utils import get_fn_retrieve_answer
 from lits.eval.answer_voting import vote_answers, _count_answer_votes, _raw_terminal_answers
 from lits.eval.search import (
     check_answer, evaluate_search_result, select_env_terminal, select_tool_use_terminal,
+    retrieve_answer_from_tool_use_node,
 )
 from lits.lm import get_lm, setup_inference_logging
 from lits.structures.base import TrajectoryState
@@ -123,18 +124,21 @@ def terminal(step=None, *, returns=(), fast_reward=0.5, node_class=MCTSNode):
 
 
 def check_case(output_dir, name, dataset, nodes, truth, expected, *, query="Test query",
-               selection=None, llm_model=None, llm_eval_mode="binary"):
+               selection=None, voting_model_name=None, llm_model=None, llm_eval_mode="binary"):
     """Compare CLI, original-node, and reloaded-node evaluation on the same fixture.
 
     References: search.py::save_terminal_nodes,
     eval_search.py::load_terminal_nodes_from_file,
     eval_search.py::evaluate_from_checkpoints, search.py::evaluate_search_result.
     expected is (prediction, correct, optional_score, environment_progress).
-    Shared calls receive nodes/reference and caller-configured retrieval/checkers,
+    Shared calls receive nodes/reference and caller-configured models/checkers,
     without a result directory, dataset name, or model-creation arguments.
     llm_model optionally enables live binary or F1 judging for answer-based fixtures; the
     shared calls retain inference usage records, and the CLI retains routing logs.
+    Language fixtures always supply a voter; voting_model_name selects its real model
+    without enabling the judge. Both roles reuse one model when judging is enabled.
     """
+    model_name = llm_model or voting_model_name or MODEL_NAME
     case_dir = output_dir / name
     case_dir.mkdir()
     result = SearchResult(root=SearchNode(state=None, action=query),
@@ -144,7 +148,7 @@ def check_case(output_dir, name, dataset, nodes, truth, expected, *, query="Test
     with (case_dir / "console.log").open("w") as console:
         with contextlib.redirect_stdout(console), contextlib.redirect_stderr(console):
             report = evaluate_from_checkpoints(
-                str(case_dir), dataset, llm_model or MODEL_NAME,
+                str(case_dir), dataset, model_name,
                 dataset_kwargs={"examples": [{"question": query, "answer": truth}]},
                 llm_eval_mode=llm_eval_mode if llm_model else "none", **options,
             )
@@ -164,9 +168,13 @@ def check_case(output_dir, name, dataset, nodes, truth, expected, *, query="Test
     if matches[0][1] != str(item["correct"]) or report["accuracy"] != float(item["correct"]):
         raise RuntimeError(f"{name}: logged and saved correctness disagree")
     shared_options = dict(options)
+    model = None
+    if dataset == MATH_DATASET or llm_model:
+        model = get_lm(model_name)
+        inference_logger = setup_inference_logging(model, root_dir=str(case_dir))
     if dataset == MATH_DATASET:
         task_type = "language_grounded"
-        shared_options["retrieve_answer"] = get_fn_retrieve_answer(get_lm(MODEL_NAME))
+        shared_options["voting_model"] = model
         shared_options["custom_evaluator"] = get_evaluator(dataset)
     elif dataset == "blocksworld":
         task_type = "env_grounded"
@@ -176,8 +184,6 @@ def check_case(output_dir, name, dataset, nodes, truth, expected, *, query="Test
         shared_options["custom_evaluator"] = get_evaluator(dataset)
 
     if llm_model:
-        model = get_lm(llm_model)
-        inference_logger = setup_inference_logging(model, root_dir=str(case_dir))
         shared_options["llm_evaluator"] = _create_llm_evaluator(
             model, llm_eval_mode, logging.getLogger("lits.test"),
         )
@@ -199,32 +205,74 @@ def check_case(output_dir, name, dataset, nodes, truth, expected, *, query="Test
             raise RuntimeError(f"{name}/{source}: {outcome!r} != {expected_shared!r}")
         shared_results[source] = outcome
 
-    if llm_model:
+    if model is not None:
+        usage_path = Path(inference_logger.filepath)
+        usage = ([json.loads(line) for line in usage_path.read_text().splitlines()]
+                 if usage_path.exists() else [])
+        voting_calls = sum(record["role"] == "evaluator_voting" for record in usage)
+        judge_calls = sum(record["role"] == "evaluator_general" for record in usage)
+        needs_voting = task_type == "language_grounded" and any(
+            answer.strip() for answer in _raw_terminal_answers(nodes).values()
+        )
+        if voting_calls != 2 * int(needs_voting):
+            raise RuntimeError(f"{name}: expected one voting call per nonblank shared evaluation")
+        if log.count("Answer voting output:") != int(needs_voting):
+            raise RuntimeError(f"{name}: unexpected CLI voting routing")
         deterministic_result = check_answer(
             expected[0], truth, custom_evaluator=shared_options.get("custom_evaluator"),
         )
-        needs_fallback = not deterministic_result[0]
+        needs_fallback = bool(llm_model and llm_eval_mode != "none" and not deterministic_result[0])
         if ("LLM fallback:" in log) != needs_fallback:
             raise RuntimeError(f"{name}: unexpected CLI fallback routing")
-        usage = [json.loads(line) for line in Path(inference_logger.filepath).read_text().splitlines()]
         if needs_fallback:
-            if not 2 <= len(usage) <= 6:
-                raise RuntimeError(f"{name}: expected one to three calls per shared evaluation")
-        elif usage:
-            raise RuntimeError(f"{name}: deterministic success unnecessarily invoked the LLM")
-        if any(record["role"] != "evaluator_general" for record in usage):
+            if not 2 <= judge_calls <= 6:
+                raise RuntimeError(f"{name}: expected one to three judge calls per shared evaluation")
+        elif judge_calls:
+            raise RuntimeError(f"{name}: unexpected correctness judge call")
+        if voting_calls + judge_calls != len(usage):
             raise RuntimeError(f"{name}: unexpected inference role")
         shared_results["deterministic_result"] = deterministic_result
         shared_results["llm_model"] = llm_model
-        shared_results["llm_eval_mode"] = llm_eval_mode
+        shared_results["llm_eval_mode"] = llm_eval_mode if llm_model else "none"
         shared_results["shared_inference_calls"] = len(usage)
+        shared_results["voting_calls"] = voting_calls
+        shared_results["judge_calls"] = judge_calls
 
     print(f"PASS {name}: CLI = in-memory = reloaded: {observed}")
     return {"case": name, "expected": expected, "observed": observed, **shared_results}
 
 
-def check_language(output_dir):
-    """Check CLI voting/numeric scoring using the existing RAP fixture and edge cases."""
+def check_voting_contract(output_dir):
+    """Check mandatory model validation and empty language results without inference."""
+    model = get_lm(MODEL_NAME)
+    cases = (
+        ("missing_voter", {"task_type": "language_grounded"}, "voting_model is required"),
+        ("legacy_retriever", {"task_type": "language_grounded", "voting_model": model,
+                              "retrieve_answer": retrieve_answer_from_tool_use_node},
+         "not retrieve_answer"),
+        ("tool_voter", {"task_type": "tool_use", "voting_model": model},
+         "only supported for language_grounded"),
+    )
+    checks = []
+    for name, options, message in cases:
+        try:
+            evaluate_search_result([], "Test query", "42", **options)
+        except ValueError as error:
+            if message not in str(error):
+                raise RuntimeError(f"{name}: unexpected error {error}") from error
+            checks.append({"case": name, "rejected": str(error)})
+        else:
+            raise RuntimeError(f"{name}: invalid voting configuration accepted")
+    for name, nodes in (("math_no_terminals", []),
+                        ("math_missing_state", [terminal(node_class=SearchNode)]),
+                        ("math_blank_answer", [terminal(ThoughtStep(action=" ", terminate=True))])):
+        checks.append(check_case(output_dir, name, MATH_DATASET, nodes, "42",
+                                 ("", False, None, None)))
+    return checks
+
+
+def check_language(output_dir, model_name):
+    """Check live CLI voting with judging disabled, including saved RAP answer text."""
     fixture_path = output_dir / "rap_terminals.json"
     fixture_path.write_text(REAL_TERMINAL_NODES_JSON)
     fixture = load_terminal_nodes_from_file(fixture_path)
@@ -238,6 +286,7 @@ def check_language(output_dir):
     checks = [check_case(
         output_dir, "math_saved_answers_as_thoughts", MATH_DATASET, nodes, "3",
         ("18", False, None, None), query=fixture["query"],
+        voting_model_name=model_name,
     )]
     cases = (
         ("math_vote_beats_reward", [("42", 0.1), ("43", 0.9), ("42", 0.2)], "42",
@@ -246,16 +295,13 @@ def check_language(output_dir):
          ("43", False, None, None)),
         ("math_numeric_normalization", [("42.0", 0.5)], "42",
          ("42.0", True, None, None)),
-        ("math_no_terminals", [], "42", ("", False, None, None)),
     )
     for name, answers, truth, expected in cases:
         nodes = [terminal(ThoughtStep(action=f"The answer is {answer}.", terminate=True),
                           fast_reward=score, node_class=SearchNode)
                  for answer, score in answers]
-        checks.append(check_case(output_dir, name, MATH_DATASET, nodes, truth, expected))
-    checks.append(check_case(output_dir, "math_missing_state", MATH_DATASET,
-                             [terminal(node_class=SearchNode)], "42",
-                             ("", False, None, None)))
+        checks.append(check_case(output_dir, name, MATH_DATASET, nodes, truth, expected,
+                                 voting_model_name=model_name))
     return checks
 
 
@@ -456,8 +502,8 @@ def check_live_math_fallback(output_dir, model_name):
     """Check search.py::evaluate_search_result and eval_search.py CLI MATH judging.
 
     Real model calls test equivalent fraction notation and a wrong answer. A
-    numeric match must make no judge calls. Extraction uses existing decimal
-    answers, so these cases isolate correctness judging from answer extraction.
+    Numeric matches still vote but must make no judge calls. Single-answer cases
+    exercise voting followed by optional correctness judging on the same model.
     """
     checks = []
     for name, prediction, truth, correct in (
@@ -470,7 +516,7 @@ def check_live_math_fallback(output_dir, model_name):
             [terminal(ThoughtStep(action=f"The answer is {prediction}", terminate=True))],
             truth, (prediction, correct, None, None), llm_model=model_name,
         ))
-    breakpoint()  # inspect: checks; shared_inference_calls is zero for numeric_success
+    breakpoint()  # inspect: checks; judge_calls is zero for numeric_success
     return checks
 
 
@@ -750,7 +796,7 @@ def main():
     parser.add_argument("--llm-model", help="LiTS model name for optional live binary/F1 fallback checks")
     parser.add_argument("--math-llm-model", help="LiTS model name for optional live MATH correctness checks")
     parser.add_argument("--compare-chain-cli-ref", help="Trusted local Git revision for chain/pass-at-N comparison")
-    parser.add_argument("--voting-model", help="LiTS model for optional live semantic answer voting")
+    parser.add_argument("--voting-model", help="Real model for live language CLI voting and grouping checks")
     args = parser.parse_args()
     os.environ.setdefault("OPENAI_API_KEY", "no-key")
     os.environ.setdefault("OPENAI_API_BASE", "http://localhost:8000/v1")
@@ -758,7 +804,7 @@ def main():
     output_dir = Path(tempfile.mkdtemp(prefix="lits-eval-baseline-"))
     print(f"Evaluation artifacts: {output_dir}", flush=True)
     checks = [check_saved_rap_retrieval_inputs()]
-    checks.extend(check_language(output_dir))
+    checks.extend(check_voting_contract(output_dir))
     checks.extend(check_tool_use(output_dir))
     checks.extend(check_environment(output_dir))
     checks.extend(check_scalar_zero_returns())
@@ -771,6 +817,7 @@ def main():
     if args.math_llm_model:
         checks.extend(check_live_math_fallback(output_dir, args.math_llm_model))
     if args.voting_model:
+        checks.extend(check_language(output_dir, args.voting_model))
         checks.extend(check_live_answer_voting(output_dir, args.voting_model))
     (output_dir / "baseline.json").write_text(json.dumps(checks, indent=2) + "\n")
     print(f"Passed {len(checks)} checks. Baseline: {output_dir / 'baseline.json'}")

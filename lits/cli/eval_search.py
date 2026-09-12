@@ -28,13 +28,11 @@ from lits.agents.tree.node import SearchNode, MCTSNode
 from lits.benchmarks.registry import load_dataset, has_resource, has_evaluator, get_evaluator
 from lits.components.registry import ComponentRegistry
 from lits.registry import import_custom_modules, load_config_from_result_dir
-from lits.components.utils import get_fn_retrieve_answer
 from lits.lm import get_lm
 from lits.eval.inference_report import generate_report
 from lits.eval.search import (
     check_answer,
     evaluate_search_result,
-    retrieve_answer_from_tool_use_node,
 )
 from lits.log import setup_logging
 from lits.structures import ToolUseState, ToolUseStep  # Import to register types
@@ -275,11 +273,15 @@ def evaluate_from_checkpoints(
     Args:
         result_dir: Directory containing terminal_nodes_*.json files
         dataset_name: Name of the dataset (e.g., 'gsm8k', 'math500', 'blocksworld')
-        eval_model_name: Model name used for answer extraction
+        eval_model_name: Tool-capable model required for language-tree answer voting;
+            also reused for optional correctness judging. No voting occurs for
+            tool-use/environment tasks or chain/pass-at-N checkpoints.
         offset: Dataset offset used during search
         limit: Dataset limit used during search
         dataset_kwargs: Dataset-specific arguments (loaded from config)
         verbose: If True, print detailed output to console
+        llm_eval_mode: Optional correctness judge mode. "none" disables judging,
+            not mandatory language-tree voting.
         terminal_selection: How to pick which terminal node's answer to evaluate
             for tool_use tasks. One of:
               - "first":   terminal_nodes[0] (legacy save-order behaviour;
@@ -332,20 +334,6 @@ def evaluate_from_checkpoints(
         # refers to the index within the (possibly filtered) dataset used during search.
         # We need the same filtered dataset to look up ground truths by query_idx.
     
-    # Create a minimal model instance for answer retrieval (not needed for env_grounded)
-    if not is_env_grounded:
-        base_model = get_lm(eval_model_name)
-    
-    # Get answer retrieval function
-    # Shared environment evaluation receives goal_check instead of a retriever.
-    retrieve_answer = None
-    if not is_env_grounded:
-        if is_tool_use:
-            # For tool use, extract answer from the step (stored in node)
-            retrieve_answer = retrieve_answer_from_tool_use_node
-        else:
-            retrieve_answer = get_fn_retrieve_answer(base_model)
-    
     # Find result files: terminal_nodes/ (tree search) or checkpoints/ (chain)
     terminal_nodes_dir = result_dir / "terminal_nodes"
     checkpoints_dir = result_dir / "checkpoints"
@@ -385,9 +373,14 @@ def evaluate_from_checkpoints(
     if custom_evaluator:
         eval_logger.info(f"Using registered evaluator for '{dataset_name}'")
 
-    llm_evaluator = None
-    if not is_env_grounded and llm_eval_mode != "none":
-        llm_evaluator = _create_llm_evaluator(base_model, llm_eval_mode, eval_logger)
+    # Tree language tasks vote; chain checkpoints already store the chosen answer.
+    needs_voting = task_type == "language_grounded" and not use_chain_checkpoints
+    needs_judging = not is_env_grounded and llm_eval_mode != "none"
+    base_model = get_lm(eval_model_name) if needs_voting or needs_judging else None
+    voting_model = base_model if needs_voting else None
+    llm_evaluator = (
+        _create_llm_evaluator(base_model, llm_eval_mode, eval_logger) if needs_judging else None
+    )
 
     # --- Evaluate every checkpoint file (single-attempt and pass@N alike) ---
     # Each file produces one (query_idx, correct, score) result.
@@ -441,7 +434,7 @@ def evaluate_from_checkpoints(
                 outcome = evaluate_search_result(
                     terminal_nodes, _query, ground_truth,
                     task_type=task_type,
-                    retrieve_answer=retrieve_answer,
+                    voting_model=voting_model,
                     terminal_selection=terminal_selection,
                     custom_evaluator=custom_evaluator,
                     llm_evaluator=llm_evaluator,
@@ -620,7 +613,7 @@ Examples:
     )
     parser.add_argument("--result_dir", type=str, required=True, help="Directory containing terminal_nodes/ subdirectory")
     parser.add_argument("--dataset_name", type=str, default=None, help="Dataset name (e.g., gsm8k, math500, blocksworld). Auto-loaded from config.json if not specified.")
-    parser.add_argument("--eval_model_name", type=str, default=None, help="Model name used for answer extraction. Auto-loaded from config.json if not specified.")
+    parser.add_argument("--eval_model_name", type=str, default=None, help="Model for language-tree answer voting and optional correctness judging. Must support native tools for voting. Auto-loaded from config.json if not specified.")
     parser.add_argument("--offset", type=int, default=0, help="Dataset offset used during search")
     parser.add_argument("--limit", type=int, default=None, help="Dataset limit used during search")
     parser.add_argument(
@@ -635,7 +628,7 @@ Examples:
     parser.add_argument("--output-price", type=float, default=None, help="Price per 1M output tokens (for cost estimation)")
     parser.add_argument("-v", "--verbose", action="store_true", help="Print detailed output to console (default: progress bar + summary only)")
     parser.add_argument("--llm-eval", choices=["binary", "f1", "none"], default="binary",
-                        help="LLM fallback evaluator mode: 'binary' (default, yes/no), 'f1' (float F1 score), 'none' (disable LLM fallback)")
+                        help="Correctness judge mode: 'binary' (default, yes/no), 'f1' (float F1 score), 'none' (disable judging, not language-tree voting)")
     parser.add_argument("--terminal_selection", choices=["first", "q-max", "q-mean"],
                         default="q-mean",
                         help=("How to pick which terminal node's answer to evaluate "

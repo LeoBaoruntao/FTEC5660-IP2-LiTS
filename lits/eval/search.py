@@ -50,15 +50,12 @@ def evaluate_search_result(
         ground_truth: Reference passed to correctness checking, never selection.
             The caller applies dataset-specific formatting. Ignored for env_grounded.
         task_type: "language_grounded", "tool_use", or "env_grounded".
-        retrieve_answer: Required for language_grounded without voting_model:
-            (state, query) -> answer,
-            e.g. the callback returned by get_fn_retrieve_answer(model). For tool_use,
-            an optional (node, query) -> answer callback overrides step retrieval.
-            Unused for env_grounded.
-        voting_model: Optional caller-configured model for semantic language-answer
-            voting. Reads raw last-step answers and calls vote_answers once, bypassing
-            retrieve_answer and its numeric extraction. Omit to retain legacy voting.
-            Ground truth is never passed to the voter; correctness checking is unchanged.
+        retrieve_answer: Optional tool_use-only (node, query) -> answer callback
+            overriding the selected node's built-in step retrieval.
+        voting_model: Required for language_grounded, including empty results; omitted
+            for other task types. Reads raw last-step answers and calls vote_answers.
+            No numeric-extraction fallback is used. Empty/all-blank answers need no
+            inference. Ground truth is never passed to the voter.
         terminal_selection: Tool-use ranking: "first", "q-max", or "q-mean" (default).
             Language tasks vote over answers; environment tasks use maximum returns.
             Return-based ranking falls back per node to fast_reward when its
@@ -87,18 +84,23 @@ def evaluate_search_result(
         A configured LLM judge runs only when the deterministic check fails.
 
     Raises:
-        ValueError: Unsupported task_type, a missing required callback, or invalid
+        ValueError: Unsupported task_type, a missing required callback/model, or invalid
             terminal inputs/selection options rejected by the selection helpers.
         Other retrieval, goal-checking, and LLM errors propagate to the caller.
 
     Example:
         outcome = evaluate_search_result(
             result.terminal_nodes_collected, query, reference,
-            task_type="language_grounded", retrieve_answer=answer_retriever,
+            task_type="language_grounded", voting_model=model,
         )
     """
     if voting_model is not None and task_type != "language_grounded":
         raise ValueError("voting_model is only supported for language_grounded evaluation")
+    if task_type == "language_grounded":
+        if voting_model is None:
+            raise ValueError("voting_model is required for language_grounded evaluation")
+        if retrieve_answer is not None:
+            raise ValueError("Language-grounded evaluation uses voting_model, not retrieve_answer")
     environment_progress = None
     if task_type == "env_grounded":
         if goal_check is None:
@@ -113,18 +115,7 @@ def evaluate_search_result(
             retrieve_answer = retrieve_answer_from_tool_use_node
         prediction = retrieve_answer(best_node, query) if best_node is not None else ""
     elif task_type == "language_grounded":
-        if voting_model is not None:
-            votes = vote_answers(query, _raw_terminal_answers(terminal_nodes), model=voting_model)
-        elif retrieve_answer is None:
-            raise ValueError("retrieve_answer is required for language_grounded evaluation")
-        else:
-            from lits.agents.tree.common import extract_answers_from_terminal_nodes
-
-            votes, *_ = extract_answers_from_terminal_nodes(
-                terminal_nodes_collected=terminal_nodes,
-                retrieve_answer=retrieve_answer,
-                query=query,
-            )
+        votes = vote_answers(query, _raw_terminal_answers(terminal_nodes), model=voting_model)
         prediction = max(votes, key=votes.get) if votes else ""
     else:
         raise ValueError(f"Unknown task_type={task_type!r}")

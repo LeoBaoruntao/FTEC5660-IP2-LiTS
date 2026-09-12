@@ -183,7 +183,7 @@ python eval_search.py \
 |------|-------------|
 | `--result_dir` | Directory containing terminal_nodes/ |
 | `--dataset_name` | Dataset name (must match main_search.py) |
-| `--eval_model_name` | Model for answer extraction |
+| `--eval_model_name` | Model for language-tree answer voting and optional correctness judging |
 | `--offset` | Dataset offset (default: 0) |
 | `--limit` | Dataset limit (default: all) |
 | `--include` | Override auto-loaded import_modules |

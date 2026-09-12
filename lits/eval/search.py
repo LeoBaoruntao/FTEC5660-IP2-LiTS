@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Callable, Sequence
 
+from lits.eval.answer_voting import _raw_terminal_answers, vote_answers
 from lits.structures.env_grounded import EnvState
 
 if TYPE_CHECKING:
@@ -22,6 +23,7 @@ if TYPE_CHECKING:
     from lits.agents.tree.node import SearchNode
     from lits.components.registry import TaskType
     from lits.eval.general_eval import GeneralEvaluator
+    from lits.lm.base import LanguageModel
 
 
 def evaluate_search_result(
@@ -31,6 +33,7 @@ def evaluate_search_result(
     *,
     task_type: TaskType,
     retrieve_answer: Callable[[Any, str], Any] | None = None,
+    voting_model: LanguageModel | None = None,
     terminal_selection: str = "q-mean",
     custom_evaluator: Callable[[Any, Any], bool | float] | None = None,
     llm_evaluator: GeneralEvaluator | None = None,
@@ -47,10 +50,15 @@ def evaluate_search_result(
         ground_truth: Reference passed to correctness checking, never selection.
             The caller applies dataset-specific formatting. Ignored for env_grounded.
         task_type: "language_grounded", "tool_use", or "env_grounded".
-        retrieve_answer: Required for language_grounded: (state, query) -> answer,
+        retrieve_answer: Required for language_grounded without voting_model:
+            (state, query) -> answer,
             e.g. the callback returned by get_fn_retrieve_answer(model). For tool_use,
             an optional (node, query) -> answer callback overrides step retrieval.
             Unused for env_grounded.
+        voting_model: Optional caller-configured model for semantic language-answer
+            voting. Reads raw last-step answers and calls vote_answers once, bypassing
+            retrieve_answer and its numeric extraction. Omit to retain legacy voting.
+            Ground truth is never passed to the voter; correctness checking is unchanged.
         terminal_selection: Tool-use ranking: "first", "q-max", or "q-mean" (default).
             Language tasks vote over answers; environment tasks use maximum returns.
             Return-based ranking falls back per node to fast_reward when its
@@ -73,7 +81,7 @@ def evaluate_search_result(
 
         Empty terminals produce "incorrect" with progress=0.0 for environment tasks,
         or an empty prediction for other tasks. That empty prediction still goes
-        through configured correctness checking. Required callbacks must be supplied
+        through configured correctness checking. Required callbacks/models must be supplied
         even for empty terminals, but retrieval/goal checking is not invoked on them.
         Without a custom checker, non-environment tasks use exact string matching.
         A configured LLM judge runs only when the deterministic check fails.
@@ -89,6 +97,8 @@ def evaluate_search_result(
             task_type="language_grounded", retrieve_answer=answer_retriever,
         )
     """
+    if voting_model is not None and task_type != "language_grounded":
+        raise ValueError("voting_model is only supported for language_grounded evaluation")
     environment_progress = None
     if task_type == "env_grounded":
         if goal_check is None:
@@ -103,16 +113,19 @@ def evaluate_search_result(
             retrieve_answer = retrieve_answer_from_tool_use_node
         prediction = retrieve_answer(best_node, query) if best_node is not None else ""
     elif task_type == "language_grounded":
-        if retrieve_answer is None:
+        if voting_model is not None:
+            votes = vote_answers(query, _raw_terminal_answers(terminal_nodes), model=voting_model)
+        elif retrieve_answer is None:
             raise ValueError("retrieve_answer is required for language_grounded evaluation")
-        from lits.agents.tree.common import extract_answers_from_terminal_nodes
+        else:
+            from lits.agents.tree.common import extract_answers_from_terminal_nodes
 
-        vote_answers, *_ = extract_answers_from_terminal_nodes(
-            terminal_nodes_collected=terminal_nodes,
-            retrieve_answer=retrieve_answer,
-            query=query,
-        )
-        prediction = max(vote_answers, key=lambda a: vote_answers[a]) if vote_answers else ""
+            votes, *_ = extract_answers_from_terminal_nodes(
+                terminal_nodes_collected=terminal_nodes,
+                retrieve_answer=retrieve_answer,
+                query=query,
+            )
+        prediction = max(votes, key=votes.get) if votes else ""
     else:
         raise ValueError(f"Unknown task_type={task_type!r}")
 

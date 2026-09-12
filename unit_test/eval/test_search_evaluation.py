@@ -5,6 +5,7 @@ Run from lits_llm/ with demos/ on PYTHONPATH:
     PYTHONBREAKPOINT=0 python -m unit_test.eval.test_search_evaluation --llm-model ollama/llama3.2:latest
     PYTHONBREAKPOINT=0 python -m unit_test.eval.test_search_evaluation --compare-chain-cli-ref 8fdbfb9
     PYTHONBREAKPOINT=0 python -m unit_test.eval.test_search_evaluation --math-llm-model openai/local-instruct
+    PYTHONBREAKPOINT=0 python -m unit_test.eval.test_search_evaluation --voting-model ollama/llama3.2:latest
 
 This checks the saved-result pipeline, not individual benchmark algorithms.
 agents/test_extract_answers.py owns extraction/voting checks and the saved RAP
@@ -52,6 +53,7 @@ from lits.cli.eval_search import (
 from lits.cli.search import save_terminal_nodes
 from lits.components.registry import ComponentRegistry
 from lits.components.utils import get_fn_retrieve_answer
+from lits.eval.answer_voting import vote_answers, _count_answer_votes, _raw_terminal_answers
 from lits.eval.search import (
     check_answer, evaluate_search_result, select_env_terminal, select_tool_use_terminal,
 )
@@ -631,12 +633,124 @@ def check_chain_checkpoints(output_dir, legacy_ref):
     return checks
 
 
+def check_answer_groups():
+    """Check answer_voting.py::_count_answer_votes with structured data, without a model.
+
+    SearchNode/ThoughtStep inputs also exercise answer_voting.py::_raw_terminal_answers;
+    membership checks do not claim to verify LLM semantic grouping quality.
+    """
+    raw = {"n1": "The answer is 1/2.", "n2": "The answer is 0.5.",
+           "n3": "The answer is 1/3.", "n4": "   "}
+    valid = {
+        "groups": [{"answer": "1/3", "member_ids": ["n3"]},
+                   {"answer": "1/2", "member_ids": ["n1", "n2"]}],
+        "unanswered_ids": ["n4"],
+    }
+    votes = _count_answer_votes(valid, raw)
+    if list(votes.items()) != [("1/2", 2), ("1/3", 1)]:
+        raise RuntimeError(f"Wrong grouping counts/order: {votes}")
+    tie_payload = {"groups": [valid["groups"][0],
+                              {"answer": "1/2", "member_ids": ["n1"]}],
+                   "unanswered_ids": []}
+    tied = _count_answer_votes(tie_payload, {"n1": raw["n1"], "n3": raw["n3"]})
+    if max(tied, key=tied.get) != "1/2":
+        raise RuntimeError("Tie-breaking followed model order rather than input order")
+    nodes = [terminal(ThoughtStep(action=f"The answer is {answer}", terminate=True))
+             for answer in ("1/2", "1/3", "1e-3")]
+    observed = _raw_terminal_answers(nodes)
+    if list(observed.values()) != ["The answer is 1/2", "The answer is 1/3", "The answer is 1e-3"]:
+        raise RuntimeError(f"Raw answer text changed: {observed}")
+    cases = {
+        "unknown_id": {"groups": [{"answer": "1/2", "member_ids": ["unknown"]}], "unanswered_ids": []},
+        "repeated_id": {"groups": valid["groups"], "unanswered_ids": ["n1", "n4"]},
+        "omitted_id": {"groups": valid["groups"], "unanswered_ids": []},
+        "empty_group": {"groups": [{"answer": "1/2", "member_ids": []}], "unanswered_ids": list(raw)},
+        "blank_answer": {"groups": [{"answer": " ", "member_ids": ["n1"]}], "unanswered_ids": []},
+        "duplicate_label": {"groups": [{"answer": "1/2", "member_ids": ["n1"]},
+                                        {"answer": " 1/2 ", "member_ids": ["n2"]}], "unanswered_ids": ["n3", "n4"]},
+        "blank_member": {"groups": [{"answer": "0", "member_ids": ["n4"]}], "unanswered_ids": ["n1", "n2", "n3"]},
+        "wrong_type": {"groups": {}, "unanswered_ids": []},
+        "extra_field": {**valid, "count": 3},
+    }
+    checks = [{"name": "answer_group_counts_and_order", "votes": votes},
+              {"name": "answer_group_tie", "votes": tied},
+              {"name": "untruncated_terminal_answers", "answers": observed}]
+    for name, payload in cases.items():
+        try:
+            _count_answer_votes(payload, raw)
+        except ValueError as error:
+            checks.append({"name": name, "rejected": str(error)})
+        else:
+            raise RuntimeError(f"Invalid answer groups accepted: {name}")
+    breakpoint()  # inspect: votes, tied, observed, checks
+    return checks
+
+
+def check_live_answer_voting(output_dir, model_name):
+    """Exercise answer_voting.py::vote_answers and search.py::evaluate_search_result.
+
+    Store input text, native tool arguments, inference usage, and evaluation outcomes.
+    A failed semantic or format check is reported, not replaced by a mock or fallback.
+    """
+    case_dir = output_dir / "live_answer_voting"
+    case_dir.mkdir()
+    print(f"Live voting artifacts: {case_dir}", flush=True)
+    model = get_lm(model_name)
+    setup_inference_logging(model, root_dir=str(case_dir))
+    if hasattr(getattr(model, "client", None), "with_options"):
+        model.client = model.client.with_options(timeout=60, max_retries=0)
+    raw = {"n1": "The answer is 1/2.", "n2": "The answer is 0.5.",
+           "n3": "The answer is 1/3.", "n4": ""}
+    (case_dir / "inputs.json").write_text(json.dumps(raw, indent=2) + "\n")
+    voter_logger = logging.getLogger("lits.eval.answer_voting")
+    handler = logging.FileHandler(case_dir / "voting.log")
+    previous_level = voter_logger.level
+    voter_logger.setLevel(logging.DEBUG)
+    voter_logger.addHandler(handler)
+    try:
+        for empty in ({}, {"n1": " "}):
+            if vote_answers("Empty input", empty, model=model) != {}:
+                raise RuntimeError("Empty/blank input should produce no votes")
+        empty_outcome = evaluate_search_result(
+            [], "Empty input", "1/2", task_type="language_grounded", voting_model=model,
+            custom_evaluator=get_evaluator("math500"),
+        )
+        if empty_outcome["prediction"] != "" or empty_outcome["correct"]:
+            raise RuntimeError(f"Unexpected empty-vote outcome: {empty_outcome}")
+        if model.inference_logger.get_metrics_by_role()["num_calls"] != 0:
+            raise RuntimeError("Empty/blank answers invoked the model")
+        votes = vote_answers("What is one divided by two?", raw, model=model)
+        (case_dir / "votes.json").write_text(json.dumps(votes, indent=2) + "\n")
+        if sorted(votes.values()) != [1, 2] or max(votes, key=votes.get) != "1/2":
+            raise RuntimeError(f"Unexpected fraction grouping: {votes}; inspect {case_dir}")
+        nodes = [terminal(ThoughtStep(action=text, terminate=True)) for text in raw.values()]
+        outcome = evaluate_search_result(
+            nodes, "What is one divided by two?", "1/2",
+            task_type="language_grounded", voting_model=model,
+            custom_evaluator=get_evaluator("math500"),
+        )
+        (case_dir / "outcome.json").write_text(json.dumps(outcome, indent=2) + "\n")
+        if outcome["prediction"] != "1/2" or not outcome["correct"]:
+            raise RuntimeError(f"Unexpected semantic-voting evaluation: {outcome}")
+        usage = model.inference_logger.get_metrics_by_role("evaluator_voting")
+        if usage["num_calls"] != 2:
+            raise RuntimeError(f"Expected exactly two voting calls: {usage}")
+    finally:
+        voter_logger.removeHandler(handler)
+        voter_logger.setLevel(previous_level)
+        handler.close()
+    breakpoint()  # inspect: votes, outcome, case_dir
+    return [{"name": "live_answer_voting", "votes": votes},
+            {"name": "live_semantic_voting_evaluation", "outcome": outcome}]
+
+
 def main():
     """Compare evaluation paths, optionally run live judging, and retain logs/outcomes."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--llm-model", help="LiTS model name for optional live binary/F1 fallback checks")
     parser.add_argument("--math-llm-model", help="LiTS model name for optional live MATH correctness checks")
     parser.add_argument("--compare-chain-cli-ref", help="Trusted local Git revision for chain/pass-at-N comparison")
+    parser.add_argument("--voting-model", help="LiTS model for optional live semantic answer voting")
     args = parser.parse_args()
     os.environ.setdefault("OPENAI_API_KEY", "no-key")
     os.environ.setdefault("OPENAI_API_BASE", "http://localhost:8000/v1")
@@ -649,12 +763,15 @@ def main():
     checks.extend(check_environment(output_dir))
     checks.extend(check_scalar_zero_returns())
     checks.extend(check_answer_outcomes())
+    checks.extend(check_answer_groups())
     if args.compare_chain_cli_ref:
         checks.extend(check_chain_checkpoints(output_dir, args.compare_chain_cli_ref))
     if args.llm_model:
         checks.extend(check_live_fallback(output_dir, args.llm_model))
     if args.math_llm_model:
         checks.extend(check_live_math_fallback(output_dir, args.math_llm_model))
+    if args.voting_model:
+        checks.extend(check_live_answer_voting(output_dir, args.voting_model))
     (output_dir / "baseline.json").write_text(json.dumps(checks, indent=2) + "\n")
     print(f"Passed {len(checks)} checks. Baseline: {output_dir / 'baseline.json'}")
     breakpoint()  # inspect: checks, output_dir; each case contains terminal_nodes/ and eval.log

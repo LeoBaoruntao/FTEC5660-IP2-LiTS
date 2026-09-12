@@ -6,9 +6,26 @@ import logging
 import datasets
 import re
 from lits.components.utils import retrieve_answer_from_last_step, eval_output
-from lits.benchmarks.registry import register_dataset
+from lits.benchmarks.registry import register_dataset, register_evaluator
 
 logger = logging.getLogger(__name__)
+
+
+@register_evaluator("math500")
+@register_evaluator("gsm8k")
+def evaluate_math_qa(predicted, ground_truth) -> bool:
+    """Compare a predicted answer with a numeric QA reference without model calls.
+
+    Uses eval_output's numeric normalization, with exact-string fallback on
+    parsing errors. Accepts an extracted prediction and a reference convertible
+    to str; returns correctness only. Answer extraction and LLM judging belong
+    to the caller.
+    """
+    try:
+        return eval_output(str(ground_truth), predicted, type="number_exact")
+    except (AssertionError, ValueError):
+        return predicted == str(ground_truth)
+
 
 def retrieve_answer_from_gsm8k(example: dict) -> str:
     return re.match(r'[\S\s]*#### (.*)$', example['answer'])[1]

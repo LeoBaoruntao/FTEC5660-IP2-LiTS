@@ -62,6 +62,7 @@ from lits.structures.qa import ThoughtStep
 from lits.structures.tool_use import ToolUseState, ToolUseStep
 
 import lits_benchmark.blocksworld  # noqa: F401 -- registers the real goal checker
+import lits_benchmark.math_qa  # noqa: F401 -- registers real numeric QA checkers
 from lits_benchmark.dbbench import load_dbbench_resource
 from lits_benchmark.kgqa import load_kgqa_resource
 from unit_test.agents.test_extract_answers import (
@@ -89,6 +90,7 @@ def load_examples(examples):
 def register_examples():
     """Register fixture datasets using existing benchmark evaluators/resources."""
     register_dataset(MATH_DATASET, task_type="language_grounded")(load_examples)
+    register_evaluator(MATH_DATASET)(get_evaluator("math500"))
     for name, benchmark, resource in (
         (DB_DATASET, "dbbench", load_dbbench_resource),
         (FLOAT_DATASET, "kgqa", load_kgqa_resource),
@@ -128,7 +130,7 @@ def check_case(output_dir, name, dataset, nodes, truth, expected, *, query="Test
     expected is (prediction, correct, optional_score, environment_progress).
     Shared calls receive nodes/reference and caller-configured retrieval/checkers,
     without a result directory, dataset name, or model-creation arguments.
-    llm_model optionally enables live binary or F1 judging for tool-use fixtures; the
+    llm_model optionally enables live binary or F1 judging for answer-based fixtures; the
     shared calls retain inference usage records, and the CLI retains routing logs.
     """
     case_dir = output_dir / name
@@ -163,6 +165,7 @@ def check_case(output_dir, name, dataset, nodes, truth, expected, *, query="Test
     if dataset == MATH_DATASET:
         task_type = "language_grounded"
         shared_options["retrieve_answer"] = get_fn_retrieve_answer(get_lm(MODEL_NAME))
+        shared_options["custom_evaluator"] = get_evaluator(dataset)
     elif dataset == "blocksworld":
         task_type = "env_grounded"
         shared_options["goal_check"] = ComponentRegistry.get_transition(dataset).goal_check
@@ -401,15 +404,24 @@ def check_scalar_zero_returns():
 
 
 def check_answer_outcomes():
-    """Check search.py::check_answer numeric/string matching and checker precedence."""
+    """Check search.py::check_answer with registered math_qa.py::evaluate_math_qa."""
     kgqa_evaluator = get_evaluator("kgqa")
+    math_evaluator = get_evaluator("math500")
+    gsm8k_evaluator = get_evaluator("gsm8k")
+    if math_evaluator is None or gsm8k_evaluator is not math_evaluator:
+        raise RuntimeError("MATH-500 and GSM8K must share the registered numeric checker")
     checks = []
     for name, pred, truth, evaluator, expected in (
         ("exact_match", "42", 42, None, (True, None)),
         ("exact_mismatch", "42", "43", None, (False, None)),
-        ("numeric_format", "42.0", "42", None, (True, None)),
-        ("numeric_exponent", "1e-3", "0.001", None, (True, None)),
-        ("numeric_fraction_mismatch", "0.5", "1/2", None, (False, None)),
+        ("exact_format_mismatch", "42.0", "42", None, (False, None)),
+        ("exact_exponent_mismatch", "1e-3", "0.001", None, (False, None)),
+        ("numeric_format", "42.0", "42", math_evaluator, (True, None)),
+        ("numeric_exponent", "1e-3", "0.001", gsm8k_evaluator, (True, None)),
+        ("numeric_fraction_mismatch", "0.5", "1/2", math_evaluator, (False, None)),
+        ("numeric_none", None, "0", math_evaluator, (False, None)),
+        ("numeric_empty", "", "0", math_evaluator, (False, None)),
+        ("numeric_wrong", "43", "42", math_evaluator, (False, None)),
         ("string_match", "Paris", "Paris", None, (True, None)),
         # KGQA expects entity lists; a parsed integer reference yields no gold
         # entities. A custom failure must not fall through to exact matching.

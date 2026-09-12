@@ -56,7 +56,7 @@ def evaluate_search_result(
             Return-based ranking falls back per node to fast_reward when its
             cum_rewards are missing, None, or an empty list.
         custom_evaluator: Optional (prediction, ground_truth) -> bool or float checker.
-            When absent, numeric comparison runs before any LLM judging.
+            When absent, exact-string comparison runs before any LLM judging.
         llm_evaluator: Optional configured GeneralEvaluator; see check_answer for
             fallback precedence. Omit it to disable LLM judging.
         llm_eval_mode: "binary" or "f1", used only by the supplied LLM evaluator.
@@ -75,8 +75,7 @@ def evaluate_search_result(
         or an empty prediction for other tasks. That empty prediction still goes
         through configured correctness checking. Required callbacks must be supplied
         even for empty terminals, but retrieval/goal checking is not invoked on them.
-        Without a custom checker, non-environment tasks use numeric comparison,
-        falling back to exact string matching on AssertionError or ValueError.
+        Without a custom checker, non-environment tasks use exact string matching.
         A configured LLM judge runs only when the deterministic check fails.
 
     Raises:
@@ -272,14 +271,14 @@ def check_answer(pred: str, truth, custom_evaluator=None, llm_evaluator=None,
 
     Use the dataset-specific custom_evaluator first, with an optional LLM
     fallback when it reports an incorrect answer or raises an exception.
-    Without a custom evaluator, use numeric comparison with exact-string fallback
-    on parsing errors. A deterministic match skips the LLM judge.
+    Without a custom evaluator, use exact string matching. A deterministic match
+    skips the LLM judge.
 
     Args:
         pred: Predicted answer string.
         truth: Ground truth (any type - passed directly to custom_evaluator;
-            converted to str for default numeric/string comparison).
-        custom_evaluator: Task-specific checker function, or None for numeric checking.
+            converted to str for default exact-string comparison).
+        custom_evaluator: Task-specific checker function, or None for exact matching.
         llm_evaluator: Configured GeneralEvaluator instance, or None.
         llm_eval_mode: "binary" (yes/no) or "f1" (float score).
         eval_logger: Logger for debug messages (optional).
@@ -308,12 +307,7 @@ def check_answer(pred: str, truth, custom_evaluator=None, llm_evaluator=None,
             if eval_logger:
                 eval_logger.debug(f"  {label} custom evaluator failed: {e}")
     else:
-        from lits.components.utils import eval_output
-
-        try:
-            correct = eval_output(str(truth), pred, type="number_exact")
-        except (AssertionError, ValueError):
-            correct = pred == str(truth)
+        correct = pred == str(truth)
 
     if not correct and llm_evaluator:
         correct, score = _llm_judge(llm_evaluator, llm_eval_mode, pred, truth, score)

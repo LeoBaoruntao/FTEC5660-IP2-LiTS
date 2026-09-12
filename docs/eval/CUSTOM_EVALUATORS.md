@@ -1,6 +1,6 @@
 # Custom Evaluators
 
-Register dataset-specific evaluation functions so `lits-eval` uses your comparison logic instead of the default numeric matcher.
+Register dataset-specific evaluation functions so `lits-eval` uses your comparison logic instead of exact string matching.
 
 ## Contents
 
@@ -15,7 +15,9 @@ Register dataset-specific evaluation functions so `lits-eval` uses your comparis
 
 ## Why
 
-The default `lits-eval` accuracy check uses `eval_output(type="number_exact")`, which works for math QA but not for benchmarks that need float tolerance, set comparison, or special value normalization (e.g., DBBench, KG F1).
+Comparison rules belong to benchmarks: MATH-500/GSM8K use numeric matching, while
+other tasks need float tolerance, set comparison, or special value normalization
+(e.g., DBBench, KG F1). Generic evaluation does not assume numeric answers.
 
 ## Usage
 
@@ -37,9 +39,12 @@ After output selection, correctness checking follows this order:
 1. `env_grounded`: goal check; other correctness evaluators are ignored.
 2. Registered evaluator: use its bool/float result, with configured LLM fallback on
    non-full matches or exceptions. Only a float score of `1.0` counts as correct.
-3. Without a registered evaluator: use `eval_output(type="number_exact")`, with
-   exact-string fallback on numeric parsing errors. Only a mismatch invokes the
-   configured LLM judge.
+3. Without a registered evaluator: use exact string matching against `str(ground_truth)`.
+   Only a mismatch invokes the configured LLM judge.
+
+Import `lits_benchmark.math_qa` to register the shared numeric checker for `math500`
+and `gsm8k`. It reuses `eval_output(type="number_exact")`; extraction and voting are
+unchanged. Direct callers pass `custom_evaluator=get_evaluator("math500")` or `"gsm8k"`.
 
 The CLI enables `--llm-eval binary` for language-grounded and tool-use tasks; use `f1`
 for continuous judging or `none` to disable it. Deterministic matches make no judge call.
@@ -96,7 +101,7 @@ the reference.** The reference never chooses the terminal or vote winner.
 
 | `task_type` | Output selection (unchanged defaults) | Caller setup |
 |---|---|---|
-| `language_grounded` | Vote over extracted terminal answers | Supply `retrieve_answer(state, query)`, e.g. `get_fn_retrieve_answer(model)` from `lits.components.utils` |
+| `language_grounded` | Vote over extracted terminal answers | Supply `retrieve_answer(state, query)` and the registered checker, e.g. `get_fn_retrieve_answer(model)` and `get_evaluator("math500")` |
 | `tool_use` | Default `terminal_selection="q-mean"`; also `q-max` or `first` | Supply the registered checker; answer retrieval from the selected node is built in |
 | `env_grounded` | Maximum backed-up terminal return | Supply `goal_check(query, final_env_state)` returning `(goal_reached, progress)` |
 
@@ -164,4 +169,4 @@ This means the evaluator and dataset loader must agree on the `ground_truth` typ
 |---------|--------------------------|-------------------|
 | KGQA | `dict` (`{"names": [...], "ids": [...]}`) | Extracts IDs, does set comparison after splitting predicted by comma |
 | DBBench | `str` or `list[str]` | Float tolerance, set comparison |
-| Math QA | `str` (numeric) | Default numeric comparison |
+| MATH-500 / GSM8K | `str` (numeric) | Registered `evaluate_math_qa` numeric comparison |

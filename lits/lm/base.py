@@ -529,7 +529,7 @@ class ToolCall:
 class ToolCallOutput(Output):
     """Output with structured tool calls from native tool use API.
     
-    Returned by AsyncBedrockChatModel when tools are provided and the LLM
+    Returned by tool-capable chat wrappers when tools are provided and the LLM
     decides to call a tool (stop_reason="tool_use").
     
     Attributes:

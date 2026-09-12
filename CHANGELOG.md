@@ -10,6 +10,7 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 
 ### Added
 - Registered MATH-500/GSM8K numeric correctness checker (注册 MATH-500/GSM8K 数值正确性检查器) [T5.3.2]
+- Native tool-call responses in `OpenAIChatModel` (OpenAI 兼容模型的原生工具调用返回) [T5.2.1]
 
 ### Changed
 - Deterministic-first optional LLM judging for language and tool-use evaluation (语言与工具任务先确定性检查，再按需调用 LLM 复核) [T5.3.1]

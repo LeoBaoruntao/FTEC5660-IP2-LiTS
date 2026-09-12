@@ -3,7 +3,7 @@ from openai import OpenAI
 from typing import List, Optional
 import numpy as np
 import os
-from .base import LanguageModel, Output, InferenceLogger
+from .base import LanguageModel, Output, InferenceLogger, ToolCall, ToolCallOutput
 
 logger = logging.getLogger(__name__)
 
@@ -74,8 +74,16 @@ class OpenAIChatModel(LanguageModel):
         max_new_tokens: Optional[int] = None,
         stop: Optional[List[str]] = None,
         return_embedding: bool = False,
+        tools: Optional[List[dict]] = None,
         **kwargs
     ):
+        """Generate text or return native function arguments as ToolCallOutput.
+
+        tools uses LiTS schemas: name, description, input_schema, and optional
+        strict. Strict schema enforcement depends on the server/model. Without
+        tools, the request and Output return type remain unchanged. Tool calls
+        are returned to the caller, not executed here; both paths log usage.
+        """
         if return_embedding:
             raise NotImplementedError("Embedding retrieval not implemented for OpenAI chat models.")
         # Log unsupported kwargs at debug level (expected in multi-backend frameworks
@@ -92,6 +100,18 @@ class OpenAIChatModel(LanguageModel):
         is_custom_endpoint = self.client.base_url and "api.openai.com" not in str(self.client.base_url)
         if is_custom_endpoint and not self.enable_thinking:
             extra_body = {"chat_template_kwargs": {"enable_thinking": False}}
+
+        tool_options = {}
+        if tools:
+            tool_options["tools"] = [
+                {"type": "function", "function": {
+                    "name": tool["name"],
+                    "description": tool.get("description", ""),
+                    "parameters": tool["input_schema"],
+                    **({"strict": tool["strict"]} if "strict" in tool else {}),
+                }}
+                for tool in tools
+            ]
         
         resp = self.client.chat.completions.create(
             model=self.model_name,
@@ -104,10 +124,12 @@ class OpenAIChatModel(LanguageModel):
             n=kwargs.get("n", 1),
             stop=stop,
             extra_body=extra_body,
+            **tool_options,
         )
         end = time.time()
 
-        text = resp.choices[0].message.content.strip()
+        message = resp.choices[0].message
+        text = (message.content or "").strip()
         input_toks = getattr(resp.usage, "prompt_tokens", 0)
         output_toks = getattr(resp.usage, "completion_tokens", 0)
 
@@ -124,6 +146,16 @@ class OpenAIChatModel(LanguageModel):
         if self.verbose and self.LOG_MODEL_OUTPUT:
             print(f"[{self.model_name}] → {text[:300]}")
 
+        if message.tool_calls:
+            calls = []
+            for call in message.tool_calls:
+                arguments = json.loads(call.function.arguments)
+                if not isinstance(arguments, dict):
+                    raise ValueError("Tool-call arguments must be a JSON object")
+                calls.append(ToolCall(call.id, call.function.name, arguments))
+            return ToolCallOutput(
+                text, calls, stop_reason="tool_use", raw_message=message.model_dump(),
+            )
         return Output(text)
 
     def batch_generate(self, prompts: List[str], **kwargs):

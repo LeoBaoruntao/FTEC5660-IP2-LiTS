@@ -275,8 +275,7 @@ from lits.lm import get_lm
 from lits.components.policy.concat import ConcatPolicy
 from lits.components.transition.concat import ConcatTransition
 from lits.components.reward.generative import GenerativePRM
-from lits.agents.tree.common import extract_answers_from_terminal_nodes
-from lits.components.utils import get_fn_retrieve_answer
+from lits.eval.search import evaluate_search_result
 
 MODEL_NAME = "bedrock/anthropic.claude-3-5-sonnet-20240620-v1:0"
 
@@ -306,16 +305,17 @@ search = MCTSSearch(
 # Run search
 result = search.run(query="What is 25 * 17?", query_idx=0)
 
-# Extract answers from terminal nodes
-retrieve_answer_fn = get_fn_retrieve_answer(model)
-vote_answers, answer_rewards, best_node, trace = extract_answers_from_terminal_nodes(
-    terminal_nodes_collected=result.terminal_nodes_collected,
-    retrieve_answer=retrieve_answer_fn,
-    query="What is 25 * 17?"
+# Vote over terminal answers, then compare the winner with the reference
+outcome = evaluate_search_result(
+    result.terminal_nodes_collected,
+    query="What is 25 * 17?",
+    ground_truth="425",
+    task_type="language_grounded",
+    voting_model=model,
 )
 
-print(f"Vote answers: {vote_answers}")
-print(f"Answer rewards: {answer_rewards}")
+print(f"Prediction: {outcome['prediction']}")
+print(f"Correct: {outcome['correct']}")
 ```
 
 ### Logging

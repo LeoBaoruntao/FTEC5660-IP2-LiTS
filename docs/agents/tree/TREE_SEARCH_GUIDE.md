@@ -700,7 +700,9 @@ class MyStep(Step):
         return self.my_field
 ```
 
-The `verbalize_state()` classmethod is used by `get_fn_retrieve_answer()` for answer extraction from terminal nodes.
+Language-tree evaluation reads the last step's `get_answer()` text and groups answers
+using the required `voting_model`; it does not call `verbalize_state()` for voting.
+See [shared evaluation](../../eval/CUSTOM_EVALUATORS.md#in-memory-evaluation).
 
 ### How Component Lookup Works
 

@@ -2,13 +2,7 @@ import re
 import logging
 from typing import Optional
 from pydantic import BaseModel
-from ..lm.base import HfChatModel, HfModel,DETERMINISTIC_TEMPERATURE, LanguageModel
-from ..structures import (
-    StateT,
-    ThoughtStep,
-    ToolUseState,
-    ToolUseStep,
-)
+from ..structures import StateT
 
 logger = logging.getLogger(__name__)
 
@@ -157,97 +151,6 @@ def verbalize_concat_state(question, state):
 def strip_num(num):
     """Aim to get a number parsable by Python's float()"""
     return num.strip("*").strip("`").strip("'").strip('"').strip()
-
-def extract_numerical_answer(base_model, solution):
-
-    base_model.sys_prompt = """Given a question and a corresponding solution, your task is to retrieve a numerical answer from the given solution if it exists. ONLY output the numerical answer as a plain number—parsable by Python’s float(), with no extra characters, commas, or symbols. If the solution does not contain a numerical answer, output an empty string."""
-
-    answer = base_model(solution, role=None, temperature=DETERMINISTIC_TEMPERATURE, max_new_tokens=20, enable_thinking=False).text.lower().strip()
-    return answer
-
-def extract_yes_no_answer(base_model, solution):
-
-    base_model.sys_prompt = """You are given a solution to a question. Your task is to extract the yes/no answer from the solution if it is explicitly provided. The output should strictly be one of the following: 'yes', 'no', or an empty string "" if no yes/no answer is present. Do not include any additional text, explanations, or formatting."""
-    answer = base_model(solution, role=None, temperature=DETERMINISTIC_TEMPERATURE, max_new_tokens=20, enable_thinking=False).text.lower().strip()
-    return answer
-    
-
-def get_fn_retrieve_answer(base_model, answer_type="num", append_answer_to_state=False):
-    assert isinstance(base_model, LanguageModel), f"`base_model` should be a subclass of `LanguageModel`"
-
-    if answer_type == "num":
-        extract_from_step_fn = retrieve_answer_from_last_step
-        extract_fn = extract_numerical_answer
-    elif answer_type == "yn":
-        extract_from_step_fn = None
-        extract_fn = extract_yes_no_answer
-    else:
-        raise ValueError(f"Answer type should be 'num' or 'yn', got {answer_type}")
-    
-    
-    def retrieve_answer(final_state, question: str) -> Optional[str]:
-        '''
-        final_state should be a world_model.StateByStepList if being a list
-        '''
-        if final_state is None or len(final_state) == 0:
-            return ""
-        
-        # ensure output is a terminal state
-        assert isinstance(final_state, list), f"final_state should be a list, got {type(final_state)}"
-        def extract_by_llm():
-            logger.debug(f"Original last step: {final_state[-1].get_answer()}")
-            sample_answers = []
-            for _ in range(5):  # sample 5 times
-                # Use Step.verbalize_state() if available (duck typing)
-                step_class = type(final_state[0])
-                if hasattr(step_class, 'verbalize_state'):
-                    solution = step_class.verbalize_state(question, final_state)
-                elif hasattr(final_state, 'render_history'):
-                    # ToolUseState has render_history
-                    solution = question + "\n\n" + final_state.render_history()
-                else:
-                    # Fallback to default verbalization
-                    from ..structures.base import Step
-                    solution = Step.verbalize_state(question, final_state)
-                
-                answer = extract_fn(base_model, solution)
-                logger.debug("Retrieve answer from the path, and append it to the final state: " + answer)
-                sample_answers.append(answer)
-
-            # choose the most common answer
-            answer = max(set(sample_answers), key=sample_answers.count)
-            logger.debug("Final answer after sampling: " + answer)
-
-            # append the answer as the last step in the final trace
-            if append_answer_to_state:
-                if isinstance(final_state[0], ThoughtStep):
-                    final_state.append(ThoughtStep(action="The answer is " + answer))
-                else:
-                    # For other step types, don't append (they may have different constructors)
-                    logger.debug(f"Cannot append answer to state for step type: {type(final_state[0])}")
-                logger.debug(f"Added last step: {final_state[-1].get_answer()}")
-            return answer
-
-        answer = ""
-        if extract_from_step_fn:
-            answer = extract_from_step_fn(final_state[-1])
-
-        # use LLM to infer the answer
-        if answer == "" or not parsable_by_float(answer):
-            answer = extract_by_llm()
-        
-        return answer
-
-    return retrieve_answer
-
-def parsable_by_float(text: str) -> bool:
-        # if answer is not a number, use LLM to infer the answer
-        try:
-            float(text)
-        except ValueError:
-            return False
-        return True
-                
 
 def retrieve_answer_from_last_step(step) -> Optional[str]:
     """Extract numerical answer from a step.

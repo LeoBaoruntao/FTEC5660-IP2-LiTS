@@ -8,6 +8,9 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 
 ## 2026-09-13 Unreleased (`0820-major-selection-interface/tasks_task_adapters`)
 
+### Removed
+- Legacy `get_fn_retrieve_answer()` wrapper and unused extraction helpers (旧版三层答案提取封装与不再使用的提取辅助函数) [T5.2.1]
+
 ### Changed
 - Mandatory language-tree `voting_model` and shared CLI evaluation model (语言树评估必需的 voting_model 与 CLI 共享评估模型) [T5.2.1]
 

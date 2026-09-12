@@ -4,6 +4,7 @@ Run from lits_llm/ with demos/ on PYTHONPATH:
     PYTHONBREAKPOINT=0 python -m unit_test.eval.test_search_evaluation
     PYTHONBREAKPOINT=0 python -m unit_test.eval.test_search_evaluation --llm-model ollama/llama3.2:latest
     PYTHONBREAKPOINT=0 python -m unit_test.eval.test_search_evaluation --compare-chain-cli-ref dd98ce6
+    PYTHONBREAKPOINT=0 python -m unit_test.eval.test_search_evaluation --math-llm-model openai/local-instruct
 
 This checks the saved-result pipeline, not individual benchmark algorithms.
 agents/test_extract_answers.py owns extraction/voting checks and the saved RAP
@@ -194,12 +195,10 @@ def check_case(output_dir, name, dataset, nodes, truth, expected, *, query="Test
         shared_results[source] = outcome
 
     if llm_model:
-        registered_result = shared_options["custom_evaluator"](expected[0], truth)
-        registered_correct = (
-            registered_result == 1.0 if isinstance(registered_result, float)
-            else bool(registered_result)
+        deterministic_result = check_answer(
+            expected[0], truth, custom_evaluator=shared_options.get("custom_evaluator"),
         )
-        needs_fallback = not registered_correct
+        needs_fallback = not deterministic_result[0]
         if ("LLM fallback:" in log) != needs_fallback:
             raise RuntimeError(f"{name}: unexpected CLI fallback routing")
         usage = [json.loads(line) for line in Path(inference_logger.filepath).read_text().splitlines()]
@@ -207,10 +206,10 @@ def check_case(output_dir, name, dataset, nodes, truth, expected, *, query="Test
             if not 2 <= len(usage) <= 6:
                 raise RuntimeError(f"{name}: expected one to three calls per shared evaluation")
         elif usage:
-            raise RuntimeError(f"{name}: registered success unnecessarily invoked the LLM")
+            raise RuntimeError(f"{name}: deterministic success unnecessarily invoked the LLM")
         if any(record["role"] != "evaluator_general" for record in usage):
             raise RuntimeError(f"{name}: unexpected inference role")
-        shared_results["registered_result"] = registered_result
+        shared_results["deterministic_result"] = deterministic_result
         shared_results["llm_model"] = llm_model
         shared_results["llm_eval_mode"] = llm_eval_mode
         shared_results["shared_inference_calls"] = len(usage)
@@ -402,13 +401,16 @@ def check_scalar_zero_returns():
 
 
 def check_answer_outcomes():
-    """Check search.py::check_answer exact matching, precedence, and error handling."""
+    """Check search.py::check_answer numeric/string matching and checker precedence."""
     kgqa_evaluator = get_evaluator("kgqa")
     checks = []
     for name, pred, truth, evaluator, expected in (
         ("exact_match", "42", 42, None, (True, None)),
         ("exact_mismatch", "42", "43", None, (False, None)),
-        ("exact_format", "42.0", "42", None, (False, None)),
+        ("numeric_format", "42.0", "42", None, (True, None)),
+        ("numeric_exponent", "1e-3", "0.001", None, (True, None)),
+        ("numeric_fraction_mismatch", "0.5", "1/2", None, (False, None)),
+        ("string_match", "Paris", "Paris", None, (True, None)),
         # KGQA expects entity lists; a parsed integer reference yields no gold
         # entities. A custom failure must not fall through to exact matching.
         ("custom_before_exact", "42", "42", kgqa_evaluator, (False, 0.0)),
@@ -422,6 +424,28 @@ def check_answer_outcomes():
         print(f"PASS {name}: {observed}")
         checks.append({"case": name, "expected": expected, "observed": observed})
     breakpoint()  # inspect: checks; no LLM evaluator is supplied
+    return checks
+
+
+def check_live_math_fallback(output_dir, model_name):
+    """Check search.py::evaluate_search_result and eval_search.py CLI MATH judging.
+
+    Real model calls test equivalent fraction notation and a wrong answer. A
+    numeric match must make no judge calls. Extraction uses existing decimal
+    answers, so these cases isolate correctness judging from answer extraction.
+    """
+    checks = []
+    for name, prediction, truth, correct in (
+        ("numeric_success", "42.0", "42", True),
+        ("equivalent_fraction", "0.5", "1/2", True),
+        ("wrong_answer", "43", "42", False),
+    ):
+        checks.append(check_case(
+            output_dir, f"live_math_{name}", MATH_DATASET,
+            [terminal(ThoughtStep(action=f"The answer is {prediction}", terminate=True))],
+            truth, (prediction, correct, None, None), llm_model=model_name,
+        ))
+    breakpoint()  # inspect: checks; shared_inference_calls is zero for numeric_success
     return checks
 
 
@@ -587,6 +611,7 @@ def main():
     """Compare evaluation paths, optionally run live judging, and retain logs/outcomes."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--llm-model", help="LiTS model name for optional live binary/F1 fallback checks")
+    parser.add_argument("--math-llm-model", help="LiTS model name for optional live MATH correctness checks")
     parser.add_argument("--compare-chain-cli-ref", help="Trusted local Git revision for chain/pass-at-N comparison")
     args = parser.parse_args()
     os.environ.setdefault("OPENAI_API_KEY", "no-key")
@@ -604,6 +629,8 @@ def main():
         checks.extend(check_chain_checkpoints(output_dir, args.compare_chain_cli_ref))
     if args.llm_model:
         checks.extend(check_live_fallback(output_dir, args.llm_model))
+    if args.math_llm_model:
+        checks.extend(check_live_math_fallback(output_dir, args.math_llm_model))
     (output_dir / "baseline.json").write_text(json.dumps(checks, indent=2) + "\n")
     print(f"Passed {len(checks)} checks. Baseline: {output_dir / 'baseline.json'}")
     breakpoint()  # inspect: checks, output_dir; each case contains terminal_nodes/ and eval.log

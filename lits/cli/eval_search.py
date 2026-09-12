@@ -381,14 +381,12 @@ def evaluate_from_checkpoints(
     eval_logger.info(f"Processing {len(filtered_files)} files (offset={offset}, limit={limit})")
 
     # --- Setup evaluators (shared by both single-attempt and pass@N) ---
-    from lits.components.utils import eval_output
-
     custom_evaluator = get_evaluator(dataset_name) if has_evaluator(dataset_name) else None
     if custom_evaluator:
         eval_logger.info(f"Using registered evaluator for '{dataset_name}'")
 
     llm_evaluator = None
-    if is_tool_use and llm_eval_mode != "none":
+    if not is_env_grounded and llm_eval_mode != "none":
         llm_evaluator = _create_llm_evaluator(base_model, llm_eval_mode, eval_logger)
 
     # --- Evaluate every checkpoint file (single-attempt and pass@N alike) ---
@@ -418,7 +416,7 @@ def evaluate_from_checkpoints(
                 if is_env_grounded:
                     correct = (answer_pred == ground_truth)
                     score = None
-                elif custom_evaluator or llm_evaluator:
+                else:
                     correct, score = check_answer(
                         answer_pred, ground_truth,
                         custom_evaluator=custom_evaluator,
@@ -427,12 +425,6 @@ def evaluate_from_checkpoints(
                         eval_logger=eval_logger,
                         label=label,
                     )
-                else:
-                    try:
-                        correct = eval_output(str(ground_truth), answer_pred, type="number_exact")
-                    except (AssertionError, ValueError):
-                        correct = (answer_pred == str(ground_truth))
-                    score = None
             else:
                 data = load_terminal_nodes_from_file(filepath)
                 terminal_nodes = data['terminal_nodes']

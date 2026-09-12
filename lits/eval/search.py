@@ -56,6 +56,7 @@ def evaluate_search_result(
             Return-based ranking falls back per node to fast_reward when its
             cum_rewards are missing, None, or an empty list.
         custom_evaluator: Optional (prediction, ground_truth) -> bool or float checker.
+            When absent, numeric comparison runs before any LLM judging.
         llm_evaluator: Optional configured GeneralEvaluator; see check_answer for
             fallback precedence. Omit it to disable LLM judging.
         llm_eval_mode: "binary" or "f1", used only by the supplied LLM evaluator.
@@ -74,8 +75,9 @@ def evaluate_search_result(
         or an empty prediction for other tasks. That empty prediction still goes
         through configured correctness checking. Required callbacks must be supplied
         even for empty terminals, but retrieval/goal checking is not invoked on them.
-        Without custom/LLM checkers, non-environment tasks use numeric comparison,
+        Without a custom checker, non-environment tasks use numeric comparison,
         falling back to exact string matching on AssertionError or ValueError.
+        A configured LLM judge runs only when the deterministic check fails.
 
     Raises:
         ValueError: Unsupported task_type, a missing required callback, or invalid
@@ -118,7 +120,7 @@ def evaluate_search_result(
     score = None
     if task_type == "env_grounded":
         correct = prediction == "correct"
-    elif custom_evaluator or llm_evaluator:
+    else:
         correct, score = check_answer(
             prediction, ground_truth,
             custom_evaluator=custom_evaluator,
@@ -127,13 +129,6 @@ def evaluate_search_result(
             eval_logger=eval_logger,
             label=label,
         )
-    else:
-        from lits.components.utils import eval_output
-
-        try:
-            correct = eval_output(str(ground_truth), prediction, type="number_exact")
-        except (AssertionError, ValueError):
-            correct = prediction == str(ground_truth)
 
     return {
         "prediction": prediction,
@@ -277,14 +272,14 @@ def check_answer(pred: str, truth, custom_evaluator=None, llm_evaluator=None,
 
     Use the dataset-specific custom_evaluator first, with an optional LLM
     fallback when it reports an incorrect answer or raises an exception.
-    Without a custom evaluator, use the supplied LLM evaluator. Exact string
-    matching applies only when neither evaluator is supplied.
+    Without a custom evaluator, use numeric comparison with exact-string fallback
+    on parsing errors. A deterministic match skips the LLM judge.
 
     Args:
         pred: Predicted answer string.
         truth: Ground truth (any type - passed directly to custom_evaluator;
-            converted to str only for the fallback exact-match path).
-        custom_evaluator: Registered evaluator function, or None.
+            converted to str for default numeric/string comparison).
+        custom_evaluator: Task-specific checker function, or None for numeric checking.
         llm_evaluator: Configured GeneralEvaluator instance, or None.
         llm_eval_mode: "binary" (yes/no) or "f1" (float score).
         eval_logger: Logger for debug messages (optional).
@@ -312,19 +307,19 @@ def check_answer(pred: str, truth, custom_evaluator=None, llm_evaluator=None,
             correct = False
             if eval_logger:
                 eval_logger.debug(f"  {label} custom evaluator failed: {e}")
-        if not correct and llm_evaluator:
-            correct, score = _llm_judge(llm_evaluator, llm_eval_mode, pred, truth, score)
-            if eval_logger:
-                eval_logger.debug(f"  {label} LLM fallback: correct={correct}, score={score}")
-        return correct, score
+    else:
+        from lits.components.utils import eval_output
 
-    if llm_evaluator:
+        try:
+            correct = eval_output(str(truth), pred, type="number_exact")
+        except (AssertionError, ValueError):
+            correct = pred == str(truth)
+
+    if not correct and llm_evaluator:
         correct, score = _llm_judge(llm_evaluator, llm_eval_mode, pred, truth, score)
         if eval_logger:
-            eval_logger.debug(f"  {label} LLM evaluator: correct={correct}, score={score}")
-        return correct, score
-
-    return (pred == str(truth)), None
+            eval_logger.debug(f"  {label} LLM fallback: correct={correct}, score={score}")
+    return correct, score
 
 
 def _llm_judge(llm_evaluator, llm_eval_mode, pred, truth, prior_score=None):

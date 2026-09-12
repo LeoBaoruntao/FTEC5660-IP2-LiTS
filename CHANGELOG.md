@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-09-12 Unreleased (`0820-major-selection-interface/tasks_task_adapters`)
+
+### Changed
+- Deterministic-first optional LLM judging for language and tool-use evaluation (语言与工具任务先确定性检查，再按需调用 LLM 复核) [T5.3.1]
+
 ## 2026-09-11 Unreleased (`0820-major-selection-interface/tasks_task_adapters`)
 
 ### Fixed

@@ -37,11 +37,13 @@ After output selection, correctness checking follows this order:
 1. `env_grounded`: goal check; other correctness evaluators are ignored.
 2. Registered evaluator: use its bool/float result, with configured LLM fallback on
    non-full matches or exceptions. Only a float score of `1.0` counts as correct.
-3. Without a registered evaluator: use the configured LLM judge; otherwise use
-   `eval_output(type="number_exact")`, with exact-string fallback on numeric parsing errors.
+3. Without a registered evaluator: use `eval_output(type="number_exact")`, with
+   exact-string fallback on numeric parsing errors. Only a mismatch invokes the
+   configured LLM judge.
 
-CLI defaults are unchanged: tool-use tasks enable `--llm-eval binary`; use `f1` for
-continuous judging or `none` to disable it. F1 fallback retains the larger registered/LLM
+The CLI enables `--llm-eval binary` for language-grounded and tool-use tasks; use `f1`
+for continuous judging or `none` to disable it. Deterministic matches make no judge call.
+Environment tasks retain goal checking. F1 fallback retains the larger registered/LLM
 score; binary fallback changes correctness without replacing the registered score.
 
 ## Example: DBBench

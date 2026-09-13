@@ -76,6 +76,14 @@ cases = [
     ("3.14",        ["3.15"],       True),   # within tol=0.01
     ("3.14",        ["4.00"],       False),
     ("None",        ["0"],          True),   # special value
+    (None,          ["0"],          False),  # missing prediction, not a submitted special value
+    ("",            ["0"],          False),
+    (" \t\n",       ["0"],          False),
+    ("",            [],             False),
+    ("0",           ["0"],          True),
+    ([],            [],             True),   # explicit empty query result
+    ("[]",          [],             True),
+    ("[]",          ["0"],          False),
     ('["a","b"]',   ["a", "b"],     True),   # list string vs list
     (["a", "b"],    ["b", "a"],     True),   # set comparison
     (["a", "b"],    ["a", "c"],     False),
@@ -84,6 +92,9 @@ for pred, gt, expected in cases:
     result = evaluate_dbbench(pred, gt)
     status = "✓" if result == expected else "✗ MISMATCH"
     print(f"  {status}  evaluate({pred!r}, {gt!r}) = {result}  (expected {expected})")
+    if result != expected:
+        breakpoint()  # inspect: pred, gt, result, expected
+        raise RuntimeError(f"DBBench comparison mismatch: {pred!r}, {gt!r}")
 
 # also test with actual data labels
 sep("evaluate_dbbench — self-check on first 5 entries")

@@ -221,6 +221,9 @@ def evaluate_dbbench(predicted_answer, ground_truth) -> bool:
     non-mutation query types.  SELECT evaluation compares cleaned answer
     strings with float-tolerance matching when applicable.
 
+    Missing predictions (None or blank text) are incorrect before normalization.
+    An explicit empty list, including "[]", can match an empty reference result.
+
     Args:
         predicted_answer: The model's committed answer (str or list).
         ground_truth: The ground-truth ``label`` field (typically a list
@@ -229,6 +232,8 @@ def evaluate_dbbench(predicted_answer, ground_truth) -> bool:
     Returns:
         ``True`` if the answer matches.
     """
+    if predicted_answer is None or (isinstance(predicted_answer, str) and not predicted_answer.strip()):
+        return False
     try:
         processed_answer = _clean_answer(predicted_answer)
         processed_gt = _clean_answer(ground_truth)
@@ -288,6 +293,9 @@ def _normalize(value) -> str:
 def _clean_answer(answer) -> List[str]:
     """Clean and normalize an answer into a list of comparable strings."""
     if answer is None:
+        # AgentBench src/server/tasks/dbbench/result_processor.py::DBResultProcessor._clean_answer
+        # maps None to a zero-valued result. evaluate_dbbench rejects missing
+        # predictions before this normalization; references still use this rule.
         return ["0"]
 
     if isinstance(answer, str):

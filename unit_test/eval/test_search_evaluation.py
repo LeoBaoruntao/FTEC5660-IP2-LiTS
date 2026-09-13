@@ -383,9 +383,17 @@ def check_tool_use(output_dir):
                 output_dir, f"tool_{strategy}_{name}", DB_DATASET, nodes, ["42"],
                 (prediction, prediction == "42", None, None), selection=strategy,
             ))
-    # Characterize the existing zero normalization; this refactor must not silently fix it.
-    checks.append(check_case(output_dir, "tool_missing_answer_matches_zero", DB_DATASET,
-                             [terminal()], ["0"], ("", True, None, None)))
+    for name, nodes, truth, prediction, correct in (
+        ("missing_answer_not_zero", [terminal()], ["0"], "", False),
+        ("empty_answer_not_zero", [terminal(ToolUseStep(answer=""))], ["0"], "", False),
+        ("blank_answer_not_zero", [terminal(ToolUseStep(answer="   "))], ["0"], "   ", False),
+        ("no_terminals_not_zero", [], ["0"], "", False),
+        ("zero_answer", [terminal(ToolUseStep(answer="0"))], ["0"], "0", True),
+        ("explicit_empty_result", [terminal(ToolUseStep(answer="[]"))], [], "[]", True),
+        ("empty_result_not_zero", [terminal(ToolUseStep(answer="[]"))], ["0"], "[]", False),
+    ):
+        checks.append(check_case(output_dir, f"tool_{name}", DB_DATASET, nodes, truth,
+                                 (prediction, correct, None, None)))
     dict_state = terminal()
     dict_state.state = [{"answer": "42"}]
     object_state = terminal(ToolUseStep(answer="42"))

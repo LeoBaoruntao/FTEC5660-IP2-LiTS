@@ -16,6 +16,9 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 - Semantic-equivalence instructions for answer voting (答案投票的语义等价分组指令) [T5.2.1]
 - CLI evaluation-model thinking configuration (CLI 评估模型的 thinking 配置) [T5.2.1]
 
+### Fixed
+- DBBench missing/blank predictions incorrectly matching zero (DBBench 缺失或空白答案误判为零值匹配) [T5.2.2]
+
 ## 2026-09-12 Unreleased (`0820-major-selection-interface/tasks_task_adapters`)
 
 ### Added

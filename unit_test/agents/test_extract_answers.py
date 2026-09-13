@@ -2,8 +2,8 @@
 Test suite for extract_answers_from_terminal_nodes function.
 
 Tests common.py::extract_answers_from_terminal_nodes and real terminal-node
-deserialization. Current CLI and model-based voting checks live in
-unit_test/eval/test_search_evaluation.py.
+deserialization. Current CLI checks live in unit_test/eval/test_search_evaluation.py;
+model-based voting checks live in unit_test/eval/test_answer_voting.py.
 
 run:
 

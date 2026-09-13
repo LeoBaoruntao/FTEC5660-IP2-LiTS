@@ -19,6 +19,7 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 ### Fixed
 - DBBench missing/blank predictions incorrectly matching zero (DBBench 缺失或空白答案误判为零值匹配) [T5.2.2]
 - LLM fallback on rejected None/blank predictions (已判错的 None/空白答案触发 LLM 复核的问题) [T5.3.3]
+- BFS configuration failure from MCTS-only defaults (MCTS 专用默认参数导致 BFS 配置构建失败的问题) [T6.2]
 
 ## 2026-09-12 Unreleased (`0820-major-selection-interface/tasks_task_adapters`)
 

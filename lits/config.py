@@ -13,6 +13,7 @@ Design:
 import os
 import torch
 from dataclasses import dataclass, field
+from inspect import Parameter, signature
 from typing import List, Optional, Dict, Any, Set
 from lits.agents import AgentRegistry
 from lits.agents.base import get_model_dir_prefix
@@ -82,6 +83,44 @@ _EXCLUDE_FROM_SEARCH_CONFIG: Set[str] = {
     "verbose", "model_verbose", "print_answer_for_each_example", "override_log_result",
     "memory_args", "check_action_sim"
 }
+
+
+def _filter_search_config_args(
+    config_cls: type,
+    search_args: Dict[str, Any],
+    *,
+    explicit_args: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Filter resolved arguments for a registered search configuration.
+
+    Args:
+        config_cls: Registered configuration class whose constructor receives kwargs.
+        search_args: Resolved arguments, including shared defaults.
+        explicit_args: Caller-supplied overrides, before defaults were merged.
+
+    Returns:
+        A new argument dictionary; input dictionaries are not modified.
+
+    Excluded fields are always removed. Every other key is retained if any rule holds:
+
+    | Condition | Why retain the argument? |
+    |---|---|
+    | accepts_kwargs | Constructor accepts **kwargs and handles extra arguments. |
+    | k in parameters | Constructor explicitly declares this parameter. |
+    | k in explicit_args | Preserve caller overrides for constructor validation. |
+
+    The last rule preserves errors: an unsupported explicit argument reaches the
+    constructor and raises TypeError instead of being silently ignored.
+    """
+    parameters = signature(config_cls).parameters
+    accepts_kwargs = any(p.kind == Parameter.VAR_KEYWORD for p in parameters.values())
+
+    # Exclude execution-only fields and shared defaults for other algorithms.
+    return {
+        k: v for k, v in search_args.items()
+        if k not in _EXCLUDE_FROM_SEARCH_CONFIG
+        and (accepts_kwargs or k in parameters or k in explicit_args)
+    }
 
 
 # =============================================================================
@@ -422,12 +461,18 @@ class ExperimentConfig:
         
         Note: SearchConfig only contains search algorithm parameters. Component args
         and experiment metadata are saved separately via ExperimentConfig.save_config().
+
+        Shared defaults unsupported by the selected constructor are omitted.
+        Explicit search_args remain subject to constructor validation; unsupported
+        names are not silently discarded. Constructors accepting **kwargs retain
+        all non-excluded arguments.
         
         Returns:
             A ``BaseSearchConfig`` subclass instance for the algorithm.
         
         Raises:
             ValueError: If no config class is registered for the algorithm.
+            TypeError: If an explicit search argument is unsupported by its constructor.
         """
         config_cls = AgentRegistry.get_config_class(self.search_algorithm)
         if config_cls is None:
@@ -436,11 +481,9 @@ class ExperimentConfig:
                 f"Available: {AgentRegistry.list_algorithms()}"
             )
         
-        search_args = self.get_search_args()
-        
-        # Build config dict, excluding execution-only fields
-        config_dict = {k: v for k, v in search_args.items() 
-                       if k not in _EXCLUDE_FROM_SEARCH_CONFIG}
+        config_dict = _filter_search_config_args(
+            config_cls, self.get_search_args(), explicit_args=self.search_args,
+        )
         
         # Add top-level fields from ExperimentConfig (not in search_args)
         config_dict["policy_model_name"] = self.policy_model_name

@@ -22,7 +22,7 @@ from types import SimpleNamespace
 
 from lits import get_lm
 from lits.agents.tree.augmentor_setup import build_search_callbacks
-from lits.agents.tree.bfs import BFSSearch
+from lits.agents.tree.bfs import BFSConfig, BFSSearch
 from lits.agents.tree.common import _world_modeling
 from lits.agents.tree.continuation import _continuation
 from lits.agents.tree.mcts import (
@@ -981,7 +981,7 @@ def check_rollout_path_cutoffs(world_model, policy, reward_model) -> list[str]:
 
 
 def check_stop_configuration(base_model, policy, reward_model) -> None:
-    """Check direct/CLI config migration and independent transition/search thresholds.
+    """Check config filtering, migration, and independent transition/search thresholds.
 
     Exercise ``config.py::ExperimentConfig.create_search_config`` and
     ``concat.py::ConcatTransition.from_config`` using the configured real client
@@ -996,10 +996,45 @@ def check_stop_configuration(base_model, policy, reward_model) -> None:
         if not passed:
             failures.append(label)
 
-    def experiment(search_args):
+    def experiment(search_args, algorithm="mcts"):
         """Build the same configuration entry point used by the search CLI."""
         return ExperimentConfig(dataset="math500", policy_model_name="openai/local-instruct",
-                                eval_model_name="openai/local-instruct", search_args=search_args)
+                                eval_model_name="openai/local-instruct", search_args=search_args,
+                                search_algorithm=algorithm)
+
+    for algorithm in ("bfs", "bfs_sibling_aware", "mcts", "mcts_sibling_aware"):
+        is_beam = algorithm.startswith("bfs")
+        size_key = "beam_size" if is_beam else "n_iters"
+        for overrides in ({}, {size_key: 7, "n_actions": 2, "max_steps": 4,
+                               "check_action_sim": True}):
+            exp = experiment(dict(overrides), algorithm)
+            resolved = exp.get_search_args()
+            config = exp.create_search_config()
+            label = f"{algorithm} {'overrides' if overrides else 'defaults'}"
+            record(f"{label}: registered config and shared settings",
+                   type(config) is (BFSConfig if is_beam else MCTSConfig)
+                   and config.n_actions == resolved["n_actions"]
+                   and config.max_steps == resolved["max_steps"])
+            record(f"{label}: algorithm-specific settings",
+                   getattr(config, size_key) == overrides.get(size_key, 5 if is_beam else 50)
+                   and (not hasattr(config, "n_iters") if is_beam
+                        else config.roll_out_steps == resolved["roll_out_steps"]))
+            record(f"{label}: metadata and caller settings preserved",
+                   config.dataset == exp.dataset
+                   and config.policy_model_name == exp.policy_model_name
+                   and config.eval_model_name == exp.eval_model_name
+                   and not hasattr(config, "check_action_sim")
+                   and exp.search_args == overrides
+                   and exp.get_search_args() == resolved)
+
+    for algorithm, key in (("bfs", "max_stepz"), ("mcts", "max_stepz"),
+                           ("bfs", "n_iters"), ("mcts", "beam_size")):
+        try:
+            experiment({key: 7}, algorithm).create_search_config()
+        except TypeError as error:
+            record(f"{algorithm} rejects explicit unsupported argument {key}", key in str(error))
+        else:
+            record(f"{algorithm} rejects explicit unsupported argument {key}", False)
 
     for overrides, expected_stop in (({}, True), ({"terminate_on_first_solution": False}, False)):
         for source, config in (("direct", MCTSConfig(**overrides)),

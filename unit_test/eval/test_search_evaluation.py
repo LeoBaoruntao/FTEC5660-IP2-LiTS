@@ -227,7 +227,8 @@ def check_case(output_dir, name, dataset, nodes, truth, expected, *, query="Test
         deterministic_result = check_answer(
             expected[0], truth, custom_evaluator=shared_options.get("custom_evaluator"),
         )
-        needs_fallback = bool(llm_model and llm_eval_mode != "none" and not deterministic_result[0])
+        needs_fallback = bool(llm_model and llm_eval_mode != "none"
+                              and expected[0].strip() and not deterministic_result[0])
         if ("LLM fallback:" in log) != needs_fallback:
             raise RuntimeError(f"{name}: unexpected CLI fallback routing")
         if needs_fallback:
@@ -249,13 +250,13 @@ def check_case(output_dir, name, dataset, nodes, truth, expected, *, query="Test
 
 
 def check_empty_language(output_dir):
-    """Compare empty language results across CLI and shared evaluation without inference."""
+    """Check empty language results make no calls even with voting and judging configured."""
     checks = []
     for name, nodes in (("math_no_terminals", []),
                         ("math_missing_state", [terminal(node_class=SearchNode)]),
                         ("math_blank_answer", [terminal(ThoughtStep(action=" ", terminate=True))])):
         checks.append(check_case(output_dir, name, MATH_DATASET, nodes, "42",
-                                 ("", False, None, None)))
+                                 ("", False, None, None), llm_model=MODEL_NAME))
     return checks
 
 
@@ -393,7 +394,8 @@ def check_tool_use(output_dir):
         ("empty_result_not_zero", [terminal(ToolUseStep(answer="[]"))], ["0"], "[]", False),
     ):
         checks.append(check_case(output_dir, f"tool_{name}", DB_DATASET, nodes, truth,
-                                 (prediction, correct, None, None)))
+                                 (prediction, correct, None, None),
+                                 llm_model=MODEL_NAME if name != "empty_result_not_zero" else None))
     dict_state = terminal()
     dict_state.state = [{"answer": "42"}]
     object_state = terminal(ToolUseStep(answer="42"))
@@ -414,7 +416,12 @@ def check_tool_use(output_dir):
             [terminal(ToolUseStep(answer=prediction), returns=[0.5])],
             {"names": ["Obedient", "Intelligent"], "ids": []},
             (prediction, correct, score, None),
+            llm_model=MODEL_NAME if name == "empty" else None, llm_eval_mode="f1",
         ))
+    checks.append(check_case(
+        output_dir, "tool_blank_f1", DB_DATASET, [terminal(ToolUseStep(answer="   "))],
+        ["0"], ("   ", False, None, None), llm_model=MODEL_NAME, llm_eval_mode="f1",
+    ))
     return checks
 
 
@@ -503,6 +510,11 @@ def check_answer_outcomes():
         ("exact_mismatch", "42", "43", None, (False, None)),
         ("exact_format_mismatch", "42.0", "42", None, (False, None)),
         ("exact_exponent_mismatch", "1e-3", "0.001", None, (False, None)),
+        ("exact_missing", None, "None", None, (False, None)),
+        ("exact_empty", "", "", None, (True, None)),
+        ("exact_blank", " \t\n", " \t\n", None, (True, None)),
+        ("db_empty_list", [], [], get_evaluator("dbbench"), (True, None)),
+        ("db_numeric_zero", 0, ["0"], get_evaluator("dbbench"), (True, None)),
         ("numeric_format", "42.0", "42", math_evaluator, (True, None)),
         ("numeric_exponent", "1e-3", "0.001", gsm8k_evaluator, (True, None)),
         ("numeric_fraction_mismatch", "0.5", "1/2", math_evaluator, (False, None)),
@@ -564,6 +576,7 @@ def check_live_fallback(output_dir, model_name):
 
     Each fixture runs through the CLI and both shared-input paths. Correctness is
     checked on simple answers; this is a routing check, not a judge-quality estimate.
+    Separate non-JSON prompts check that binary/F1 errors propagate through check_answer.
     """
     checks = []
     for name, prediction, correct in (
@@ -589,6 +602,29 @@ def check_live_fallback(output_dir, model_name):
             (prediction, expected_score == 1.0, expected_score, None),
             llm_model=model_name, llm_eval_mode="f1",
         ))
+    for mode in ("binary", "f1"):
+        case_dir = output_dir / f"live_malformed_{mode}"
+        model = get_lm(model_name)
+        inference_logger = setup_inference_logging(model, root_dir=str(case_dir))
+        evaluator = _create_llm_evaluator(model, mode, logging.getLogger("lits.test"))
+        # Ask a real model for non-JSON to exercise error propagation without canned responses.
+        evaluator.prompt_template = "Return exactly INVALID, without JSON or explanation."
+        evaluator.max_retries = 0
+        evaluator.default_max_new_tokens = 8
+        try:
+            check_answer("43", "42", llm_evaluator=evaluator, llm_eval_mode=mode)
+        except RuntimeError as error:
+            if "Evaluator failed to return valid JSON" not in str(error):
+                raise
+            (case_dir / "error.txt").write_text(str(error))
+        else:
+            raise RuntimeError(f"{mode}: malformed judge output did not raise")
+        usage = [json.loads(line) for line in Path(inference_logger.filepath).read_text().splitlines()]
+        if len(usage) != 1 or usage[0]["role"] != "evaluator_general":
+            raise RuntimeError(f"{mode}: expected one real judge call")
+        print(f"PASS live_malformed_{mode}: evaluation error propagated")
+        checks.append({"case": f"live_malformed_{mode}", "judge_calls": 1,
+                       "error": (case_dir / "error.txt").read_text()})
     breakpoint()  # inspect: checks; live_* directories contain eval.log and inferencelogger.log
     return checks
 

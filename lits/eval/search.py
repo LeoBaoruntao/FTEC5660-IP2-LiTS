@@ -78,7 +78,8 @@ def evaluate_search_result(
 
         Empty terminals produce "incorrect" with progress=0.0 for environment tasks,
         or an empty prediction for other tasks. That empty prediction still goes
-        through configured correctness checking. Required callbacks/models must be supplied
+        through configured correctness checking, but is never sent to the LLM judge.
+        Required callbacks/models must be supplied
         even for empty terminals, but retrieval/goal checking is not invoked on them.
         Without a custom checker, non-environment tasks use exact string matching.
         A configured LLM judge runs only when the deterministic check fails.
@@ -268,7 +269,7 @@ def retrieve_answer_from_env_node(
     return "incorrect", 0.0
 
 
-def check_answer(pred: str, truth, custom_evaluator=None, llm_evaluator=None,
+def check_answer(pred: Any, truth, custom_evaluator=None, llm_evaluator=None,
                  llm_eval_mode: str = "binary",
                  eval_logger=None, label: str = "") -> tuple:
     """Evaluate a single predicted answer against ground truth.
@@ -276,10 +277,12 @@ def check_answer(pred: str, truth, custom_evaluator=None, llm_evaluator=None,
     Use the dataset-specific custom_evaluator first, with an optional LLM
     fallback when it reports an incorrect answer or raises an exception.
     Without a custom evaluator, use exact string matching. A deterministic match
-    skips the LLM judge.
+    skips the LLM judge. Rejected None/blank-string predictions also skip judging,
+    retaining their deterministic correctness and score. The task checker decides
+    whether an empty answer is valid; explicit empty lists are not treated as blank text.
 
     Args:
-        pred: Predicted answer string.
+        pred: Predicted answer, usually a string.
         truth: Ground truth (any type - passed directly to custom_evaluator;
             converted to str for default exact-string comparison).
         custom_evaluator: Task-specific checker function, or None for exact matching.
@@ -292,7 +295,9 @@ def check_answer(pred: str, truth, custom_evaluator=None, llm_evaluator=None,
         (correct, score), where correct is bool and score is Optional[float].
         Float-returning custom evaluators and F1 mode supply a score; only
         1.0 counts as correct. F1 fallback retains the greater custom/LLM
-        score; binary fallback leaves any prior custom score unchanged.
+        score; binary fallback leaves any prior custom score unchanged. Skipping
+        judging for None/blank text preserves the checker result, including score=None;
+        configuring an F1 judge does not assign a score without a judge call.
 
     Exceptions from the LLM evaluator propagate to the caller.
     """
@@ -314,6 +319,9 @@ def check_answer(pred: str, truth, custom_evaluator=None, llm_evaluator=None,
         correct = pred == str(truth)
 
     if not correct and llm_evaluator:
+        if pred is None or (isinstance(pred, str) and not pred.strip()):
+            # Already rejected by the checker; skip judging without overriding its score.
+            return False, score
         correct, score = _llm_judge(llm_evaluator, llm_eval_mode, pred, truth, score)
         if eval_logger:
             eval_logger.debug(f"  {label} LLM fallback: correct={correct}, score={score}")

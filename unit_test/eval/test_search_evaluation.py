@@ -36,6 +36,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import sys
 import tempfile
 import types
 
@@ -124,7 +125,8 @@ def terminal(step=None, *, returns=(), fast_reward=0.5, node_class=MCTSNode):
 
 
 def check_case(output_dir, name, dataset, nodes, truth, expected, *, query="Test query",
-               selection=None, voting_model_name=None, llm_model=None, llm_eval_mode="binary"):
+               selection=None, voting_model_name=None, llm_model=None, llm_eval_mode="binary",
+               enable_think_eval=False):
     """Compare CLI, original-node, and reloaded-node evaluation on the same fixture.
 
     References: search.py::save_terminal_nodes,
@@ -137,6 +139,7 @@ def check_case(output_dir, name, dataset, nodes, truth, expected, *, query="Test
     shared calls retain inference usage records, and the CLI retains routing logs.
     Language fixtures always supply a voter; voting_model_name selects its real model
     without enabling the judge. Both roles reuse one model when judging is enabled.
+    enable_think_eval is applied at model construction in both CLI and shared paths.
     """
     model_name = llm_model or voting_model_name or MODEL_NAME
     case_dir = output_dir / name
@@ -150,7 +153,8 @@ def check_case(output_dir, name, dataset, nodes, truth, expected, *, query="Test
             report = evaluate_from_checkpoints(
                 str(case_dir), dataset, model_name,
                 dataset_kwargs={"examples": [{"question": query, "answer": truth}]},
-                llm_eval_mode=llm_eval_mode if llm_model else "none", **options,
+                llm_eval_mode=llm_eval_mode if llm_model else "none",
+                enable_think_eval=enable_think_eval, **options,
             )
     log = (case_dir / "eval.log").read_text()
     matches = re.findall(r"\[0\] Pred='(.*?)', Truth=.*?, Correct=(True|False)", log)
@@ -170,8 +174,10 @@ def check_case(output_dir, name, dataset, nodes, truth, expected, *, query="Test
     shared_options = dict(options)
     model = None
     if dataset == MATH_DATASET or llm_model:
-        model = get_lm(model_name)
+        model = get_lm(model_name, enable_thinking=enable_think_eval)
         inference_logger = setup_inference_logging(model, root_dir=str(case_dir))
+        if f"enable_think_eval={enable_think_eval}" not in log:
+            raise RuntimeError(f"{name}: CLI model setting was not recorded")
     if dataset == MATH_DATASET:
         task_type = "language_grounded"
         shared_options["voting_model"] = model
@@ -254,7 +260,7 @@ def check_empty_language(output_dir):
 
 
 def check_language(output_dir, model_name):
-    """Check live CLI voting with judging disabled, including saved RAP answer text."""
+    """Check thinking-enabled CLI voting without judging, including saved RAP answer text."""
     fixture_path = output_dir / "rap_terminals.json"
     fixture_path.write_text(REAL_TERMINAL_NODES_JSON)
     fixture = load_terminal_nodes_from_file(fixture_path)
@@ -268,7 +274,7 @@ def check_language(output_dir, model_name):
     checks = [check_case(
         output_dir, "math_saved_answers_as_thoughts", MATH_DATASET, nodes, "3",
         ("18", False, None, None), query=fixture["query"],
-        voting_model_name=model_name,
+        voting_model_name=model_name, enable_think_eval=True,
     )]
     cases = (
         ("math_vote_beats_reward", [("42", 0.1), ("43", 0.9), ("42", 0.2)], "42",
@@ -283,7 +289,50 @@ def check_language(output_dir, model_name):
                           fast_reward=score, node_class=SearchNode)
                  for answer, score in answers]
         checks.append(check_case(output_dir, name, MATH_DATASET, nodes, truth, expected,
-                                 voting_model_name=model_name))
+                                 voting_model_name=model_name, enable_think_eval=True))
+    return checks
+
+
+def check_cli_thinking_config(output_dir):
+    """Exercise eval_search.py::main flag/config precedence on empty terminals, without inference."""
+    checks = []
+    for name, search_args, flags, expected in (
+        ("default", {}, [], False),
+        ("saved_enabled", {"enable_think_eval": True}, [], True),
+        ("enable_override", {"enable_think_eval": False}, ["--enable_think_eval"], True),
+        ("disable_override", {"enable_think_eval": True}, ["--no-enable_think_eval"], False),
+        ("invalid_string", {"enable_think_eval": "false"}, [], None),
+    ):
+        case_dir = output_dir / f"cli_thinking_{name}"
+        case_dir.mkdir()
+        result = SearchResult(root=SearchNode(state=None, action="Test query"),
+                              terminal_nodes_collected=[])
+        save_terminal_nodes(result, "Test query", 0, case_dir, logging.getLogger("lits.test"))
+        config = {"dataset": MATH_DATASET, "eval_model_name": MODEL_NAME,
+                  "dataset_kwargs": {"examples": [{"question": "Test query", "answer": "42"}]},
+                  "search_args": search_args}
+        (case_dir / "config.json").write_text(json.dumps(config))
+        command = [sys.executable, "-c",
+                   "from unit_test.eval.test_search_evaluation import register_examples; "
+                   "register_examples(); from lits.cli.eval_search import main; "
+                   "raise SystemExit(main())",
+                   "--result_dir", str(case_dir), "--llm-eval", "none", *flags]
+        completed = subprocess.run(command, capture_output=True, text=True, timeout=60)
+        console = completed.stdout + completed.stderr
+        (case_dir / "console.log").write_text(console)
+        if completed.returncode != (1 if expected is None else 0):
+            raise RuntimeError(f"{name}: CLI exited {completed.returncode}; inspect {case_dir / 'console.log'}")
+        if expected is None:
+            if "enable_think_eval must be a boolean" not in console:
+                raise RuntimeError(f"{name}: invalid thinking setting was not rejected")
+        else:
+            log = (case_dir / "eval.log").read_text()
+            if f"enable_think_eval={expected}" not in log:
+                raise RuntimeError(f"{name}: incorrect CLI thinking setting; inspect {case_dir}")
+            if "Answer voting output:" in log or "LLM fallback:" in log:
+                raise RuntimeError(f"{name}: empty fixture unexpectedly invoked inference")
+        checks.append({"case": f"cli_thinking_{name}", "enable_think_eval": expected})
+    breakpoint()  # inspect: checks; each case retains config.json, console.log, and eval.log
     return checks
 
 
@@ -676,6 +725,7 @@ def main():
     print(f"Evaluation artifacts: {output_dir}", flush=True)
     checks = [check_saved_rap_retrieval_inputs()]
     checks.extend(check_empty_language(output_dir))
+    checks.extend(check_cli_thinking_config(output_dir))
     checks.extend(check_tool_use(output_dir))
     checks.extend(check_environment(output_dir))
     checks.extend(check_scalar_zero_returns())

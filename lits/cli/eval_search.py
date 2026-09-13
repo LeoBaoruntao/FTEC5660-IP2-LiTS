@@ -263,6 +263,7 @@ def evaluate_from_checkpoints(
     verbose: bool = False,
     llm_eval_mode: str = "binary",
     terminal_selection: str = "q-mean",
+    enable_think_eval: bool = False,
 ):
     """
     Evaluate tree search results from checkpoint files.
@@ -282,6 +283,8 @@ def evaluate_from_checkpoints(
         verbose: If True, print detailed output to console
         llm_eval_mode: Optional correctness judge mode. "none" disables judging,
             not mandatory language-tree voting.
+        enable_think_eval: Model-construction thinking setting for the shared voting
+            and judging model. Defaults to False; backend support determines its effect.
         terminal_selection: How to pick which terminal node's answer to evaluate
             for tool_use tasks. One of:
               - "first":   terminal_nodes[0] (legacy save-order behaviour;
@@ -295,6 +298,8 @@ def evaluate_from_checkpoints(
             See `paper/lits_memory/results/summary_wikisql.md` for empirical
             comparison of selection strategies on WikiSQL MCTS.
     """
+    if not isinstance(enable_think_eval, bool):
+        raise ValueError("enable_think_eval must be a boolean")
     result_dir = Path(result_dir)
     
     # Setup logging - only log to file, not console (unless verbose)
@@ -376,7 +381,13 @@ def evaluate_from_checkpoints(
     # Tree language tasks vote; chain checkpoints already store the chosen answer.
     needs_voting = task_type == "language_grounded" and not use_chain_checkpoints
     needs_judging = not is_env_grounded and llm_eval_mode != "none"
-    base_model = get_lm(eval_model_name) if needs_voting or needs_judging else None
+    base_model = (
+        get_lm(eval_model_name, enable_thinking=enable_think_eval)
+        if needs_voting or needs_judging else None
+    )
+    if base_model is not None:
+        eval_logger.info("Evaluation model: %s; enable_think_eval=%s",
+                         eval_model_name, enable_think_eval)
     voting_model = base_model if needs_voting else None
     llm_evaluator = (
         _create_llm_evaluator(base_model, llm_eval_mode, eval_logger) if needs_judging else None
@@ -586,6 +597,8 @@ def main() -> int:
     
     Evaluates tree search results from checkpoint files. Auto-loads
     import_modules and dataset_kwargs from config.json in result_dir.
+    --enable_think_eval/--no-enable_think_eval override saved
+    search_args.enable_think_eval; absent settings default to False.
     
     Returns:
         Exit code (0 for success, non-zero for error)
@@ -614,6 +627,9 @@ Examples:
     parser.add_argument("--result_dir", type=str, required=True, help="Directory containing terminal_nodes/ subdirectory")
     parser.add_argument("--dataset_name", type=str, default=None, help="Dataset name (e.g., gsm8k, math500, blocksworld). Auto-loaded from config.json if not specified.")
     parser.add_argument("--eval_model_name", type=str, default=None, help="Model for language-tree answer voting and optional correctness judging. Must support native tools for voting. Auto-loaded from config.json if not specified.")
+    parser.add_argument("--enable_think_eval", action=argparse.BooleanOptionalAction,
+                        default=None, help="Thinking for the voting/judging model. Overrides "
+                        "saved search_args.enable_think_eval; otherwise defaults to False.")
     parser.add_argument("--offset", type=int, default=0, help="Dataset offset used during search")
     parser.add_argument("--limit", type=int, default=None, help="Dataset limit used during search")
     parser.add_argument(
@@ -680,6 +696,10 @@ Examples:
             print("Error: --eval_model_name not specified and not found in config.json", file=sys.stderr)
             return 1
     
+    enable_think_eval = args.enable_think_eval
+    if enable_think_eval is None:
+        enable_think_eval = config.get("search_args", {}).get("enable_think_eval", False)
+
     # Import custom modules to trigger registration
     try:
         import_custom_modules(import_modules)
@@ -700,6 +720,7 @@ Examples:
             verbose=args.verbose,
             llm_eval_mode=args.llm_eval,
             terminal_selection=args.terminal_selection,
+            enable_think_eval=enable_think_eval,
         )
     except Exception as e:
         print(f"Error during evaluation: {e}", file=sys.stderr)

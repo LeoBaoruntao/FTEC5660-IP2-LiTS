@@ -14,6 +14,7 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 ### Changed
 - Mandatory language-tree `voting_model` and shared CLI evaluation model (语言树评估必需的 voting_model 与 CLI 共享评估模型) [T5.2.1]
 - Semantic-equivalence instructions for answer voting (答案投票的语义等价分组指令) [T5.2.1]
+- CLI evaluation-model thinking configuration (CLI 评估模型的 thinking 配置) [T5.2.1]
 
 ## 2026-09-12 Unreleased (`0820-major-selection-interface/tasks_task_adapters`)
 

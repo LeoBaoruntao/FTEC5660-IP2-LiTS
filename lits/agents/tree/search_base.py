@@ -39,10 +39,23 @@ class SearchResult:
 
     Subclasses (``MCTSResult``, ``BFSResult``) extend this with
     algorithm-specific fields and override ``to_paths()``.
+
+    ``terminal_nodes_collected`` contains only nodes with ``is_terminal=True``;
+    construction raises ValueError for any other node. Depth/repetition cutoffs
+    alone do not qualify. Empty collections are valid, and order is preserved.
+    This construction-time check does not prevent later mutation of nodes/lists.
     """
 
     root: SearchNode
     terminal_nodes_collected: list[SearchNode] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        """Reject nonterminal entries instead of silently filtering a search result."""
+        for index, node in enumerate(self.terminal_nodes_collected):
+            if not node.is_terminal:
+                raise ValueError(
+                    f"terminal_nodes_collected[{index}] must have is_terminal=True"
+                )
 
     def to_paths(self) -> list[list[SearchNode]]:
         """Convert to serialisable paths.  Default: one root→leaf path per terminal node."""

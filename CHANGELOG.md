@@ -10,10 +10,12 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 
 ### Added
 - Registered DBBench value-only answer prompt (注册 DBBench 仅输出结果值的答案提示) [T8.3]
+- SearchResult terminal-collection validation (SearchResult 终止节点集合校验) [T8.3]
 
 ### Fixed
 - Score-plus-explanation reward replies incorrectly falling back to zero (附带解释的 reward 分数被误当作解析失败并回退为零) [T8.2.1]
 - OpenAI-compatible newline stopping ignored by the wrapper (OpenAI 兼容封装忽略换行停止参数的问题) [T8.3]
+- BFS cutoff endpoints incorrectly included in evaluation terminals (BFS 将截断节点误纳入待评估终止节点集合的问题) [T8.3]
 
 ## 2026-09-13 Unreleased (`0820-major-selection-interface/tasks_task_adapters`)
 

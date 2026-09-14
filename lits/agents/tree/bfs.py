@@ -35,6 +35,8 @@ class BFSResult(SearchResult):
     Extends ``SearchResult`` with depth-bucketed node data.
     ``to_paths()`` delegates to ``buckets_to_paths()`` for
     breadth-to-depth conversion.
+    Depth/repetition cutoffs remain in the tree and buckets, but are excluded
+    from ``terminal_nodes_collected`` unless ``is_terminal=True``.
     """
     buckets_with_terminal: dict = field(default_factory=dict)
 
@@ -366,7 +368,8 @@ class BFSSearch(BaseTreeSearch):
                 self.save_checkpoint(query_idx, depth, depth_nodes)
 
         # Collect all terminal nodes from various sources
-        terminal_nodes_collected = terminal_nodes.copy()
+        # The loop also counts cutoff endpoints; evaluation receives only task terminals.
+        terminal_nodes_collected = [node for node in terminal_nodes if node.is_terminal]
 
         # Check frontier for additional terminal nodes
         for node in frontier:

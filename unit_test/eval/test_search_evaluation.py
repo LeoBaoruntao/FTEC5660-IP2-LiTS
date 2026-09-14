@@ -42,6 +42,8 @@ import types
 
 from lits.agents.tree.node import MCTSNode, SearchNode
 from lits.agents.tree.search_base import SearchResult
+from lits.agents.tree.bfs import BFSResult
+from lits.agents.tree.mcts import MCTSResult
 from lits.benchmarks.registry import (
     get_evaluator,
     register_dataset,
@@ -425,6 +427,49 @@ def check_tool_use(output_dir):
     return checks
 
 
+def check_result_terminals():
+    """Check search_base.py::SearchResult.__post_init__ and both result subclasses.
+
+    Real node fixtures need no inference. Invalid collections must raise, not
+    silently drop cutoff nodes or mark them terminal; valid order is unchanged.
+    """
+    checks = []
+    for result_class, node_class in (
+        (SearchResult, SearchNode), (BFSResult, SearchNode), (MCTSResult, MCTSNode),
+    ):
+        root = node_class(state=EnvState(init_state=PARTIAL_STATE), action=None)
+        complete = terminal(EnvStep(next_state=GOALS), node_class=node_class)
+        other = terminal(EnvStep(next_state=PARTIAL_STATE), node_class=node_class)
+        cutoff = terminal(EnvStep(next_state=PARTIAL_STATE), node_class=node_class)
+        cutoff.is_terminal = False
+        for node in (complete, other, cutoff):
+            node.parent = root
+            root.add_child(node)
+        for name, nodes, invalid_index in (
+            ("empty", [], None),
+            ("terminals_in_order", [other, complete], None),
+            ("cutoff_only", [cutoff], 0),
+            ("cutoff_first", [cutoff, complete], 0),
+            ("cutoff_last", [complete, cutoff], 1),
+        ):
+            original = list(nodes)
+            try:
+                result = result_class(root=root, terminal_nodes_collected=nodes)
+            except ValueError as error:
+                expected = f"terminal_nodes_collected[{invalid_index}] must have is_terminal=True"
+                if invalid_index is None or str(error) != expected:
+                    raise RuntimeError(f"{result_class.__name__}/{name}: {error}") from error
+            else:
+                if invalid_index is not None or result.terminal_nodes_collected != original:
+                    raise RuntimeError(f"{result_class.__name__}/{name}: invalid result accepted")
+            if nodes != original or cutoff.is_terminal or cutoff not in root.children:
+                raise RuntimeError("Result validation mutated the input collection or tree")
+            checks.append({"case": f"{result_class.__name__}_{name}", "passed": True})
+            print(f"PASS {result_class.__name__}/{name}")
+    breakpoint()  # inspect: checks, root, cutoff; cutoff remains in the tree
+    return checks
+
+
 def check_environment(output_dir):
     """Check CLI ranking/progress and search.py::select_env_terminal input validation."""
     partial = terminal(EnvStep(next_state=PARTIAL_STATE), returns=[0.9, 0.1])
@@ -771,6 +816,7 @@ def main():
     checks.extend(check_empty_language(output_dir))
     checks.extend(check_cli_thinking_config(output_dir))
     checks.extend(check_tool_use(output_dir))
+    checks.extend(check_result_terminals())
     checks.extend(check_environment(output_dir))
     checks.extend(check_scalar_zero_returns())
     checks.extend(check_answer_outcomes())

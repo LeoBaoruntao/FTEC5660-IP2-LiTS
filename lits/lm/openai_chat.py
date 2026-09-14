@@ -72,9 +72,10 @@ class OpenAIChatModel(LanguageModel):
         temperature: float = 1.0,
         top_p: float = 1.0,
         max_new_tokens: Optional[int] = None,
-        stop: Optional[List[str]] = None,
+        stop: Optional[str | List[str]] = None,
         return_embedding: bool = False,
         tools: Optional[List[dict]] = None,
+        new_line_stop: bool = False,
         **kwargs
     ):
         """Generate text or return native function arguments as ToolCallOutput.
@@ -83,6 +84,10 @@ class OpenAIChatModel(LanguageModel):
         strict. Strict schema enforcement depends on the server/model. Without
         tools, the request and Output return type remain unchanged. Tool calls
         are returned to the caller, not executed here; both paths log usage.
+
+        new_line_stop adds a newline to the server-side stop sequences. Existing
+        stop strings/lists are preserved without mutating the caller's list;
+        when False, stop is forwarded unchanged. The server must support stop.
         """
         if return_embedding:
             raise NotImplementedError("Embedding retrieval not implemented for OpenAI chat models.")
@@ -91,6 +96,10 @@ class OpenAIChatModel(LanguageModel):
         unsupported_kwargs = set(kwargs.keys()) - {"frequency_penalty", "presence_penalty", "n"}
         if unsupported_kwargs:
             logger.debug(f"Ignoring kwargs not applicable to OpenAI chat models: {unsupported_kwargs}")
+        if new_line_stop:
+            stop = [stop] if isinstance(stop, str) else list(stop or [])
+            if "\n" not in stop:
+                stop.append("\n")
         messages = self._format_messages(prompt)
         start = time.time()
         

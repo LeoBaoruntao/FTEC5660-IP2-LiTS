@@ -66,6 +66,27 @@ print(prompt)
 sep("DBBENCH_SYSTEM_PROMPT (first 200 chars)")
 print(DBBENCH_SYSTEM_PROMPT[:200] + "...")
 
+sep("DBBench policy prompt registration")
+from lits.prompts.registry import PromptRegistry
+from lits.prompts.policy.tool_use import task_prompt_spec as default_tool_prompt
+
+registered_prompt = PromptRegistry.get("policy", "tool_use", "dbbench", "tool_use")
+other_prompt = PromptRegistry.get("policy", "tool_use", "unregistered_task", "tool_use")
+format_args = {"tool_context": "", "tool_string": "sql_db_query", "tool_names": "sql_db_query"}
+rendered_prompt = registered_prompt.format(**format_args)
+prompt_checks = {
+    "DBBench-specific prompt selected": registered_prompt is not default_tool_prompt,
+    "Other tasks retain the default": other_prompt is default_tool_prompt,
+    "ReAct tool instructions preserved": rendered_prompt.startswith(default_tool_prompt.format(**format_args)),
+    "Value-only answer format": "JSON array inside <answer>...</answer>" in rendered_prompt,
+    "Explicit empty result": "output [] inside the answer tag" in rendered_prompt,
+}
+for name, passed in prompt_checks.items():
+    print(f"  {name}: {passed}")
+    if not passed:
+        breakpoint()  # inspect: registered_prompt, other_prompt, rendered_prompt
+        raise RuntimeError(f"Prompt registration check failed: {name}")
+
 # ---- 5. evaluate_dbbench ----
 sep("evaluate_dbbench")
 cases = [
@@ -87,6 +108,13 @@ cases = [
     ('["a","b"]',   ["a", "b"],     True),   # list string vs list
     (["a", "b"],    ["b", "a"],     True),   # set comparison
     (["a", "b"],    ["a", "c"],     False),
+    # Final-answer forms from the single-question search diagnostic, not five tasks.
+    ('The Notes when the Method is decision are "Women +60kg Bronze".',
+                   ["Women +60kg Bronze"], False),
+    ("The Notes when the Method is decision are 'Women +60kg Bronze'.",
+                   ["Women +60kg Bronze"], False),
+    ("Women +60kg Bronze", ["Women +60kg Bronze"], True),
+    ('["Women +60kg Bronze"]', ["Women +60kg Bronze"], True),
 ]
 for pred, gt, expected in cases:
     result = evaluate_dbbench(pred, gt)

@@ -8,6 +8,9 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 
 ## 2026-09-14 Unreleased (`0820-major-selection-interface/tasks_task_adapters`)
 
+### Added
+- Registered DBBench value-only answer prompt (注册 DBBench 仅输出结果值的答案提示) [T8.3]
+
 ### Fixed
 - Score-plus-explanation reward replies incorrectly falling back to zero (附带解释的 reward 分数被误当作解析失败并回退为零) [T8.2.1]
 

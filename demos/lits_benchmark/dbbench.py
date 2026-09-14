@@ -20,6 +20,9 @@ import os
 from typing import Dict, List, Optional
 
 from lits.benchmarks.registry import register_dataset, register_resource, register_evaluator
+from lits.prompts.policy.tool_use import react_chat_tag_template
+from lits.prompts.prompt import PromptTemplate
+from lits.prompts.registry import register_system_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +57,16 @@ DBBENCH_SYSTEM_PROMPT = (
     "Your input will be raw MySQL response, you have to deal with it by "
     "yourself."
 )
+
+
+@register_system_prompt("policy", "tool_use", "dbbench")
+def dbbench_policy_prompt() -> PromptTemplate:
+    """Keep ReAct tool calls and restrict SELECT answers to database result values."""
+    return PromptTemplate(react_chat_tag_template + (
+        "\n\nFor DBBench SELECT queries, put only the returned database values as a JSON "
+        "array inside <answer>...</answer>. Put explanations in <think>...</think>, "
+        "outside the answer tag. If the query returns no rows, output [] inside the answer tag."
+    ))
 
 
 # ---------------------------------------------------------------------------

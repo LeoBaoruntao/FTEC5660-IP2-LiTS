@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-09-14 Unreleased (`0820-major-selection-interface/tasks_task_adapters`)
+
+### Fixed
+- Score-plus-explanation reward replies incorrectly falling back to zero (附带解释的 reward 分数被误当作解析失败并回退为零) [T8.2.1]
+
 ## 2026-09-13 Unreleased (`0820-major-selection-interface/tasks_task_adapters`)
 
 ### Removed

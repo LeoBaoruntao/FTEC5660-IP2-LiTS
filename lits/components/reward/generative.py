@@ -101,6 +101,30 @@ class GenerativePRM(RewardModel):
         user_message += "New Step to be evaluated: " + action_str + "\n"
 
         return user_message
+
+    @staticmethod
+    def _parse_score(text: str, score_type: str) -> float:
+        """Read a numeric first line, allowing explanation on subsequent lines.
+
+        ``text`` is the response, or the label after reasoning tags. The first
+        nonblank line must contain only a float (optionally quoted or Markdown
+        wrapped); do not extract numbers from prose or truncate numeric prefixes.
+        Correctness accepts only 0/1; usefulness accepts finite values in [0, 1].
+        Invalid text or scores raise ValueError for the caller's existing fallback.
+        """
+        text = strip_num(text.strip())
+        if not text:
+            raise ValueError("Empty reward score")
+        score = float(strip_num(text.splitlines()[0].strip()))
+        if score_type == "correctness":
+            valid = score in (0, 1)
+        elif score_type == "usefulness":
+            valid = 0 <= score <= 1
+        else:
+            raise ValueError(f"Unknown reward score type: {score_type}")
+        if not valid:
+            raise ValueError(f"Invalid {score_type} score: {score}")
+        return score
         
     def _fast_reward(self, state, action_or_step, query, query_idx, from_phase="") -> tuple[float, dict]:
         # Handle both Step objects and raw action strings
@@ -134,29 +158,22 @@ class GenerativePRM(RewardModel):
             log_phase(logger, f"Sample-{score_type}", f"Begin (n={n_sample})")
             for i in range(n_sample):
                 log_event(logger, "SAMPLE", f"{i+1}/{n_sample}", level="debug")
-                
+                reasoning, full_output = "", ""
                 try:
                     output = call_model_fn(msg, role_prefix, max_new_tokens=500, skip_special_tokens= True, enable_thinking=enable_thinking).text
+                    full_output = output
                     if enable_thinking:
                         result_dict = parse_reasoning_and_label(output) # to make sure the output is parsed correctly
                         reasoning = result_dict['reasoning'] if result_dict['reasoning'] is not None else ''
-                        full_output = result_dict['text'].replace("`", "").replace("'", "").replace('"', "") if 'text' in result_dict else ''
-                        
-                        score = float(strip_num(result_dict['label']))
+                        score_text = result_dict['label'] if result_dict['label'] is not None else output
                     else:
-                        output = strip_num(output)
-                        score = float(output)
+                        score_text = output
+                    score = self._parse_score(score_text, score_type)
 
-                    # save results or log invalid scores
-                    if "correctness" in role_prefix and score in [0, 1]:
-                        if self.save_dir is not None:
-                            save_results(self.file_path_correctness, score, reasoning, full_output)
-                    elif "usefulness" in role_prefix and 0 <= score <= 1:
-                        if self.save_dir is not None:
-                            save_results(self.file_path_usefulness, score, reasoning, full_output)
-                    else:
-                        logger.warning(f"{score_type} Score {score} is out of range.")
-                        raise ValueError(f"Invalid {score_type} score: {score}")
+                    # Save only validated scores, preserving the complete model response.
+                    if self.save_dir is not None:
+                        file_path = self.file_path_correctness if score_type == "correctness" else self.file_path_usefulness
+                        save_results(file_path, score, reasoning, full_output)
                 except Exception as e:
                     if enable_thinking:
                         txt = "(REASONING) "+ reasoning if reasoning else  "(REASONING) None; (FULL OUTPUT) "+ full_output
@@ -207,4 +224,4 @@ class GenerativePRM(RewardModel):
             fast_reward: float = None,
             confidence: float = None) -> tuple[float, dict]:
         
-        return fast_reward 
+        return fast_reward

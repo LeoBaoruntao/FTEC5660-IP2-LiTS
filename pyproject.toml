@@ -72,6 +72,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+analysis = ["matplotlib>=3.6"]
 dev = [
     "ipykernel",
     "ipython",

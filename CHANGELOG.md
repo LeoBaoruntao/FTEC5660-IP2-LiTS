@@ -10,6 +10,8 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 
 ### Added
 - Shared evaluation-result aggregation (共享评估结果汇总) [T7.6.1]
+- Budget-curve analysis and plotting (预算曲线分析与绘图) [T7.6.2]
+- Completed-run cost-threshold curves (完整运行结果的成本阈值曲线) [T7.6.3]
 
 ## 2026-09-14 Unreleased (`0820-major-selection-interface/tasks_task_adapters`)
 

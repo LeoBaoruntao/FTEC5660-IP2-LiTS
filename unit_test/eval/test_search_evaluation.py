@@ -57,6 +57,7 @@ from lits.cli.eval_search import (
 )
 from lits.cli.search import save_terminal_nodes
 from lits.components.registry import ComponentRegistry
+from lits.eval import aggregate_results
 from lits.eval.answer_voting import _raw_terminal_answers
 from lits.eval.search import (
     check_answer, evaluate_search_result, select_env_terminal, select_tool_use_terminal,
@@ -674,6 +675,61 @@ def check_live_fallback(output_dir, model_name):
     return checks
 
 
+def check_aggregation():
+    """Check ``aggregation.py::aggregate_results`` using already-evaluated rows.
+
+    Cover numeric means, optional binary scores, input preservation, and empty
+    inputs without models. ``check_chain_checkpoints`` owns CLI compatibility.
+    These controlled measurements test arithmetic, not benchmark performance.
+    """
+    rows = [
+        {"idx": 1, "attempt": 2, "correct": False, "output_tokens": 0, "seconds": None},
+        {"idx": 0, "attempt": 1, "correct": True, "output_tokens": 12, "seconds": 2},
+        {"idx": 1, "attempt": 0, "correct": True, "seconds": 4},
+        {"idx": 2, "attempt": None, "correct": False, "output_tokens": None, "seconds": 6},
+    ]
+    original = [dict(row) for row in rows]
+    fields = ("output_tokens", "seconds", "unavailable")
+    flat = aggregate_results(rows, mean_fields=fields)
+    attempts = aggregate_results(rows, pass_at_n=True)
+    empty = aggregate_results([], mean_fields=fields)
+    empty_attempts = aggregate_results([], pass_at_n=True)
+    checks = {
+        "aggregate_flat_accuracy": (flat["total"], flat["correct_count"], flat["accuracy"]) == (4, 2, 0.5),
+        "aggregate_numeric_means": flat["means"] == {
+            "output_tokens": 6.0, "seconds": 4.0, "unavailable": None,
+        },
+        "aggregate_observed_attempts": attempts == {
+            "total": 3, "means": {},
+            "pass_at_1_count": 2, "pass_at_n_count": 2,
+            "pass_at_1": 2 / 3, "pass_at_n": 2 / 3,
+            "examples": [
+                {"idx": 0, "attempts": [1.0], "pass_at_1": True, "pass_at_n": True},
+                {"idx": 1, "attempts": [1.0, 0.0], "pass_at_1": True, "pass_at_n": True},
+                {"idx": 2, "attempts": [0.0], "pass_at_1": False, "pass_at_n": False},
+            ],
+        },
+        "aggregate_empty_flat": empty == {
+            "total": 0, "correct_count": 0, "accuracy": 0.0, "examples": [],
+            "means": dict.fromkeys(fields),
+        },
+        "aggregate_empty_attempts": empty_attempts == {
+            "total": 0, "examples": [], "means": {},
+            "pass_at_1_count": 0, "pass_at_n_count": 0, "pass_at_1": 0.0, "pass_at_n": 0.0,
+        },
+        "aggregate_input_preserved": rows == original and flat["examples"] == [
+            {"idx": row["idx"], "correct": row["correct"], "score": float(row["correct"])}
+            for row in original
+        ],
+        "aggregate_generator_input": aggregate_results(iter(rows), mean_fields=fields) == flat,
+    }
+    print(f"Aggregation checks: {checks}")
+    breakpoint()  # inspect: flat, attempts, empty, empty_attempts, checks
+    if not all(checks.values()):
+        raise RuntimeError(f"Aggregation checks failed: {checks}")
+    return [{"case": name, "passed": passed} for name, passed in checks.items()]
+
+
 def check_chain_checkpoints(output_dir, legacy_ref):
     """Compare eval_search.py::evaluate_from_checkpoints with a trusted local Git revision.
 
@@ -710,14 +766,15 @@ def check_chain_checkpoints(output_dir, legacy_ref):
     }
     # Preserve the first-available-attempt rule when attempt 0 is absent, and
     # the mixed single-attempt file accepted alongside pass-at-N checkpoints.
+    # Its missing answer remains incorrect even when the reference is zero.
     attempt_outcomes = [
         (0, [0.0, 1.0, 0.0], False, True),
         (1, [1.0, 0.0], True, True),
-        (2, [1.0], True, True), (3, [1.0], True, True),
+        (2, [1.0], True, True), (3, [0.0], False, False),
     ]
     cases = (
         ("chain_full", DB_DATASET, single, truths, {},
-         {"n_attempts": 1, "accuracy": 0.75}, [(0, True), (1, True), (2, False), (3, True)]),
+         {"n_attempts": 1, "accuracy": 0.5}, [(0, True), (1, True), (2, False), (3, False)]),
         ("chain_filtered", DB_DATASET, single, truths, {"offset": 1, "limit": 2},
          {"n_attempts": 1, "accuracy": 0.5}, [(1, True), (2, False)]),
         ("chain_empty_range", DB_DATASET, single, truths, {"offset": 10},
@@ -736,7 +793,7 @@ def check_chain_checkpoints(output_dir, legacy_ref):
         ("chain_malformed", DB_DATASET, {"0.json": "10", "1.json": {}, "2.json": "43"},
          truths, {}, {"accuracy": 1.0}, [(0, True), (2, True)]),
         ("pass_at_n_full", DB_DATASET, attempts, truths, {},
-         {"n_attempts": 3, "pass_at_1": 0.75, "pass_at_n": 1.0}, attempt_outcomes),
+         {"n_attempts": 3, "pass_at_1": 0.5, "pass_at_n": 0.75}, attempt_outcomes),
         ("pass_at_n_filtered", DB_DATASET, attempts, truths, {"offset": 1, "limit": 2},
          {"n_attempts": 3, "pass_at_1": 1.0, "pass_at_n": 1.0}, attempt_outcomes[1:3]),
         ("pass_at_n_empty_range", DB_DATASET, attempts, truths, {"offset": 10},
@@ -820,6 +877,7 @@ def main():
     checks.extend(check_environment(output_dir))
     checks.extend(check_scalar_zero_returns())
     checks.extend(check_answer_outcomes())
+    checks.extend(check_aggregation())
     if args.compare_chain_cli_ref:
         checks.extend(check_chain_checkpoints(output_dir, args.compare_chain_cli_ref))
     if args.llm_model:

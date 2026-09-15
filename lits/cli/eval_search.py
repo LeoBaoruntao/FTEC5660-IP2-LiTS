@@ -29,6 +29,7 @@ from lits.benchmarks.registry import load_dataset, has_resource, has_evaluator, 
 from lits.components.registry import ComponentRegistry
 from lits.registry import import_custom_modules, load_config_from_result_dir
 from lits.lm import get_lm
+from lits.eval.aggregation import aggregate_results
 from lits.eval.inference_report import generate_report
 from lits.eval.search import (
     check_answer,
@@ -397,10 +398,9 @@ def evaluate_from_checkpoints(
     # Each file produces one (query_idx, correct, score) result.
     # For pass@N files ({idx}_a{attempt}.json), query_idx is parsed from the
     # filename prefix; for single files ({idx}.json), it's the whole stem.
-    EvalPoint = dict  # {"idx": int, "attempt": int|None, "correct": bool, "score": float}
+    # Binary correctness stays separate from environment progress and evaluator scores.
+    EvalPoint = dict  # idx, attempt, correct, score, environment_progress, evaluation_score
     eval_points: List[EvalPoint] = []
-    soft_scores = []  # env_grounded word-level scores
-    eval_scores = []  # continuous scores from float-returning evaluators
 
     eval_logger.info("=" * 40)
     eval_logger.info("Detailed comparison:")
@@ -412,6 +412,7 @@ def evaluate_from_checkpoints(
             label = f"[{query_idx}_a{attempt}]" if attempt is not None else f"[{query_idx}]"
 
             # --- Extract and score the prediction ---
+            environment_progress = None  # env_grounded word-level score, when available
             if use_chain_checkpoints:
                 from lits.structures.tool_use import ToolUseState
                 _query, state = ToolUseState.load(str(filepath))
@@ -458,13 +459,15 @@ def evaluate_from_checkpoints(
                 correct = outcome["correct"]
                 score = outcome["score"]
                 if is_env_grounded:
-                    soft_scores.append(outcome["environment_progress"])
-
-            if score is not None:
-                eval_scores.append(score)
+                    environment_progress = outcome["environment_progress"]
 
             eval_logger.info(f"  {label} Pred='{str(answer_pred)[:80]}', Truth='{str(ground_truth)[:80]}', Correct={correct}")
-            eval_points.append({"idx": query_idx, "attempt": attempt, "correct": correct, "score": 1.0 if correct else 0.0})
+            eval_points.append({
+                "idx": query_idx, "attempt": attempt, "correct": correct,
+                "score": 1.0 if correct else 0.0,
+                "environment_progress": environment_progress,
+                "evaluation_score": score,  # continuous score from float-returning evaluators
+            })
 
         except (KeyboardInterrupt, SystemExit):
             raise
@@ -482,32 +485,19 @@ def evaluate_from_checkpoints(
     eval_logger.info("=" * 40)
 
     # --- Aggregate results ---
+    summary = aggregate_results(
+        eval_points, pass_at_n=is_pass_at_n,
+        mean_fields=("environment_progress", "evaluation_score"),
+    )
     if is_pass_at_n:
-        # Group by example_idx, compute pass@1 (attempt 0) and pass@N (any)
-        from collections import defaultdict
-        groups = defaultdict(list)
-        for pt in eval_points:
-            groups[pt["idx"]].append(pt)
-        for idx in groups:
-            groups[idx].sort(key=lambda p: p["attempt"] if p["attempt"] is not None else 0)
-
-        examples = []
-        n_pass_1 = 0
-        n_pass_n = 0
-        for idx in sorted(groups.keys()):
-            attempts = [p["score"] for p in groups[idx]]
-            p1 = attempts[0] == 1.0 if attempts else False
-            pn = any(s == 1.0 for s in attempts)
-            if p1: n_pass_1 += 1
-            if pn: n_pass_n += 1
-            examples.append({"idx": idx, "attempts": attempts, "pass_at_1": p1, "pass_at_n": pn})
-
-        total = len(groups)
+        # Group by example_idx: pass@1 uses the first available attempt; pass@N uses any.
+        examples = summary["examples"]
+        total = summary["total"]
         eval_results = {
             "n_attempts": n_attempts,
             "temperature": None,
-            "pass_at_1": n_pass_1 / total if total else 0,
-            "pass_at_n": n_pass_n / total if total else 0,
+            "pass_at_1": summary["pass_at_1"],
+            "pass_at_n": summary["pass_at_n"],
             "examples": examples,
             "dataset_name": dataset_name,
             "result_dir": str(result_dir),
@@ -516,8 +506,8 @@ def evaluate_from_checkpoints(
         eval_logger.info("=" * 60)
         eval_logger.info(f"Pass@N Evaluation Results: {result_dir.name}")
         eval_logger.info(f"Dataset: {dataset_name}, Examples: {total}, Attempts: {n_attempts}")
-        eval_logger.info(f"pass@1: {eval_results['pass_at_1']:.1%} ({n_pass_1}/{total})")
-        eval_logger.info(f"pass@{n_attempts}: {eval_results['pass_at_n']:.1%} ({n_pass_n}/{total})")
+        eval_logger.info(f"pass@1: {eval_results['pass_at_1']:.1%} ({summary["pass_at_1_count"]}/{total})")
+        eval_logger.info(f"pass@{n_attempts}: {eval_results['pass_at_n']:.1%} ({summary["pass_at_n_count"]}/{total})")
         eval_logger.info("=" * 60)
 
         print()
@@ -533,18 +523,18 @@ def evaluate_from_checkpoints(
 
     else:
         # Single-attempt: flat accuracy
-        correct_count = sum(1 for p in eval_points if p["correct"])
-        total_count = len(eval_points)
-        accuracy = correct_count / total_count if total_count > 0 else 0.0
+        correct_count = summary["correct_count"]
+        total_count = summary["total"]
+        accuracy = summary["accuracy"]
 
-        soft_accuracy = (sum(soft_scores) / len(soft_scores)) if (is_env_grounded and soft_scores) else None
-        mean_score = (sum(eval_scores) / len(eval_scores)) if eval_scores else None
+        soft_accuracy = summary["means"]["environment_progress"] if is_env_grounded else None
+        mean_score = summary["means"]["evaluation_score"]
 
         eval_results = {
             "n_attempts": 1,
             "temperature": None,
             "accuracy": accuracy,
-            "examples": [{"idx": p["idx"], "correct": p["correct"], "score": p["score"]} for p in eval_points],
+            "examples": summary["examples"],
             "dataset_name": dataset_name,
             "result_dir": str(result_dir),
         }

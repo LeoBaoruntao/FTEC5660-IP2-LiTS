@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-09-15 Unreleased (`0820-major-selection-interface/tasks`)
+
+### Added
+- Shared evaluation-result aggregation (共享评估结果汇总) [T7.6.1]
+
 ## 2026-09-14 Unreleased (`0820-major-selection-interface/tasks_task_adapters`)
 
 ### Added

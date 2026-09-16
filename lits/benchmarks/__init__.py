@@ -1,6 +1,6 @@
-"""Benchmark registry module for LiTS framework.
+"""Benchmark registration and sequential execution for LiTS.
 
-This module provides dataset registration and task type inference functionality.
+Provides dataset registration, task type inference, and caller-controlled execution.
 """
 
 from lits.benchmarks.registry import (
@@ -12,6 +12,7 @@ from lits.benchmarks.registry import (
     get_evaluator,
     has_evaluator,
 )
+from lits.benchmarks.runner import run_benchmark
 
 __all__ = [
     'BenchmarkRegistry',
@@ -21,4 +22,5 @@ __all__ = [
     'register_evaluator',
     'get_evaluator',
     'has_evaluator',
+    'run_benchmark',
 ]

@@ -5,6 +5,7 @@ import json
 import os
 from typing import List, Dict, Union
 from abc import ABC, abstractmethod
+from lits.benchmarks.runner import _slice_dataset  # Preserve existing evaluation imports.
 import logging
 logger = logging.getLogger(__name__)
 
@@ -13,11 +14,6 @@ def _get_search_node_class():
     """Lazy import to break circular dependency: eval → agents → components → eval."""
     from ..agents.tree.node import SearchNode
     return SearchNode
-
-def _slice_dataset(dataset: List[Dict], offset: int, limit: Optional[int]) -> List[Dict]:
-    if limit is None:
-        return dataset[offset:]
-    return dataset[offset : offset + limit]
 
 def prepare_dir(model_name: str, root_dir=None, result_dir_suffix=None, verbose=False):
     # Prepare result directory
@@ -578,4 +574,3 @@ class ResultDictToCSV(BaseResults):
         self.results = df.to_dict('records')
         
         logger.info(f"Batch updated {updated_count} rows")
-

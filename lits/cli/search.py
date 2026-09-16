@@ -24,16 +24,16 @@ from pathlib import Path
 from typing import Optional, Dict
 
 from dotenv import load_dotenv, find_dotenv
-from tqdm import tqdm
 from huggingface_hub import login
 
 from lits.lm.base import InferenceLogger, VALID_ROLES_PREFIX, log_final_metrics
-from lits.eval import TreeToJsonl, ResultDictToJsonl, _slice_dataset
+from lits.eval import TreeToJsonl, ResultDictToJsonl
 from lits.eval.llm_call_logger import create_llm_call_logger, load_llm_calls, print_diversity_report
 from lits.agents import AgentRegistry
 from lits.log import setup_logging
 from lits.utils.sys_utils import is_running_in_jupyter
 from lits.benchmarks.registry import infer_task_type, load_dataset, load_resource, has_resource
+from lits.benchmarks import run_benchmark
 from lits.config import ExperimentConfig
 from lits.lm import configure_hf_model_logging, setup_inference_logging, load_models
 from lits.components.factory import create_components, create_bn_evaluator
@@ -661,16 +661,6 @@ def main() -> int:
         config.search_algorithm, result_dir, config.override_log_result
     )
 
-    # Slice dataset
-    if config.eval_idx:
-        # Pair each example with its original dataset index
-        indexed_dataset = [(i, full_dataset[i]) for i in config.eval_idx]
-        # Apply offset/limit to eval_idx list if specified
-        indexed_dataset = _slice_dataset(indexed_dataset, config.offset, config.limit)
-    else:
-        sliced = _slice_dataset(full_dataset, offset=config.offset, limit=config.limit)
-        indexed_dataset = list(enumerate(sliced, start=config.offset))
-
     # Run experiments
     begin_time = time.time()
 
@@ -678,8 +668,13 @@ def main() -> int:
     prepare_tool_state = tool_use_spec.get("prepare_tool_state") if tool_use_spec else None
     resolve_answer = tool_use_spec.get("resolve_answer") if tool_use_spec else None
 
-    for query_idx, example in tqdm(indexed_dataset):
+    def run_example(example, query_idx, repetition_index):
+        """Run the CLI's preparation, search, answer resolution, and memory saving.
 
+        The CLI uses one repetition. Resume checking stays inside run_tree_search:
+        resource preparation and memory saving still run for completed examples,
+        while answer resolution runs only for newly saved terminal files.
+        """
         if task_type == "env_grounded":
             query_or_goals = example.get("query_or_goals", example.get("question", ""))
         else:
@@ -750,6 +745,11 @@ def main() -> int:
                 memory_manager.backend.save(memory_dir)
             except Exception as e:
                 run_logger.warning(f"[{query_idx}] Failed to save memory: {e}")
+
+    run_benchmark(
+        config.dataset, run_example, dataset=full_dataset,
+        eval_idx=config.eval_idx, offset=config.offset, limit=config.limit,
+    )
 
     end_time = time.time()
     run_logger.info(f"Total time: {end_time - begin_time}")

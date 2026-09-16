@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-09-16 Unreleased (`0916-major-unified-search-execution/tasks`)
+
+### Added
+- Registry-based benchmark execution (基于注册机制的 benchmark 执行) [T9.1]
+
+### Changed
+- Search CLI delegation to the shared benchmark runner (搜索 CLI 接入共享 benchmark 执行函数) [T9.2.2]
+
 ## 2026-09-15 Unreleased (`0820-major-selection-interface/tasks`)
 
 ### Added

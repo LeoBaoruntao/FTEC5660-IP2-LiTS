@@ -12,6 +12,7 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 - Optional observability dependencies (可选可观测性依赖) [T1.1]
 - Optional tracing facade and local console spans (可选 tracing 接口与本地终端 spans) [T1.2]
 - Local OTLP trace/log archives (本地 OTLP trace/log 存档) [T2.1]
+- Configurable observation snapshots (可配置的观测快照) [T2.2]
 
 ### Changed
 - Observability subpackage (可观测性子包) [T2.2.1]

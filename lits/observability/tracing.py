@@ -47,6 +47,7 @@ from __future__ import annotations
 
 import os
 from contextlib import AbstractContextManager, nullcontext
+from copy import deepcopy
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -247,3 +248,41 @@ def span(name: str, **attributes: Any) -> AbstractContextManager[LogfireSpan | _
     if logfire_instance is None:
         return nullcontext(_NoOpSpan())
     return logfire_instance.span(name, **attributes)
+
+
+def observe(kind: str, record: dict[str, Any], settings: dict[str, dict[str, Any]]) -> None:
+    """Emit a named snapshot of selected fields under the active span.
+
+    Args:
+        kind: Object kind used to look up a rule in settings.
+        record: Source data; selected values are deep-copied before logging.
+        settings: Rules mapping kinds to a display name and field names, e.g.::
+
+            {"node": {"name": "search.node", "fields": ("id", "state", "score")}}
+
+    Disabled tracing or an unconfigured kind returns without reading record.
+    A configured field missing from record raises KeyError. Rules affect only
+    these explicit snapshots, not independently instrumented operations.
+
+    SDK scrubbing and attribute limits apply to the copy, not source data.
+    Logfire info records are zero-duration spans, saved in traces.jsonl.
+    With archive saving enabled, the export pipeline is::
+
+        observe(...)
+          -> Logfire.info(...)
+          -> zero-duration span
+          -> SimpleSpanProcessor
+          -> span_exporter
+          -> traces.jsonl
+
+    This does not emit native OpenTelemetry LogRecords through log_exporter.
+    Nesting follows the active span, not dots in the configured display name.
+    """
+    logfire_instance = _get_logfire()
+    if logfire_instance is None:
+        return
+    rule = settings.get(kind)
+    if rule is None:
+        return
+    displayed = {field: deepcopy(record[field]) for field in rule["fields"]}
+    logfire_instance.info(rule["name"], **displayed)

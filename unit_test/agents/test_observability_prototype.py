@@ -12,6 +12,7 @@ import logging
 import os
 import sys
 from contextlib import contextmanager, redirect_stdout
+from copy import deepcopy
 from importlib.util import find_spec
 from io import StringIO
 from pathlib import Path
@@ -91,6 +92,9 @@ def check_disabled():
             tracing.configure(enabled=False)
         with tracing.span("disabled.iteration", iteration=1) as current:
             current.set_attribute("selected_id", "n1")
+            tracing.observe("node", {}, {
+                "node": {"name": "search.node", "fields": ("state",)},
+            })  # Disabled observation must not read the missing field or import Logfire.
         check_exception_propagation()
     if tracing_impl._get_logfire() is not None or "logfire" in sys.modules:
         raise RuntimeError("Disabled tracing initialized or imported the SDK")
@@ -291,6 +295,68 @@ def check_archives():
     breakpoint()  # inspect: root, status, records
 
 
+def check_observations():
+    """Check observability/tracing.py::observe with real SDK scrubbing and attribute limits."""
+    root = Path(mkdtemp(prefix="lits-observation-check-"))
+    settings = {"node": {
+        "name": "search.node",
+        "fields": ("id", "state", "score", "api_key", "text"),
+    }}
+    for limit in (None, 256):
+        run_id = "unlimited" if limit is None else "limited"
+        directory = root / run_id
+        record = {
+            "id": "n1", "state": {"steps": ["x = 2"]}, "score": 0.75,
+            "api_key": "fake-observation-value", "text": "x" * 1024,
+            "omitted": "unselected field",
+        }
+        original, original_settings = deepcopy(record), deepcopy(settings)
+        limits = {} if limit is None else {"OTEL_SPAN_ATTRIBUTE_VALUE_LENGTH_LIMIT": str(limit)}
+        with telemetry_environment(**limits):
+            tracing.configure(enabled=True, console=False, archive_dir=directory, run_id=run_id)
+            try:
+                with tracing.span("search.iteration", iteration=1):
+                    tracing.observe("node", record, settings)
+                    tracing.observe("frontier", {}, settings)  # No rule: no event or field lookup.
+                    with tracing.span("independent.operation"):
+                        tracing.observe("node", {}, {})  # Hidden snapshots must not suppress spans.
+                    if record != original or settings != original_settings:
+                        raise RuntimeError("Observation changed source data or settings")
+                    record["state"]["steps"].append("x = 3")
+                    record["score"] = 1.0
+            finally:
+                complete = tracing.close()
+            if not complete:
+                raise RuntimeError("Observation archive did not close successfully")
+
+        records = read_archive(directory, run_id)
+        spans = {item["name"]: item for item in records["spans"]}
+        if len(records["spans"]) != 3 or set(spans) != {
+            "search.iteration", "search.node", "independent.operation",
+        }:
+            raise RuntimeError("Observation rules hid independent spans or emitted unwanted events")
+        parent, snapshot = spans["search.iteration"], spans["search.node"]
+        if (snapshot["parentSpanId"], snapshot["traceId"]) != (parent["spanId"], parent["traceId"]):
+            raise RuntimeError("Observation is not nested under the active iteration")
+        attrs = {item["key"]: item["value"] for item in snapshot["attributes"]}
+        if attrs["logfire.span_type"] != {"stringValue": "log"} or records["logRecords"]:
+            raise RuntimeError("Logfire observation did not use the span export pipeline")
+        if snapshot["startTimeUnixNano"] != snapshot["endTimeUnixNano"]:
+            raise RuntimeError("Observation unexpectedly has a duration")
+        if (json.loads(attrs["state"]["stringValue"]) != original["state"]
+                or attrs["score"] != {"doubleValue": 0.75} or "omitted" in attrs):
+            raise RuntimeError("Snapshot changed after capture or included an unselected field")
+        if "[Scrubbed" not in attrs["api_key"]["stringValue"]:
+            raise RuntimeError("SDK did not redact the selected sensitive field")
+        if original["api_key"] in (directory / "traces.jsonl").read_text():
+            raise RuntimeError("Sensitive observation value leaked into the archive")
+        expected_text = original["text"] if limit is None else original["text"][:limit]
+        if attrs["text"] != {"stringValue": expected_text}:
+            raise RuntimeError("Archived text does not reflect the configured SDK length limit")
+    print(f"PASS observations: nesting, field selection, snapshots, scrubbing, and SDK limits: {root}")
+    breakpoint()  # inspect: root, snapshot, attrs, record, original
+
+
 def main():
     """Check disabled operation first, then the installed or missing dependency path."""
     network_attempts = []
@@ -320,6 +386,7 @@ def main():
             check_stored_configuration()
             check_model_endpoint()
             check_archives()
+            check_observations()
     if network_attempts:
         raise RuntimeError(f"Unexpected network attempts: {network_attempts}")
     print("PASS offline checks: zero socket/DNS attempts")

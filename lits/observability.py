@@ -38,6 +38,24 @@ def _get_logfire() -> Logfire | None:
     return _logfire_instance
 
 
+def _validate_export_environment() -> None:
+    """Reject implicit export destinations before importing or initializing the SDK.
+
+    OTLP endpoint overrides, including loopback addresses, are unsupported: a
+    hosted-export opt-in does not authorize a separate OTLP destination. Detector
+    plugins are also rejected because they can perform network I/O. Report names,
+    not values, since endpoint URLs can contain credentials.
+
+    Model settings such as OPENAI_API_BASE are unrelated and remain untouched.
+    """
+    for name, value in os.environ.items():
+        if value and (
+            (name.startswith("OTEL_EXPORTER_OTLP") and name.endswith("_ENDPOINT"))
+            or name == "OTEL_EXPERIMENTAL_RESOURCE_DETECTORS"
+        ):
+            raise ValueError(f"LiTS tracing does not accept {name}; unset it before enabling")
+
+
 def configure(
     *, enabled: bool = False, send_to_logfire: bool = False, console: bool = True,
 ) -> None:
@@ -63,8 +81,11 @@ def configure(
         console: Render spans in the command-line terminal, independently of
             hosted export. This does not create a file or browser UI.
 
-    Environment-configured OTLP endpoints and OpenTelemetry detector overrides
-    are rejected. Logfire detectors are disabled. Configuration errors propagate.
+    OTLP endpoint and OpenTelemetry detector overrides are rejected before SDK
+    initialization, even with hosted export enabled. Custom processors and SDK
+    option passthrough are unsupported. Logfire detectors are disabled; explicit
+    booleans override environment/file defaults, so stored credentials cannot
+    authorize upload. Preflight rejection leaves an existing instance unchanged.
     Other libraries' telemetry configuration is not managed by this facade.
     """
     global _logfire_instance
@@ -73,12 +94,7 @@ def configure(
 
     if enabled:
         # Logfire can enable OTLP export independently of send_to_logfire.
-        for name, value in os.environ.items():
-            if value and (
-                (name.startswith("OTEL_EXPORTER_OTLP") and name.endswith("_ENDPOINT"))
-                or name == "OTEL_EXPERIMENTAL_RESOURCE_DETECTORS"
-            ):
-                raise ValueError(f"LiTS tracing does not accept {name}; unset it before enabling")
+        _validate_export_environment()
         try:
             import logfire
         except ModuleNotFoundError as error:

@@ -1,8 +1,9 @@
 """Optional LiTS tracing, disabled until explicitly configured.
 
 Console rendering is not a persistent trace archive. Enabled defaults produce
-console output only; hosted export requires an explicit opt-in. This module does
-not save traces or install model/tool instrumentation, and owns its SDK instance.
+console output only; hosted export requires an explicit opt-in. Optional archives
+contain SDK-processed telemetry, including its redaction. This module owns its SDK
+instance but does not install model/tool instrumentation.
 
 Example::
 
@@ -12,18 +13,147 @@ Example::
     with tracing.span("search.iteration", iteration=1) as current:
         current.set_attribute("selected_id", "n1")
     tracing.configure(enabled=False)
+
+To retain telemetry, use a new directory for each run::
+
+    tracing.configure(enabled=True, console=False,
+                      archive_dir="runs/example-1", run_id="example-1")
+    try:
+        with tracing.span("search.iteration", iteration=1):
+            pass
+        flushed = tracing.flush()
+    finally:
+        complete = tracing.close()  # After all span contexts have exited.
+
+The directory contains:
+
+=============== ================ ================== ==========================================
+File            Format           Purpose            Possible content
+=============== ================ ================== ==========================================
+traces.jsonl    OTLP JSON Lines  Saved spans        Names, trace/span/parent IDs, timestamps,
+                                                    resource and span attributes.
+logs.jsonl      OTLP JSON Lines  Saved log records  Timestamp, severity, body, attributes,
+                                                    associated trace/span IDs when available.
+archive.json    Custom LiTS JSON Archive status     run_id; status: open/complete/incomplete;
+                                                    error message when a failure is recorded.
+=============== ================ ================== ==========================================
+
+``archive.json`` is separate metadata, not an OTLP record; exclude it from OTLP imports.
+A completed archive means normal exporter shutdown, not task success or complete instrumentation.
+An interrupted process leaves an open archive; no automatic resume is attempted.
 """
 
 from __future__ import annotations
 
+import json
 import os
+import sys
 from contextlib import AbstractContextManager, nullcontext
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from logfire import Logfire, LogfireSpan
 
 _logfire_instance: Logfire | None = None
+_archive: _Archive | None = None
+
+
+class _CheckedExporter:
+    """Delegate to a real OTLP exporter and retain failures across later flushes."""
+
+    def __init__(self, exporter: Any, failure_result: Any, archive: _Archive) -> None:
+        """Wrap a span/log exporter with its failure enum and shared archive status."""
+        self.exporter = exporter
+        self.failure_result = failure_result
+        self.archive = archive
+        self.closed = False
+
+    def export(self, batch: Any) -> Any:
+        """Return the SDK result; failed writes must not interrupt application code."""
+        try:
+            result = self.exporter.export(batch)
+            if result == self.failure_result:
+                self.archive.fail("OTLP file export failed")
+            return result
+        except Exception as error:
+            self.archive.fail(f"OTLP file export failed: {error}")
+            return self.failure_result
+
+    def shutdown(self) -> None:
+        """Close once, recording errors without interrupting other exporters."""
+        if not self.closed:
+            self.closed = True
+            try:
+                self.exporter.shutdown()
+            except Exception as error:
+                self.archive.fail(f"OTLP file close failed: {error}")
+
+
+class _Archive:
+    """Own one run's file exporters and persist a sticky failure/completion status.
+
+    The two telemetry pipelines use separate exporters::
+
+        Spans       -> FileSpanExporter -> traces.jsonl
+        Log records -> FileLogExporter  -> logs.jsonl
+    """
+
+    def __init__(self, directory: Path, run_id: str) -> None:
+        """Create a new archive; refuse existing directories rather than append runs."""
+        from opentelemetry.exporter.otlp.json.file import FileSpanExporter
+        from opentelemetry.exporter.otlp.json.file._log_exporter import FileLogExporter
+        from opentelemetry.sdk._logs.export import LogRecordExportResult
+        from opentelemetry.sdk.trace.export import SpanExportResult
+
+        self.directory = directory
+        self.run_id = run_id
+        self.error: str | None = None
+        self.span_exporter: _CheckedExporter | None = None
+        self.log_exporter: _CheckedExporter | None = None
+        directory.mkdir(parents=True, exist_ok=False)
+        try:
+            if not self.write_status("open"):
+                raise OSError(self.error)
+            self.span_exporter = _CheckedExporter(
+                FileSpanExporter(directory / "traces.jsonl"), SpanExportResult.FAILURE, self,
+            )
+            self.log_exporter = _CheckedExporter(
+                FileLogExporter(directory / "logs.jsonl"), LogRecordExportResult.FAILURE, self,
+            )
+        except Exception as error:
+            self.fail(f"Archive initialization failed: {error}")
+            self.close_exporters()
+            self.write_status("incomplete")
+            raise
+
+    def fail(self, message: str) -> None:
+        """Keep the first error and report it outside telemetry to avoid export recursion."""
+        if self.error is None:
+            self.error = message
+            try:
+                print(f"LiTS telemetry archive incomplete ({self.directory}): {message}", file=sys.stderr)
+            except (OSError, ValueError):
+                pass
+
+    def write_status(self, status: str) -> bool:
+        """Atomically replace the marker; an earlier failure can never become complete."""
+        payload = {"run_id": self.run_id, "status": "incomplete" if self.error else status}
+        if self.error:
+            payload["error"] = self.error
+        try:
+            temporary = self.directory / "archive.json.tmp"
+            temporary.write_text(json.dumps(payload) + "\n", encoding="utf-8")
+            temporary.replace(self.directory / "archive.json")
+        except OSError as error:
+            self.fail(f"Archive status write failed: {error}")
+        return self.error is None
+
+    def close_exporters(self) -> None:
+        """Close both files, including after a partially failed SDK initialization."""
+        for exporter in (self.span_exporter, self.log_exporter):
+            if exporter is not None:
+                exporter.shutdown()
 
 
 class _NoOpSpan:
@@ -58,6 +188,7 @@ def _validate_export_environment() -> None:
 
 def configure(
     *, enabled: bool = False, send_to_logfire: bool = False, console: bool = True,
+    archive_dir: str | os.PathLike[str] | None = None, run_id: str | None = None,
 ) -> None:
     """Enable, replace, or disable LiTS tracing between runs, outside active spans.
 
@@ -71,7 +202,7 @@ def configure(
 
     The SDK instance lives in Python, not in a UI server. Hosted export requires
     credentials/configuration; the flag does not open a browser UI. Console output
-    is independent. Local file export is not implemented here yet.
+    is independent of local archive writing and hosted export.
 
     Args:
         enabled: Import the optional SDK only when True. False shuts down an
@@ -80,6 +211,10 @@ def configure(
             not enable it. False keeps default telemetry local.
         console: Render spans in the command-line terminal, independently of
             hosted export. This does not create a file or browser UI.
+        archive_dir: New per-run directory for OTLP traces/logs and archive status.
+            Requires enabled=True and run_id; existing directories are rejected.
+        run_id: Non-empty run identity, saved as the lits.run_id resource attribute
+            on both traces and logs. Required only when archive_dir is supplied.
 
     OTLP endpoint and OpenTelemetry detector overrides are rejected before SDK
     initialization, even with hosted export enabled. Custom processors and SDK
@@ -88,9 +223,15 @@ def configure(
     authorize upload. Preflight rejection leaves an existing instance unchanged.
     Other libraries' telemetry configuration is not managed by this facade.
     """
-    global _logfire_instance
+    global _logfire_instance, _archive
     if any(type(flag) is not bool for flag in (enabled, send_to_logfire, console)):
         raise TypeError("enabled, send_to_logfire, and console must be booleans")
+    if archive_dir is None and run_id is not None:
+        raise ValueError("run_id requires archive_dir")
+    if archive_dir is not None and (
+        not enabled or not isinstance(run_id, str) or not run_id.strip()
+    ):
+        raise ValueError("archive_dir requires enabled=True and a non-empty run_id")
 
     if enabled:
         # Logfire can enable OTLP export independently of send_to_logfire.
@@ -102,10 +243,25 @@ def configure(
                 raise
             raise ImportError("Enable tracing with: pip install 'lits-llm[observability]'") from error
 
-    if _logfire_instance is not None:
-        _logfire_instance.shutdown()
-        _logfire_instance = None
-    if enabled:
+    archive = _Archive(Path(archive_dir), run_id) if archive_dir is not None else None
+    close()
+    if not enabled:
+        return
+
+    try:
+        span_processors, log_processors = [], []
+        archive_options = {}
+        if archive is not None:
+            from opentelemetry.sdk._logs.export import SimpleLogRecordProcessor
+            from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+            from opentelemetry.sdk.trace.sampling import ALWAYS_ON
+
+            span_processors = [SimpleSpanProcessor(archive.span_exporter)]
+            log_processors = [SimpleLogRecordProcessor(archive.log_exporter)]
+            archive_options = dict(
+                resource_attributes={"lits.run_id": run_id},
+                sampling=logfire.SamplingOptions(head=ALWAYS_ON), min_level=0,
+            )
         _logfire_instance = logfire.configure(
             local=True,  # Isolate SDK configuration; this flag does not mean offline.
             send_to_logfire=send_to_logfire,
@@ -113,8 +269,68 @@ def configure(
             service_name="lits",
             metrics=False,
             inspect_arguments=False,
-            advanced=logfire.AdvancedOptions(resource_detectors=[]),
+            additional_span_processors=span_processors,
+            advanced=logfire.AdvancedOptions(
+                resource_detectors=[], log_record_processors=log_processors,
+            ),
+            **archive_options,
         )
+    except Exception as error:
+        if archive is not None:
+            archive.fail(f"SDK initialization failed: {error}")
+            archive.close_exporters()
+            archive.write_status("incomplete")
+        raise
+    _archive = archive
+
+
+def flush() -> bool:
+    """Flush ended spans/logs without closing the run; return False after any failure.
+
+    Open span contexts are not yet exportable. A successful flush leaves the
+    archive open; only close() can mark normal completion. Export errors are
+    reported without raising into search execution.
+    """
+    if _logfire_instance is None:
+        return True
+    try:
+        successful = _logfire_instance.force_flush()
+    except Exception as error:
+        successful = False
+        if _archive is not None:
+            _archive.fail(f"Telemetry flush failed: {error}")
+    if _archive is not None:
+        if not successful:
+            _archive.fail("Telemetry flush failed")
+        return _archive.write_status("open")
+    return successful
+
+
+def close() -> bool:
+    """Flush and close the current SDK/files after all span contexts have exited.
+
+    Return whether this shutdown completed without known export failures. With
+    no active instance, return True. Consult archive.json for a closed run's
+    persisted status; completion describes telemetry writing, not search success.
+    """
+    global _logfire_instance, _archive
+    successful = flush()
+    try:
+        if _logfire_instance is not None:
+            successful = _logfire_instance.shutdown() and successful
+    except Exception as error:
+        successful = False
+        if _archive is not None:
+            _archive.fail(f"Telemetry shutdown failed: {error}")
+    finally:
+        _logfire_instance = None
+        archive, _archive = _archive, None
+    if archive is not None:
+        archive.close_exporters()
+        if not successful:
+            archive.fail("Telemetry shutdown failed")
+        successful = archive.write_status("complete")
+    return successful
 
 
 def span(name: str, **attributes: Any) -> AbstractContextManager[LogfireSpan | _NoOpSpan]:

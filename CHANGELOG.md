@@ -11,6 +11,7 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 ### Added
 - Optional observability dependencies (可选可观测性依赖) [T1.1]
 - Optional tracing facade and local console spans (可选 tracing 接口与本地终端 spans) [T1.2]
+- Local OTLP trace/log archives (本地 OTLP trace/log 存档) [T2.1]
 
 ## 2026-09-16 Unreleased (`0916-major-unified-search-execution/tasks`)
 

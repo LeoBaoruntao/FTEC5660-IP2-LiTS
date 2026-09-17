@@ -210,21 +210,43 @@ def read_archive(directory, run_id):
                 raise RuntimeError("OTLP JSON round-trip changed the archive")
             for resource in payload[resources_key]:
                 attrs = {entry["key"]: entry["value"] for entry in resource["resource"]["attributes"]}
-                if attrs["lits.run_id"] != {"stringValue": run_id}:
-                    raise RuntimeError("Archive resource has the wrong run identity")
+                if (attrs["lits.run_id"] != {"stringValue": run_id}
+                        or attrs["service.name"] != {"stringValue": "lits"}):
+                    raise RuntimeError("Archive resource has the wrong run or service identity")
                 for scope in resource[scopes_key]:
                     records[records_key].extend(scope[records_key])
     return records
 
 
 def check_archives():
-    """Check real file export, linked log records, run isolation, and failure status."""
+    """Check observability/tracing.py::configure with caller-resolved result paths.
+
+    Vary dataset, method, example, repeat, and attempt independently. For example,
+    result_dir=results_root/"math500/beam_pointwise/run_0" produces an archive at
+    result_dir/"telemetry/example-42-repeat-0-attempt-0"; its ID is that full path
+    relative to results_root, not the shared "run_0" or execution basename.
+
+    Check real file export, linked log records, run isolation, and failure status.
+    Native OpenTelemetry logs and Logfire info events must use separate files.
+    """
     from opentelemetry.sdk._logs import LoggingHandler
 
-    root = Path(mkdtemp(prefix="lits-otlp-check-"))
-    trace_ids = set()
-    for run_id in ("run-a", "run-b"):
-        directory = root / run_id
+    results_root = Path(mkdtemp(prefix="lits-otlp-check-"))
+    cases = (
+        ("math500/beam_pointwise/run_0", 42, 0, 0),
+        ("math500/beam_llm/run_0", 42, 0, 0),
+        ("dbbench/beam_pointwise/run_0", 42, 0, 0),
+        ("math500/beam_pointwise/run_0", 43, 0, 0),
+        ("math500/beam_pointwise/run_0", 42, 1, 0),
+        ("math500/beam_pointwise/run_0", 42, 0, 1),
+    )
+    trace_ids, run_ids, saved_files = set(), set(), {}
+    for experiment, query_idx, repetition_index, attempt_index in cases:
+        result_dir = results_root / experiment
+        result_dir.mkdir(parents=True, exist_ok=True)
+        execution = f"example-{query_idx}-repeat-{repetition_index}-attempt-{attempt_index}"
+        directory = result_dir / "telemetry" / execution
+        run_id = directory.relative_to(results_root).as_posix()
         with telemetry_environment(LOGFIRE_TRACE_SAMPLE_RATE="0", LOGFIRE_MIN_LEVEL="error"):
             tracing.configure(enabled=True, console=False, archive_dir=directory, run_id=run_id)
             logger = logging.Logger("archive.check")
@@ -234,6 +256,7 @@ def check_archives():
                 with tracing.span("search.run"):
                     with tracing.span("search.node", node_id="n1", score=0.75):
                         logger.info("selected n1", extra={"node_id": "n1"})
+                        tracing_impl._get_logfire().info("selection.recorded", node_id="n1")
                 if not tracing.flush():
                     raise RuntimeError("Healthy archive failed to flush")
                 if json.loads((directory / "archive.json").read_text())["status"] != "open":
@@ -256,7 +279,9 @@ def check_archives():
 
         records = read_archive(directory, run_id)
         spans = {span["name"]: span for span in records["spans"]}
-        if len(records["spans"]) != 2 or set(spans) != {"search.run", "search.node"}:
+        if len(records["spans"]) != 3 or set(spans) != {
+            "search.run", "search.node", "selection.recorded",
+        }:
             raise RuntimeError("Missing or extra archived spans")
         parent, child = spans["search.run"], spans["search.node"]
         if child["parentSpanId"] != parent["spanId"] or child["traceId"] != parent["traceId"]:
@@ -267,6 +292,14 @@ def check_archives():
         attrs = {entry["key"]: entry["value"] for entry in child["attributes"]}
         if attrs["node_id"] != {"stringValue": "n1"} or attrs["score"] != {"doubleValue": 0.75}:
             raise RuntimeError("Archive changed node attributes")
+        event = spans["selection.recorded"]
+        event_attrs = {entry["key"]: entry["value"] for entry in event["attributes"]}
+        if (event["parentSpanId"], event["traceId"]) != (child["spanId"], child["traceId"]):
+            raise RuntimeError("Logfire info event lost its span association")
+        if (event_attrs["logfire.span_type"] != {"stringValue": "log"}
+                or event_attrs["node_id"] != {"stringValue": "n1"}
+                or event["startTimeUnixNano"] != event["endTimeUnixNano"]):
+            raise RuntimeError("Logfire info event lost its type, attributes, or zero duration")
         if len(records["logRecords"]) != 1:
             raise RuntimeError("Missing or duplicated forwarded log")
         record = records["logRecords"][0]
@@ -275,24 +308,54 @@ def check_archives():
         ):
             raise RuntimeError("Forwarded log lost its message or span association")
         trace_ids.add(parent["traceId"])
-    if len(trace_ids) != 2:
-        raise RuntimeError("Independent runs reused a trace identity")
+        run_ids.add(run_id)
+        for filename in ("traces.jsonl", "logs.jsonl", "archive.json"):
+            path = directory / filename
+            saved_files[path] = path.read_bytes()
+    if len(trace_ids) != len(cases) or len(run_ids) != len(cases):
+        raise RuntimeError("Independent executions reused a run or trace identity")
 
-    directory = root / "failed-run"
-    tracing.configure(enabled=True, console=False, archive_dir=directory, run_id="failed-run")
+    # Reopening the last completed archive must fail just as reopening an active one did.
     try:
-        tracing_impl._archive.span_exporter.shutdown()  # Close the real file to force an export failure.
-        with tracing.span("closed.exporter"):
-            result = "search result unchanged"
-        if tracing.flush() or result != "search result unchanged":
-            raise RuntimeError("Export failure was hidden or changed application execution")
-    finally:
-        complete = tracing.close()
-    status = json.loads((directory / "archive.json").read_text())
-    if complete or status["status"] != "incomplete" or not status.get("error"):
-        raise RuntimeError("Failed archive was marked complete")
-    print(f"PASS OTLP round-trip, run isolation, overwrite rejection, and export failure: {root}")
-    breakpoint()  # inspect: root, status, records
+        tracing.configure(enabled=True, console=False, archive_dir=directory, run_id=run_id)
+    except FileExistsError:
+        if tracing_impl._get_logfire() is not None:
+            raise RuntimeError("Completed-directory rejection initialized the SDK")
+    else:
+        tracing.close()
+        raise RuntimeError("Completed archive was reused")
+
+    for attempt_index, failed_pipeline in enumerate(("span", "log"), start=2):
+        directory = (results_root / cases[0][0] / "telemetry"
+                     / f"example-42-repeat-0-attempt-{attempt_index}")
+        run_id = directory.relative_to(results_root).as_posix()
+        tracing.configure(enabled=True, console=False, archive_dir=directory, run_id=run_id)
+        logger = logging.Logger("archive.failure.check")
+        handler = LoggingHandler(logger_provider=tracing_impl._get_logfire().config.get_logger_provider())
+        logger.addHandler(handler)
+        try:
+            archive = tracing_impl._archive
+            exporter = archive.span_exporter if failed_pipeline == "span" else archive.log_exporter
+            exporter.shutdown()  # Close the real file to force an export failure.
+            with tracing.span("closed.exporter"):
+                logger.info("export failure must not interrupt execution")
+                result = "search result unchanged"
+            if tracing.flush() or result != "search result unchanged":
+                raise RuntimeError("Export failure was hidden or changed application execution")
+        finally:
+            logger.removeHandler(handler)
+            handler.close()
+            complete = tracing.close()
+        status = json.loads((directory / "archive.json").read_text())
+        if (complete or status["status"] != "incomplete" or not status.get("error")
+                or status["run_id"] != run_id):
+            raise RuntimeError("Failed archive lost its identity or was marked complete")
+
+    if any(path.read_bytes() != content for path, content in saved_files.items()):
+        raise RuntimeError("A later execution or rejected reopen changed an earlier archive")
+    print(f"PASS {len(cases)} result-path identities, OTLP round-trips, linked logs/info events")
+    print(f"PASS unchanged archives, open/closed overwrite rejection, both exporter failures: {results_root}")
+    breakpoint()  # inspect: results_root, run_ids, status, records
 
 
 def check_observations():

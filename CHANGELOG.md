@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-09-17 Unreleased (`0916-major-agent-runtime/tasks_observability`)
+
+### Added
+- Optional observability dependencies (可选可观测性依赖) [T1.1]
+
 ## 2026-09-16 Unreleased (`0916-major-unified-search-execution/tasks`)
 
 ### Added

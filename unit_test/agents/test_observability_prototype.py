@@ -1,4 +1,4 @@
-"""Check ``observability.py::configure`` and ``observability.py::span`` without inference.
+"""Check ``observability/tracing.py::configure`` and ``observability/tracing.py::span`` without inference.
 
 Run in environments with and without the extra:
 ``PYTHONBREAKPOINT=0 python -m unit_test.agents.test_observability_prototype``.
@@ -18,6 +18,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory, mkdtemp
 
 from lits import observability as tracing
+from lits.observability import tracing as tracing_impl
 
 
 @contextmanager
@@ -37,7 +38,7 @@ def telemetry_environment(**settings):
 
 def check_rejected_configuration():
     """Return the case count after checking rejection without SDK initialization/replacement."""
-    original = tracing._get_logfire()
+    original = tracing_impl._get_logfire()
     sdk_loaded = "logfire" in sys.modules
     endpoint_names = (
         "OTEL_EXPORTER_OTLP_ENDPOINT", "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
@@ -63,7 +64,7 @@ def check_rejected_configuration():
                     raise RuntimeError("Validation exposed endpoint credentials") from error
             else:
                 raise RuntimeError("Unsupported configuration was accepted")
-            if tracing._get_logfire() is not original or ("logfire" in sys.modules) != sdk_loaded:
+            if tracing_impl._get_logfire() is not original or ("logfire" in sys.modules) != sdk_loaded:
                 raise RuntimeError("Rejected configuration changed the SDK instance/import state")
             if original is None:
                 tracing.configure(enabled=False)  # Disabling needs no endpoint validation.
@@ -91,10 +92,10 @@ def check_disabled():
         with tracing.span("disabled.iteration", iteration=1) as current:
             current.set_attribute("selected_id", "n1")
         check_exception_propagation()
-    if tracing._get_logfire() is not None or "logfire" in sys.modules:
+    if tracing_impl._get_logfire() is not None or "logfire" in sys.modules:
         raise RuntimeError("Disabled tracing initialized or imported the SDK")
     print("PASS default/explicit disabled spans and exception propagation; no SDK import")
-    breakpoint()  # inspect: tracing._get_logfire(), "logfire" in sys.modules
+    breakpoint()  # inspect: tracing_impl._get_logfire(), "logfire" in sys.modules
 
 
 def check_enabled():
@@ -107,7 +108,7 @@ def check_enabled():
         with redirect_stdout(output):
             for iteration in range(2):
                 tracing.configure(enabled=True)
-                logfire_instance = tracing._get_logfire()
+                logfire_instance = tracing_impl._get_logfire()
                 if logfire_instance.config.send_to_logfire is not False:
                     raise RuntimeError("Hosted export must be disabled by default")
                 with tracing.span(f"visible.iteration.{iteration}", iteration=iteration):
@@ -127,7 +128,7 @@ def check_enabled():
             tracing.configure(enabled=False)
             with tracing.span("disabled.again"):
                 pass
-            if output.getvalue() != visible or tracing._get_logfire() is not None:
+            if output.getvalue() != visible or tracing_impl._get_logfire() is not None:
                 raise RuntimeError("Quiet or disabled tracing emitted output or stayed enabled")
         if get_tracer_provider() is not original_provider:
             raise RuntimeError("LiTS replaced the process-global tracer provider")
@@ -135,7 +136,7 @@ def check_enabled():
         tracing.configure(enabled=False)
     print("PASS real SDK: local defaults, nested spans, reconfiguration, console off, shutdown")
     print("PASS enabled exception propagation and unchanged global tracer provider")
-    breakpoint()  # inspect: visible, tracing._get_logfire()
+    breakpoint()  # inspect: visible, tracing_impl._get_logfire()
 
 
 def check_stored_configuration():
@@ -157,7 +158,7 @@ def check_stored_configuration():
             ):
                 try:
                     tracing.configure(enabled=True, console=False)
-                    config = tracing._get_logfire().config
+                    config = tracing_impl._get_logfire().config
                     if config.send_to_logfire is not False or config.advanced.resource_detectors:
                         raise RuntimeError("Stored settings enabled export or detector plugins")
                     if config.data_dir != root:
@@ -223,7 +224,7 @@ def check_archives():
         with telemetry_environment(LOGFIRE_TRACE_SAMPLE_RATE="0", LOGFIRE_MIN_LEVEL="error"):
             tracing.configure(enabled=True, console=False, archive_dir=directory, run_id=run_id)
             logger = logging.Logger("archive.check")
-            handler = LoggingHandler(logger_provider=tracing._get_logfire().config.get_logger_provider())
+            handler = LoggingHandler(logger_provider=tracing_impl._get_logfire().config.get_logger_provider())
             logger.addHandler(handler)
             try:
                 with tracing.span("search.run"):
@@ -233,11 +234,11 @@ def check_archives():
                     raise RuntimeError("Healthy archive failed to flush")
                 if json.loads((directory / "archive.json").read_text())["status"] != "open":
                     raise RuntimeError("Flush must not mark an active archive complete")
-                original = tracing._get_logfire()
+                original = tracing_impl._get_logfire()
                 try:
                     tracing.configure(enabled=True, archive_dir=directory, run_id=run_id)
                 except FileExistsError:
-                    if tracing._get_logfire() is not original:
+                    if tracing_impl._get_logfire() is not original:
                         raise RuntimeError("Existing-directory rejection replaced the active instance")
                 else:
                     raise RuntimeError("Existing archive was reused")
@@ -276,7 +277,7 @@ def check_archives():
     directory = root / "failed-run"
     tracing.configure(enabled=True, console=False, archive_dir=directory, run_id="failed-run")
     try:
-        tracing._archive.span_exporter.shutdown()  # Close the real file to force an export failure.
+        tracing_impl._archive.span_exporter.shutdown()  # Close the real file to force an export failure.
         with tracing.span("closed.exporter"):
             result = "search result unchanged"
         if tracing.flush() or result != "search result unchanged":

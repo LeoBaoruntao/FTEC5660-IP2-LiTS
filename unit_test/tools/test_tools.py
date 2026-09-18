@@ -39,7 +39,7 @@ def check_observability():
     from lits.tools.sql_tools import ListSQLDatabaseTool, QuerySQLDatabaseTool
     from lits.tools.utils import ToolServerDownError, execute_tool_action
     from lits.utils import PREFIX_FOR_ERROR_OBSERVATION
-    from unit_test.agents.test_observability_prototype import read_archive, telemetry_environment
+    from unit_test.observability.test_observability_prototype import read_archive, telemetry_environment
 
     root = Path(mkdtemp(prefix="lits-tool-tracing-"))
     directory = root / "telemetry" / "example-0-repeat-0-attempt-0"

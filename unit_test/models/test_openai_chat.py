@@ -92,7 +92,7 @@ def check_observability():
     Verify text/tool output conversion, role-specific usage, SDK span nesting,
     duplicate-registration protection, and cleanup before reusing an untraced client.
     """
-    from unit_test.agents.test_observability_prototype import read_archive, telemetry_environment
+    from unit_test.observability.test_observability_prototype import read_archive, telemetry_environment
     from openai.types.chat import ChatCompletionMessage
 
     root = Path(tempfile.mkdtemp(prefix="lits-openai-tracing-"))

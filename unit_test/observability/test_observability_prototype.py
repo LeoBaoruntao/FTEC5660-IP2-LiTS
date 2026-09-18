@@ -1,13 +1,13 @@
 """Check ``observability/tracing.py::configure`` and ``observability/tracing.py::span`` without inference.
 
 Run in environments with and without the extra:
-``PYTHONBREAKPOINT=0 python -m unit_test.agents.test_observability_prototype``.
+``PYTHONBREAKPOINT=0 python -m unit_test.observability.test_observability_prototype``.
 Enabled checks use the real SDK. Archive checks retain files in a new temporary
 directory and parse them using OpenTelemetry's OTLP JSON message classes.
 The default offline mode denies network access, including background SDK requests.
 
 The model-backed end-to-end BFS test is a separate script:
-``python -m unit_test.agents.test_bfs_observability``.
+``python -m unit_test.observability.test_bfs_observability``.
 """
 
 import json

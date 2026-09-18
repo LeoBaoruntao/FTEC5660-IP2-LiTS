@@ -1,11 +1,11 @@
 """Run a bounded real BFS and verify its end-to-end observability.
 
-Run: PYTHONBREAKPOINT=0 python -m unit_test.agents.test_bfs_observability
+Run: PYTHONBREAKPOINT=0 python -m unit_test.observability.test_bfs_observability
 
 This script calls the Tailscale model; telemetry stays local. LITS_TEST_MODEL_NAME,
 LITS_TEST_BASE_URL, and LITS_TEST_API_KEY can override the configured endpoint.
 Each invocation retains a fresh result directory. Lower-level offline checks
-remain in unit_test.agents.test_observability_prototype.
+remain in unit_test.observability.test_observability_prototype.
 """
 
 import json
@@ -14,7 +14,7 @@ from pathlib import Path
 from tempfile import mkdtemp
 
 from lits import observability as tracing
-from unit_test.agents.test_observability_prototype import read_archive, telemetry_environment
+from unit_test.observability.test_observability_prototype import read_archive, telemetry_environment
 
 
 def check_bfs_archive(directory, run_id, result, metrics):

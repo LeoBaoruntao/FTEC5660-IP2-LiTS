@@ -236,6 +236,69 @@ def read_archive(directory, run_id):
     return records
 
 
+def check_archive_filter(source_root, run_ids, incomplete_run_id):
+    """Check archive.py::filter_archives using the real SDK files from check_archives.
+
+    Select two runs, relocate their copies, and compare bytes plus decoded span/log
+    records. Reject invalid selections before writing anything; never infer which
+    answers were incorrect. No new inference, SDK configuration, or upload occurs.
+    """
+    output_root = Path(mkdtemp(prefix="lits-selected-archives-")).resolve()
+    selected = sorted(run_ids)[:2]
+    originals = {path: path.read_bytes() for path in source_root.rglob("*") if path.is_file()}
+    output = output_root / "selected"
+    copied = tracing.filter_archives(source_root, selected, output)
+    if copied != [output / run_id for run_id in selected]:
+        raise RuntimeError("Archive selection changed the requested order or layout")
+    relocated = output_root / "relocated"
+    tracing.filter_archives(output, selected, relocated)
+    for root in (output, relocated):
+        actual = {path.parent.relative_to(root).as_posix() for path in root.rglob("archive.json")}
+        if actual != set(selected):
+            raise RuntimeError("Selected output included an unselected run or omitted a selected run")
+        for run_id in selected:
+            for filename in ("traces.jsonl", "logs.jsonl", "archive.json"):
+                source = source_root / run_id / filename
+                if (root / run_id / filename).read_bytes() != originals[source]:
+                    raise RuntimeError("Selection or relocation changed archive bytes")
+            expected = read_archive(source_root / run_id, run_id)
+            if not expected["logRecords"] or read_archive(root / run_id, run_id) != expected:
+                raise RuntimeError("Relocation lost native logs, identity, attributes, or span linkage")
+
+    cases = (
+        ([], ValueError), (selected[0], ValueError),
+        ([selected[0], selected[0]], ValueError),
+        ([str(source_root / selected[0])], ValueError),
+        (["../escape"], ValueError), ([selected[0] + "/"], ValueError),
+        ([selected[0], "unknown-run"], FileNotFoundError),
+        ([selected[0], incomplete_run_id], ValueError),
+    )
+    for index, (selection, exception) in enumerate(cases):
+        destination = output_root / f"rejected-{index}"
+        try:
+            tracing.filter_archives(source_root, selection, destination)
+        except exception:
+            if destination.exists():
+                raise RuntimeError("Invalid selection created partial output")
+        else:
+            raise RuntimeError(f"Invalid selection was accepted: {selection}")
+    for destination, exception in ((output, FileExistsError), (source_root / "selection", ValueError)):
+        try:
+            tracing.filter_archives(source_root, selected, destination)
+        except exception:
+            pass
+        else:
+            raise RuntimeError("Existing or overlapping output was accepted")
+    for path, contents in originals.items():
+        if path.read_bytes() != contents:
+            raise RuntimeError("Selection modified a source archive")
+    if any((output / path.relative_to(source_root)).read_bytes() != contents
+           for path, contents in originals.items() if path.parent.relative_to(source_root).as_posix() in selected):
+        raise RuntimeError("Rejected overwrite modified the selected output")
+    print(f"PASS archive selection: two of six runs, byte-identical relocation, native logs, ten rejections: {output_root}")
+    breakpoint()  # inspect: selected, copied, relocated, originals
+
+
 def check_archives():
     """Check observability/tracing.py::configure with caller-resolved result paths.
 
@@ -373,6 +436,7 @@ def check_archives():
         raise RuntimeError("A later execution or rejected reopen changed an earlier archive")
     print(f"PASS {len(cases)} result-path identities, OTLP round-trips, linked logs/info events")
     print(f"PASS unchanged archives, open/closed overwrite rejection, both exporter failures: {results_root}")
+    check_archive_filter(results_root, run_ids, run_id)
     breakpoint()  # inspect: results_root, run_ids, status, records
 
 

@@ -27,6 +27,8 @@ import json
 from typing import Iterable, Tuple, Optional, Any
 from datetime import datetime
 
+from . import observability as tracing
+
 
 # =============================================================================
 # Namespace Filter (existing)
@@ -108,6 +110,10 @@ def setup_logging(
 ) -> logging.Logger:
     """
     Configure logging for a run.
+
+    If tracing was configured first, also forward records through its Logfire
+    handler with the same level and namespace filter as the file handler.
+    Repeated setup does not duplicate telemetry; file/console output is unchanged.
     
     Args:
         run_id: Identifier for log file (e.g., "execution")
@@ -168,6 +174,9 @@ def setup_logging(
             console_handler.addFilter(namespace_filter)
         logger.addHandler(console_handler)
 
+    tracing.attach_logging_handler(
+        logger, level=file_handler.level, namespace_filter=namespace_filter,
+    )
     return logger
 
 

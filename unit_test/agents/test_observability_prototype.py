@@ -11,7 +11,7 @@ import json
 import logging
 import os
 import sys
-from contextlib import contextmanager, redirect_stdout
+from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from copy import deepcopy
 from importlib.util import find_spec
 from io import StringIO
@@ -435,6 +435,132 @@ def check_observations():
     breakpoint()  # inspect: root, snapshot, attrs, record, original
 
 
+def check_logging(enabled=False):
+    """Check log.py::setup_logging and observability/tracing.py::attach_logging_handler.
+
+    Use real root/child loggers and file/console handlers. Repeat setup at INFO
+    and DEBUG, then reconfigure tracing and narrow the namespace filter. Verify
+    once-only output, span association, run isolation, and disabled SDK-free use.
+
+    File and telemetry filtering (the console stays at INFO+):
+
+    ==================== ========= =============== ============================================
+    Parent span          Threshold Logger prefixes Result
+    ==================== ========= =============== ============================================
+    logging.info         INFO+     lits, mem0      Keep INFO/WARNING; filter DEBUG.
+    logging.debug        DEBUG+    lits, mem0      Keep all three messages.
+    logging.reconfigured INFO+     lits            Filter DEBUG by level and memory by prefix.
+    ==================== ========= =============== ============================================
+
+    verbose=True sets the file and telemetry threshold to DEBUG. The "memory"
+    message is a WARNING from mem0.logging_check, not an actual memory operation.
+    """
+    from lits.log import setup_logging
+
+    root = Path(mkdtemp(prefix="lits-logging-check-"))
+    logger = logging.getLogger()
+    previous = logger.handlers[:], logger.level, logger.propagate
+    handlers, expected_file, expected_console, expected_spans = set(), [], [], {}
+    directories, archived = [], {}
+    console = StringIO()
+    sdk_loaded = "logfire" in sys.modules
+    try:
+        with telemetry_environment(LITS_LOG_LEVEL="INFO"), redirect_stderr(console):
+            for phase, verbose in (("info", False), ("debug", True), ("reconfigured", False)):
+                if phase != "debug":
+                    directory = root / phase
+                    options = dict(archive_dir=directory, run_id=phase) if enabled else {}
+                    tracing.configure(enabled=enabled, console=False, **options)
+                    if phase == "reconfigured" and len(logger.handlers) != 2:
+                        raise RuntimeError("Reconfiguration did not retain only file/console handlers")
+                    if enabled:
+                        directories.append((directory, phase))
+                        if phase == "reconfigured":
+                            archived = {path: path.read_bytes() for path in directories[0][0].iterdir()}
+                namespaces = ("lits",) if phase == "reconfigured" else ("lits", "mem0")
+                setup_logging("execution", str(root), verbose=verbose, override=False,
+                              add_console_handler=True, allowed_namespaces=namespaces, json_format=True)
+                handlers.update(logger.handlers)
+                attached = logger.handlers[:]
+                file_handler = next(item for item in attached if isinstance(item, logging.FileHandler))
+                for _ in range(2):
+                    tracing.attach_logging_handler(
+                        logger, level=file_handler.level, namespace_filter=file_handler.filters[0],
+                    )
+                if logger.handlers != attached or len(attached) != (3 if enabled else 2):
+                    raise RuntimeError("Logging setup duplicated or omitted a handler")
+                messages = [f"accepted {phase}"]
+                if verbose:
+                    messages.append(f"debug {phase}")
+                if "mem0" in namespaces:
+                    messages.append(f"memory {phase}")
+                expected_file.extend(messages)
+                expected_console.extend(message for message in messages if not message.startswith("debug"))
+                expected_spans[f"logging.{phase}"] = messages
+                with tracing.span(f"logging.{phase}"):
+                    logging.getLogger("lits.logging_check").info("accepted %s", phase, extra={"node_id": "n1"})
+                    logging.getLogger("lits.logging_check").debug("debug %s", phase)
+                    logging.getLogger("mem0.logging_check").warning("memory %s", phase)
+                    logging.getLogger("outside.logging_check").warning("excluded %s", phase)
+                if enabled and phase == "debug":
+                    from logfire import suppress_instrumentation
+
+                    with suppress_instrumentation():
+                        logging.getLogger("lits.logging_check").info("local suppressed")
+                    expected_file.append("local suppressed")
+                    expected_console.append("local suppressed")
+            tracing.configure(enabled=False)
+            if len(logger.handlers) != 2:
+                raise RuntimeError("Disabling tracing did not remove its handler")
+            logging.getLogger("lits.logging_check").info("after close")
+            expected_file.append("after close")
+            expected_console.append("after close")
+    finally:
+        tracing.close()
+        for handler in handlers:
+            handler.close()
+        logger.handlers, logger.level, logger.propagate = previous
+
+    messages = [json.loads(line)["msg"] for line in (root / "execution.log").read_text().splitlines()]
+    if messages != expected_file:
+        raise RuntimeError(f"Unexpected file output: {messages}")
+    console_lines = console.getvalue().splitlines()
+    if (len(console_lines) != len(expected_console)
+            or any(sum(line.endswith(message) for line in console_lines) != 1 for message in expected_console)):
+        raise RuntimeError(f"Unexpected console output: {console.getvalue()}")
+    if not enabled and ("logfire" in sys.modules) != sdk_loaded:
+        raise RuntimeError("Disabled logging imported Logfire")
+    if not enabled and (root / "info").exists():
+        raise RuntimeError("Disabled logging created telemetry files")
+    if any(path.read_bytes() != data for path, data in archived.items()):
+        raise RuntimeError("A later run wrote to a closed archive")
+    for directory, run_id in directories:
+        if json.loads((directory / "archive.json").read_text())["status"] != "complete":
+            raise RuntimeError("Logging archive did not close successfully")
+        records = read_archive(directory, run_id)
+        parents = {item["spanId"]: item for item in records["spans"] if item["name"] in expected_spans}
+        seen = {item["name"]: [] for item in parents.values()}
+        for item in records["spans"]:
+            if item["spanId"] in parents:
+                continue
+            attrs = {entry["key"]: entry["value"] for entry in item["attributes"]}
+            parent = parents[item["parentSpanId"]]
+            if (attrs["logfire.span_type"] != {"stringValue": "log"}
+                    or item["traceId"] != parent["traceId"]):
+                raise RuntimeError("Forwarded log is not associated with its active span")
+            message = attrs["logfire.msg"]["stringValue"]
+            if message.startswith("accepted") and attrs["node_id"] != {"stringValue": "n1"}:
+                raise RuntimeError("Structured logging fields were lost")
+            seen[parent["name"]].append(message)
+        if records["logRecords"] or any(messages != expected_spans[name] for name, messages in seen.items()):
+            raise RuntimeError("Forwarded records were duplicated, filtered incorrectly, or sent as native logs")
+        expected_parents = {"logging.info", "logging.debug"} if run_id == "info" else {"logging.reconfigured"}
+        if set(seen) != expected_parents:
+            raise RuntimeError("Missing logging spans")
+    print(f"PASS logging enabled={enabled}: filtering, repeated setup, lifecycle, local outputs: {root}")
+    breakpoint()  # inspect: root, messages, expected_spans, console.getvalue()
+
+
 def main():
     """Check disabled operation first, then the installed or missing dependency path."""
     network_attempts = []
@@ -448,6 +574,7 @@ def main():
     sys.addaudithook(deny_network)
     with telemetry_environment():
         check_disabled()
+        check_logging()
         count = check_rejected_configuration()
         print(f"PASS {count} rejected configurations before SDK initialization")
         if find_spec("logfire") is None:
@@ -465,6 +592,7 @@ def main():
             check_model_endpoint()
             check_archives()
             check_observations()
+            check_logging(enabled=True)
     if network_attempts:
         raise RuntimeError(f"Unexpected network attempts: {network_attempts}")
     print("PASS offline checks: zero socket/DNS attempts")

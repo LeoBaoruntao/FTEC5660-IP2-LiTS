@@ -45,6 +45,7 @@ An interrupted process leaves an open archive; no automatic resume is attempted.
 
 from __future__ import annotations
 
+import logging
 import os
 from contextlib import AbstractContextManager, ExitStack, nullcontext
 from copy import deepcopy
@@ -59,6 +60,7 @@ if TYPE_CHECKING:
 _logfire_instance: Logfire | None = None
 _archive: _Archive | None = None
 _instrumentations = ExitStack()
+_logging_handlers: dict[logging.Logger, logging.Handler] = {}
 
 
 class _NoOpSpan:
@@ -217,9 +219,14 @@ def close() -> bool:
     Return whether this shutdown completed without known export failures. With
     no active instance, return True. Consult archive.json for a closed run's
     persisted status; completion describes telemetry writing, not search success.
-    Remove client instrumentation installed by this facade before SDK shutdown.
+    Remove client instrumentation and logging handlers installed by this facade
+    before SDK shutdown; other file/console handlers remain attached.
     """
     global _logfire_instance, _archive
+    for logger, handler in _logging_handlers.items():
+        logger.removeHandler(handler)
+        handler.close()
+    _logging_handlers.clear()
     successful = flush()
     try:
         _instrumentations.close()
@@ -238,6 +245,41 @@ def close() -> bool:
             archive.fail("Telemetry shutdown failed")
         successful = archive.write_status("complete")
     return successful
+
+
+def attach_logging_handler(
+    logger: logging.Logger, *, level: int = logging.INFO,
+    namespace_filter: logging.Filter | None = None,
+) -> None:
+    """Attach one LiTS-owned Logfire handler to a logger when tracing is enabled.
+
+    Configure tracing before setup_logging(); that function supplies the file
+    handler's level and namespace filter. Repeated calls refresh those settings
+    and reattach the same handler after a logger reset, without duplicates.
+    close()/reconfiguration detaches it; call setup_logging() for the next run.
+    Disabled calls do nothing and do not import Logfire.
+
+    Existing logger.info(...) calls become zero-duration log spans under the
+    active span, saved in traces.jsonl, not native OTLP entries in logs.jsonl.
+    File/console handlers remain independent. When SDK instrumentation is
+    suppressed, only those existing handlers write the message.
+    """
+    logfire_instance = _get_logfire()
+    if logfire_instance is None:
+        return
+    from logfire import LogfireLoggingHandler
+
+    handler = _logging_handlers.get(logger)
+    if handler is None:
+        handler = LogfireLoggingHandler(
+            logfire_instance=logfire_instance, fallback=logging.NullHandler(),
+        )
+        _logging_handlers[logger] = handler
+    handler.setLevel(level)
+    handler.filters.clear()
+    if namespace_filter is not None:
+        handler.addFilter(namespace_filter)
+    logger.addHandler(handler)
 
 
 def instrument_openai(client: Any) -> None:

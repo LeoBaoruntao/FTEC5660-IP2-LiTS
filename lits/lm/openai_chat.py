@@ -3,6 +3,7 @@ from openai import OpenAI
 from typing import List, Optional
 import numpy as np
 import os
+from lits import observability as tracing
 from .base import LanguageModel, Output, InferenceLogger, ToolCall, ToolCallOutput
 
 logger = logging.getLogger(__name__)
@@ -23,6 +24,7 @@ class OpenAIChatModel(LanguageModel):
         enable_thinking: bool = False,
         **kwargs
     ):
+        """Create a client; tracing must be configured first to capture its requests."""
         # Log unsupported kwargs at debug level (expected in multi-backend frameworks
         # where HF-specific params like device, top_k leak through the unified interface)
         unsupported_kwargs = set(kwargs.keys())
@@ -43,6 +45,7 @@ class OpenAIChatModel(LanguageModel):
         if base_url is None:
             base_url = os.getenv("OPENAI_API_BASE")
         self.client = OpenAI(api_key=api_key, base_url=base_url)
+        tracing.instrument_openai(self.client)
         self.model_name = model_name
         self.sys_prompt = sys_prompt
 
@@ -88,6 +91,9 @@ class OpenAIChatModel(LanguageModel):
         new_line_stop adds a newline to the server-side stop sequences. Existing
         stop strings/lists are preserved without mutating the caller's list;
         when False, stop is forwarded unchanged. The server must support stop.
+
+        Enabled tracing nests the SDK request under llm.call with the LiTS role.
+        request_extra_body retains custom options merged after SDK instrumentation.
         """
         if return_embedding:
             raise NotImplementedError("Embedding retrieval not implemented for OpenAI chat models.")
@@ -122,19 +128,20 @@ class OpenAIChatModel(LanguageModel):
                 for tool in tools
             ]
         
-        resp = self.client.chat.completions.create(
-            model=self.model_name,
-            messages=messages,
-            temperature=temperature,
-            top_p=top_p,
-            max_tokens=max_new_tokens or self.max_new_tokens or 512,
-            frequency_penalty=kwargs.get("frequency_penalty"),
-            presence_penalty=kwargs.get("presence_penalty"),
-            n=kwargs.get("n", 1),
-            stop=stop,
-            extra_body=extra_body,
-            **tool_options,
-        )
+        with tracing.span("llm.call", lits_role=role, request_extra_body=extra_body):
+            resp = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                temperature=temperature,
+                top_p=top_p,
+                max_tokens=max_new_tokens or self.max_new_tokens or 512,
+                frequency_penalty=kwargs.get("frequency_penalty"),
+                presence_penalty=kwargs.get("presence_penalty"),
+                n=kwargs.get("n", 1),
+                stop=stop,
+                extra_body=extra_body,
+                **tool_options,
+            )
         end = time.time()
 
         message = resp.choices[0].message

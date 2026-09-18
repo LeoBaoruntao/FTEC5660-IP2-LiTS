@@ -3,7 +3,7 @@
 Console rendering is not a persistent trace archive. Enabled defaults produce
 console output only; hosted export requires an explicit opt-in. Optional archives
 contain SDK-processed telemetry, including its redaction. This module owns its SDK
-instance but does not install model/tool instrumentation.
+instance and explicitly registered model instrumentation; tool instrumentation is separate.
 
 Example::
 
@@ -46,7 +46,7 @@ An interrupted process leaves an open archive; no automatic resume is attempted.
 from __future__ import annotations
 
 import os
-from contextlib import AbstractContextManager, nullcontext
+from contextlib import AbstractContextManager, ExitStack, nullcontext
 from copy import deepcopy
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -58,6 +58,7 @@ if TYPE_CHECKING:
 
 _logfire_instance: Logfire | None = None
 _archive: _Archive | None = None
+_instrumentations = ExitStack()
 
 
 class _NoOpSpan:
@@ -216,10 +217,12 @@ def close() -> bool:
     Return whether this shutdown completed without known export failures. With
     no active instance, return True. Consult archive.json for a closed run's
     persisted status; completion describes telemetry writing, not search success.
+    Remove client instrumentation installed by this facade before SDK shutdown.
     """
     global _logfire_instance, _archive
     successful = flush()
     try:
+        _instrumentations.close()
         if _logfire_instance is not None:
             successful = _logfire_instance.shutdown() and successful
     except Exception as error:
@@ -237,12 +240,66 @@ def close() -> bool:
     return successful
 
 
+def instrument_openai(client: Any) -> None:
+    """Instrument one existing OpenAI client when tracing is enabled.
+
+    Configure tracing before constructing model clients. The SDK ignores repeated
+    registration of the same client. Retain both its request/response attributes
+    and Gen AI fields for inspecting original messages and rendering LLM panels.
+    SDK scrubbing still applies; custom extra_body is recorded by the caller.
+
+    close() or reconfiguration removes instrumentation installed by this facade.
+    Reused clients must be registered again after enabling a new configuration.
+    Disabled calls neither modify the client nor import the optional SDK.
+    """
+    logfire_instance = _get_logfire()
+    if logfire_instance is not None:
+        _instrumentations.enter_context(logfire_instance.instrument_openai(client, version=(1, 2)))
+
+
 def span(name: str, **attributes: Any) -> AbstractContextManager[LogfireSpan | _NoOpSpan]:
     """Return a named span context, or a dependency-free no-op context when disabled.
+    1. This avoids:
+    ```
+    if tracing_enabled:
+        with span(...):
+            ...
+    else:
+        ...
+    ```
 
-    Attributes are passed to Logfire unchanged. Both modes support
-    ``current.set_attribute(key, value)`` and propagate exceptions from the body.
-    Enabled nested contexts establish parent/child spans automatically.
+    2. Attributes are passed to Logfire unchanged, allowing
+    ```
+    with tracing.span(
+        "search.iteration",
+        iteration=3,
+        frontier_size=12,
+        budget=5.4,
+    ):
+        ...
+    ```
+
+    3. Both modes support
+    ``current.set_attribute(key, value)``.
+
+    4. Both modes propagate exceptions from the body. Enabled nested contexts establish parent/child spans automatically.
+    例如：
+
+        with tracing.span("agent.run"):
+
+            with tracing.span("search.iteration"):
+
+                with tracing.span("llm.call"):
+                    call_llm()
+
+    开启 tracing 时, Logfire/OpenTelemetry 会自动建立：
+
+        agent.run
+        └── search.iteration
+            └── llm.call
+
+    而不是三个彼此无关的 spans。
+
     """
     logfire_instance = _get_logfire()
     if logfire_instance is None:

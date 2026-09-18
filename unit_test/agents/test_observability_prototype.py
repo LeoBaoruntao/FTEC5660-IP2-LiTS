@@ -186,11 +186,26 @@ def check_model_endpoint():
             try:
                 if str(model.client.base_url).rstrip("/") != endpoint:
                     raise RuntimeError("Telemetry configuration changed the model endpoint")
+                instrumented_request = model.client.request
+                tracing.instrument_openai(model.client)
+                if model.client.request is not instrumented_request:
+                    raise RuntimeError("Repeated instrumentation changed the request wrapper")
+                tracing.configure(enabled=False)
+                plain_request = model.client.request
+                if plain_request is instrumented_request:
+                    raise RuntimeError("Disabling tracing did not remove client instrumentation")
+                tracing.instrument_openai(model.client)
+                if model.client.request is not plain_request:
+                    raise RuntimeError("Disabled registration changed the client")
+                tracing.configure(enabled=True, console=False)
+                tracing.instrument_openai(model.client)
+                if model.client.request is plain_request:
+                    raise RuntimeError("Client was not registered for the new configuration")
             finally:
                 model.client.close()
         finally:
             tracing.configure(enabled=False)
-    print("PASS Tailscale model-client construction; no inference requested")
+    print("PASS Tailscale client, duplicate registration, cleanup and reconfiguration; no inference")
 
 
 def read_archive(directory, run_id):

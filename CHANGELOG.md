@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-09-18 Unreleased (`0916-major-agent-runtime/tasks_observability`)
+
+### Added
+- Per-attempt tool execution tracing (每次工具执行尝试的追踪) [T3.2]
+
 ## 2026-09-17 Unreleased (`0916-major-agent-runtime/tasks_observability`)
 
 ### Added

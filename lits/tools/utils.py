@@ -4,6 +4,7 @@ import socket
 import time
 import urllib.error
 from typing import Optional
+from .. import observability as tracing
 from ..utils import parse_json_string, PREFIX_FOR_ERROR_OBSERVATION
 
 logger = logging.getLogger(__name__)
@@ -334,18 +335,26 @@ def _attempt_tool_call(tool, tool_name: str, action_input):
     ``ToolServerDownError`` when the backend appears unreachable. Factored out
     of ``execute_tool_action`` so the retry loop can re-attempt one call without
     re-parsing the action or re-resolving the tool.
+
+    Enabled tracing records one tool.call span per attempt, with normalized input,
+    returned output, or the exception raised by the tool. Existing classification
+    runs afterward: a returned error string is output, not a raised span exception.
+    Before tool execution, ToolUseTransition.step calls each tool's pre_step(state)
+    hook to prepare its internal state from the current trajectory, when needed.
     """
     try:
         # Handle empty string or non-dict action_input
         if isinstance(action_input, str) and action_input.strip() == "":
             action_input = {}
 
-        if hasattr(tool, "_run"):
-            result = tool._run(**action_input)
-        elif hasattr(tool, "__call__"):
-            result = tool(**action_input)
-        else:
-            raise AttributeError(f"Tool {tool_name} has no callable method.")
+        with tracing.span("tool.call", tool_name=tool_name, tool_input=action_input) as span:
+            if hasattr(tool, "_run"):
+                result = tool._run(**action_input)
+            elif hasattr(tool, "__call__"):
+                result = tool(**action_input)
+            else:
+                raise AttributeError(f"Tool {tool_name} has no callable method.")
+            span.set_attribute("tool_output", result)
     except ToolServerDownError as e:
         # Tool raised the typed signal directly; propagate with tool_name backfilled.
         if e.tool_name is None:

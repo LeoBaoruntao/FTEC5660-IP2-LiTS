@@ -13,6 +13,7 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 - Python logging forwarding to telemetry (Python 日志转发至遥测) [T3.3]
 - Optional BFS spans and configurable snapshots (可选 BFS spans 与可配置快照) [T4.1]
 - Selective offline telemetry archive copying (按 run ID 离线筛选遥测存档) [T5.2]
+- Explicit saved-archive import into Logfire (显式导入已保存的遥测存档至 Logfire) [T5.3]
 
 ## 2026-09-17 Unreleased (`0916-major-agent-runtime/tasks_observability`)
 

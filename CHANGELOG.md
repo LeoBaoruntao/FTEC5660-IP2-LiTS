@@ -11,6 +11,7 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 ### Added
 - Per-attempt tool execution tracing (每次工具执行尝试的追踪) [T3.2]
 - Python logging forwarding to telemetry (Python 日志转发至遥测) [T3.3]
+- Optional BFS spans and configurable snapshots (可选 BFS spans 与可配置快照) [T4.1]
 
 ## 2026-09-17 Unreleased (`0916-major-agent-runtime/tasks_observability`)
 

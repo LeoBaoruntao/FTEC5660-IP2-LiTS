@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-09-19 Unreleased (`0919-major-unified-search-execution2/tasks`)
+
+### Added
+- Importable per-example search and saved-output workflow (可导入的单样本搜索与结果保存流程) [T1.2]
+- Registered search-class lookup (注册搜索类查询) [T1.2]
+
 ## 2026-09-18 Unreleased (`0916-major-agent-runtime/tasks_observability`)
 
 ### Added

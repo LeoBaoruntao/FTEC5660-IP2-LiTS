@@ -42,15 +42,15 @@ class AgentRegistry:
                 ...
     """
 
-    _searches: Dict[str, Callable] = {}
+    _search_classes: Dict[str, Type[BaseTreeSearch]] = {}
     _configs: Dict[str, Type] = {}  # algorithm_name -> Config class
 
     @classmethod
     def register_search(cls, name: str, config_class: Optional[Type] = None) -> Callable:
         """Decorator to register a ``BaseTreeSearch`` subclass.
 
-        The decorated class is wrapped into a callable stored in
-        ``cls._searches[name]``.  The callable accepts the same arguments
+        The decorated class is stored in ``cls._search_classes[name]``.
+        ``get_search()`` creates a callable accepting the same arguments
         as the old function-based interface so that ``main_search.py``
         works unchanged::
 
@@ -75,23 +75,9 @@ class AgentRegistry:
                     f"got {type(target)}"
                 )
 
-            if name in cls._searches:
+            if name in cls._search_classes:
                 logger.warning(f"Search '{name}' already registered, overwriting")
-
-            # Wrap class into a callable matching the old function signature.
-            def wrapper(query, query_idx, config, world_model, policy,
-                        reward_model, bn_evaluator=None, **kwargs):
-                instance = target(
-                    config=config,
-                    world_model=world_model,
-                    policy=policy,
-                    reward_model=reward_model,
-                    bn_evaluator=bn_evaluator,
-                    **kwargs,
-                )
-                return instance.run(query, query_idx)
-
-            cls._searches[name] = wrapper
+            cls._search_classes[name] = target
 
             if config_class is not None:
                 cls._configs[name] = config_class
@@ -102,12 +88,41 @@ class AgentRegistry:
 
     @classmethod
     def get_search(cls, name: str) -> Callable:
-        """Look up a registered search algorithm."""
-        if name not in cls._searches:
-            raise KeyError(
-                f"Search '{name}' not found. Available: {list(cls._searches.keys())}"
+        """Return a construct-and-run callable for the currently registered class.
+
+        Each lookup creates a wrapper; already retrieved wrappers retain their
+        class if the name is subsequently registered again.
+        """
+        target = cls.get_search_class(name)
+
+        # Wrap class into a callable matching the old function signature.
+        def wrapper(query, query_idx, config, world_model, policy,
+                    reward_model, bn_evaluator=None, **kwargs):
+            """Construct the captured search class and return its run result."""
+            instance = target(
+                config=config,
+                world_model=world_model,
+                policy=policy,
+                reward_model=reward_model,
+                bn_evaluator=bn_evaluator,
+                **kwargs,
             )
-        return cls._searches[name]
+            return instance.run(query, query_idx)
+
+        return wrapper
+
+    @classmethod
+    def get_search_class(cls, name: str) -> Type[BaseTreeSearch]:
+        """Return the registered class for separate construction and execution.
+
+        Use this when preparation or construction must precede search timing.
+        Raises KeyError for an unknown name, like get_search().
+        """
+        if name not in cls._search_classes:
+            raise KeyError(
+                f"Search '{name}' not found. Available: {list(cls._search_classes.keys())}"
+            )
+        return cls._search_classes[name]
 
     @classmethod
     def get_config_class(cls, name: str) -> Optional[Type]:
@@ -117,12 +132,12 @@ class AgentRegistry:
     @classmethod
     def list_algorithms(cls) -> List[str]:
         """List all registered algorithm names."""
-        return list(cls._searches.keys())
+        return list(cls._search_classes.keys())
 
     @classmethod
     def clear(cls) -> None:
         """Clear all registrations (for testing)."""
-        cls._searches.clear()
+        cls._search_classes.clear()
         cls._configs.clear()
 
 

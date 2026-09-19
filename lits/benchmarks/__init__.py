@@ -13,6 +13,7 @@ from lits.benchmarks.registry import (
     has_evaluator,
 )
 from lits.benchmarks.runner import run_benchmark
+from lits.benchmarks.search import run_example
 
 __all__ = [
     'BenchmarkRegistry',
@@ -23,4 +24,5 @@ __all__ = [
     'get_evaluator',
     'has_evaluator',
     'run_benchmark',
+    'run_example',
 ]

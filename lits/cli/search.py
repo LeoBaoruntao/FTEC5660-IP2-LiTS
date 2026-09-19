@@ -29,16 +29,14 @@ from huggingface_hub import login
 from lits.lm.base import InferenceLogger, VALID_ROLES_PREFIX, log_final_metrics
 from lits.eval import TreeToJsonl, ResultDictToJsonl
 from lits.eval.llm_call_logger import create_llm_call_logger, load_llm_calls, print_diversity_report
-from lits.agents import AgentRegistry
 from lits.log import setup_logging
 from lits.utils.sys_utils import is_running_in_jupyter
 from lits.benchmarks.registry import infer_task_type, load_dataset, load_resource, has_resource
 from lits.benchmarks import run_benchmark
+from lits.benchmarks.search import run_tree_search, save_terminal_nodes
 from lits.config import ExperimentConfig
 from lits.lm import configure_hf_model_logging, setup_inference_logging, load_models
 from lits.components.factory import create_components, create_bn_evaluator
-from lits.components.base import Transition, Policy, RewardModel
-from lits.components.bn_evaluator import BNEvaluatorBase
 from lits.memory.manager import LiTSMemoryManager
 from lits.memory.backends import Mem0MemoryBackend
 from lits.memory.config import LiTSMemoryConfig
@@ -282,103 +280,6 @@ def _create_mem0_backend(memory_kwargs: Dict, run_logger):
     return Mem0MemoryBackend(memory)
 
 
-def save_terminal_nodes(algo_output, query_or_goals, query_idx, result_dir, run_logger):
-    """Save terminal nodes separately for post-search evaluation.
-
-    Terminal nodes are saved to result_dir/terminal_nodes/terminal_nodes_{query_idx}.json
-    for use by lits-eval to perform answer extraction and voting without needing
-    to reconstruct the full search tree.
-
-    Args:
-        algo_output: MCTSResult or BFSResult containing terminal_nodes_collected
-        query_or_goals: Original query/question
-        query_idx: Query index
-        result_dir: Directory to save results
-        run_logger: Logger instance
-    """
-    terminal_nodes_data = {
-        'terminal_nodes': [node.to_dict() for node in algo_output.terminal_nodes_collected],
-        'query': query_or_goals,
-        'query_idx': query_idx
-    }
-
-    terminal_nodes_dir = Path(result_dir) / "terminal_nodes"
-    terminal_nodes_dir.mkdir(parents=True, exist_ok=True)
-    terminal_nodes_file = terminal_nodes_dir / f"terminal_nodes_{query_idx}.json"
-
-    with open(terminal_nodes_file, 'w') as f:
-        json.dump(terminal_nodes_data, f, indent=2)
-
-    run_logger.debug(f"Saved {len(algo_output.terminal_nodes_collected)} terminal nodes to {terminal_nodes_file}")
-
-
-def run_tree_search(
-    query_or_goals: str, query_idx: int, search_config, world_model: Transition, policy: Policy,
-    evaluator: RewardModel, bn_evaluator: BNEvaluatorBase, result_saver: TreeToJsonl, result_dir: str,
-    result_saver_unselected=None, init_state_kwargs: dict = None,
-    augmentors: list = None,
-    search_algorithm: str = "mcts",
-    run_logger=None,
-):
-    """Run tree search and save results to checkpoint files.
-
-    This function only performs tree search and saves results. Answer extraction
-    and evaluation should be done separately as post-processing using the saved
-    checkpoint files.
-
-    Args:
-        query_or_goals: Question to solve
-        query_idx: Example index for logging/tracking
-        search_config: Search configuration (MCTSConfig or BFSConfig)
-        world_model: World model
-        policy: Policy
-        evaluator: Evaluator/reward model
-        bn_evaluator: BN evaluator (optional)
-        result_saver: Result saver (TreeToJsonl for both MCTS and BFS)
-        result_dir: Directory to save results
-        result_saver_unselected: Unselected paths saver (MCTS only)
-        init_state_kwargs: Optional kwargs passed to world_model.init_state().
-                           For env_grounded tasks, should include 'init_state_str'.
-        augmentors: List of ContextAugmentor instances to wire into the search loop
-                   via setup_augmentors().
-        search_algorithm: Search algorithm to use ("mcts", "bfs", or custom registered algorithm)
-        run_logger: Logger instance (falls back to module logger if None)
-
-    Returns:
-        None (all results saved to checkpoint files)
-    """
-    _logger = run_logger or logger
-
-    # Skip if terminal nodes already exist for this query (resume support)
-    tn_file = Path(result_dir) / "terminal_nodes" / f"terminal_nodes_{query_idx}.json"
-    if tn_file.exists():
-        _logger.info(f"[{query_idx}] terminal_nodes already exists, skipping")
-        return
-
-    # Look up search function from registry (unified invocation)
-    search_fn = AgentRegistry.get_search(search_algorithm)
-
-    search_kwargs = {
-        "init_state_kwargs": init_state_kwargs,
-        "checkpoint_dir": result_dir,
-        "augmentors": augmentors or [],
-    }
-
-    algo_output = search_fn(
-        query_or_goals, query_idx, search_config, world_model,
-        policy, evaluator, bn_evaluator, **search_kwargs
-    )
-
-    # Save unselected paths if available (MCTS-specific attribute)
-    if result_saver_unselected and hasattr(algo_output, 'unselected_terminal_paths_during_simulate'):
-        result_saver_unselected.append_result(algo_output.unselected_terminal_paths_during_simulate)
-
-    # Convert to paths for saving — all results support to_paths()
-    paths = algo_output.to_paths()
-    result_saver.append_result(paths)
-
-    # Save terminal nodes separately for post-search evaluation
-    save_terminal_nodes(algo_output, query_or_goals, query_idx, result_dir, _logger)
 
 
 def main() -> int:

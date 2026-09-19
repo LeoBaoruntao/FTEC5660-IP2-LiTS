@@ -203,6 +203,83 @@ def check_invalid_settings():
     print(f"PASS input validation: {len(cases)} cases")
 
 
+def check_search_example():
+    """Exercise search.py::run_example with real zero-iteration MCTS.
+
+    Bind components exactly as a benchmark caller would. Verify query extraction,
+    saved terminal metadata, preparation on every invocation, and unchanged files
+    on resume. No inference is requested; nonempty answer resolution and memory
+    persistence are not exercised by these zero-iteration searches.
+    """
+    from functools import partial
+    import json
+    from pathlib import Path
+    from tempfile import TemporaryDirectory
+    from lits import get_lm
+    from lits.agents import AgentRegistry, MCTSConfig, MCTSSearch
+    from lits.benchmarks import run_example
+    from lits.components.policy.concat import ConcatPolicy
+    from lits.components.reward.generative import GenerativePRM
+    from lits.components.transition.concat import ConcatTransition
+    from lits.eval import TreeToJsonl
+
+    model = get_lm("openai/local-instruct", base_url="http://localhost:8080/v1", api_key="no-key")
+    examples = [
+        ("language_grounded", {"question": "What is 1 + 1?"}, "What is 1 + 1?"),
+        ("env_grounded", {"query_or_goals": "Goal text", "question": "Fallback"}, "Goal text"),
+        ("env_grounded", {"question": "Fallback"}, "Fallback"),
+    ]
+    prepared = []
+
+    def prepare(value):
+        """Record original examples received before new or resumed searches."""
+        prepared.append(value)
+
+    config = MCTSConfig(n_iters=0, add_continuation=False)
+    kwargs = dict(
+        search_algorithm="mcts", search_config=config,
+        world_model=ConcatTransition(base_model=model, terminate_constraints=["step_signal"]),
+        policy=ConcatPolicy(base_model=model, task_name="math500"),
+        evaluator=GenerativePRM(base_model=model, task_name="math500"),
+        prepare_tool_state=prepare,
+    )
+    with TemporaryDirectory(prefix="lits-run-example-") as directory:
+        for index, (task_type, example, expected_query) in enumerate(examples):
+            result_dir = Path(directory) / str(index)
+            result_dir.mkdir()
+            execute = partial(
+                run_example, task_type=task_type, result_dir=str(result_dir),
+                result_saver=TreeToJsonl(run_id="", root_dir=str(result_dir), override=False),
+                **kwargs,
+            )
+            if execute(example, index, 0) is not None:
+                raise RuntimeError("run_example must retain its file-based return behavior")
+            terminal_file = result_dir / "terminal_nodes" / f"terminal_nodes_{index}.json"
+            saved = json.loads(terminal_file.read_text())
+            if saved != {"query": expected_query, "query_idx": index, "terminal_nodes": []}:
+                raise RuntimeError(f"Unexpected saved output: {saved}")
+            before = {p: (p.read_bytes(), p.stat().st_mtime_ns)
+                      for p in result_dir.rglob("*") if p.is_file()}
+            execute(example, index, 0)
+            after = {p: (p.read_bytes(), p.stat().st_mtime_ns)
+                     for p in result_dir.rglob("*") if p.is_file()}
+            if before != after:
+                raise RuntimeError("Resumed example rewrote saved output")
+            if len(prepared) != 2 * (index + 1) or any(p is not example for p in prepared[-2:]):
+                raise RuntimeError("Preparation must receive the original example once per call")
+        breakpoint()  # inspect: saved, prepared, result_dir
+    if AgentRegistry.get_search_class("mcts") is not MCTSSearch or config.n_iters != 0:
+        raise RuntimeError("Registry lookup or caller configuration changed")
+    for lookup in (AgentRegistry.get_search, AgentRegistry.get_search_class):
+        try:
+            lookup("unregistered_search_check")
+        except KeyError:
+            pass
+        else:
+            raise RuntimeError("Unknown search name was accepted")
+    print("PASS extracted run_example: 3 query cases, saved outputs, preparation, unchanged resume")
+
+
 if __name__ == "__main__":
     check_order()
     check_loaded_dataset()
@@ -210,3 +287,4 @@ if __name__ == "__main__":
     check_resume_and_errors()
     check_propagation()
     check_invalid_settings()
+    check_search_example()

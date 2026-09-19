@@ -11,6 +11,8 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 ### Added
 - Importable per-example search and saved-output workflow (可导入的单样本搜索与结果保存流程) [T1.2]
 - Registered search-class lookup (注册搜索类查询) [T1.2]
+- Search-result return from shared execution (共享执行返回搜索结果) [T1.5.1]
+- Custom search arguments in shared execution (共享执行支持自定义搜索参数) [T1.5.2]
 
 ### Changed
 - CLI delegation to shared per-example execution (CLI 接入共享单样本执行函数) [T1.3]

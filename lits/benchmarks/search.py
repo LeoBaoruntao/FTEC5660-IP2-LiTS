@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
+    from lits.agents.tree.search_base import SearchResult
     from lits.components.base import Transition, Policy, RewardModel
     from lits.components.bn_evaluator import BNEvaluatorBase
     from lits.eval import TreeToJsonl
@@ -23,8 +24,8 @@ def run_example(
     search_algorithm: str = "mcts", bn_evaluator: BNEvaluatorBase = None,
     result_saver_unselected=None, augmentors: list = None,
     prepare_tool_state: Callable | None = None, resolve_answer: Callable | None = None,
-    memory_manager=None, run_logger=None,
-) -> None:
+    memory_manager=None, run_logger=None, search_kwargs: dict | None = None,
+) -> SearchResult | None:
     """Run preparation, search, answer resolution, and memory saving.
 
     The CLI uses one repetition. Resume checking stays inside run_tree_search:
@@ -52,9 +53,13 @@ def run_example(
             resolved answers replace saved answers only for newly saved terminals.
         memory_manager: Optional manager whose backend.save writes a snapshot.
         run_logger: Optional logger; defaults to this module's logger.
+        search_kwargs: Extra registered-search constructor arguments, such as
+            beam_selector, frontier_selector, or selection_events. Forwarded
+            without copying their values; cannot replace explicit search inputs.
 
     Returns:
-        None. Results are saved using the existing search/terminal writers.
+        The newly executed SearchResult, after saving; None when search is skipped.
+        Answer resolution updates saved terminal answers only, not this object.
         Terminal-file existence is the current resume rule, not a completeness
         guarantee. No correctness judging or experiment metrics are added here.
 
@@ -75,7 +80,7 @@ def run_example(
     tn_file = Path(result_dir) / "terminal_nodes" / f"terminal_nodes_{query_idx}.json"
     tn_existed_before = tn_file.exists()
 
-    run_tree_search(
+    algo_output = run_tree_search(
         query_or_goals=query_or_goals,
         query_idx=query_idx,
         search_config=search_config,
@@ -90,6 +95,7 @@ def run_example(
         augmentors=augmentors,
         search_algorithm=search_algorithm,
         run_logger=run_logger,
+        search_kwargs=search_kwargs,
     )
 
     # Skip resolve on resume (search was a no-op). See docs/cli/search.md.
@@ -134,6 +140,7 @@ def run_example(
             memory_manager.backend.save(memory_dir)
         except Exception as e:
             run_logger.warning(f"[{query_idx}] Failed to save memory: {e}")
+    return algo_output
 
 
 def save_terminal_nodes(algo_output, query_or_goals, query_idx, result_dir, run_logger):
@@ -173,7 +180,8 @@ def run_tree_search(
     augmentors: list = None,
     search_algorithm: str = "mcts",
     run_logger=None,
-):
+    search_kwargs: dict | None = None,
+) -> SearchResult | None:
     """Run tree search and save results to checkpoint files.
 
     This function only performs tree search and saves results. Answer extraction
@@ -197,9 +205,15 @@ def run_tree_search(
                    via setup_augmentors().
         search_algorithm: Search algorithm to use ("mcts", "bfs", or custom registered algorithm)
         run_logger: Logger instance (falls back to module logger if None)
+        search_kwargs: Additional constructor arguments. The mapping is not mutated
+            and its values retain identity. Conflicts with explicit inputs raise
+            ValueError before construction; unsupported keys follow the registered
+            constructor's validation. Skipped searches do not construct anything.
 
     Returns:
-        None (all results saved to checkpoint files)
+        The newly executed SearchResult after writing outputs, or None when an
+        existing terminal file causes search to be skipped. Saving errors still
+        propagate; returning a result does not certify successful execution.
     """
     # Load agents only when executing, not when importing benchmark registration.
     from lits.agents import AgentRegistry
@@ -215,15 +229,24 @@ def run_tree_search(
     # Look up search function from registry (unified invocation)
     search_fn = AgentRegistry.get_search(search_algorithm)
 
-    search_kwargs = {
+    constructor_kwargs = {
+        "config": search_config,
+        "world_model": world_model,
+        "policy": policy,
+        "reward_model": evaluator,
+        "bn_evaluator": bn_evaluator,
         "init_state_kwargs": init_state_kwargs,
         "checkpoint_dir": result_dir,
         "augmentors": augmentors or [],
     }
+    extra = dict(search_kwargs or {})
+    conflicts = extra.keys() & (constructor_kwargs.keys() | {"query", "query_idx"})
+    if conflicts:
+        raise ValueError(f"search_kwargs duplicates explicit inputs: {sorted(conflicts)}")
+    constructor_kwargs.update(extra)
 
     algo_output = search_fn(
-        query_or_goals, query_idx, search_config, world_model,
-        policy, evaluator, bn_evaluator, **search_kwargs
+        query_or_goals, query_idx, **constructor_kwargs
     )
 
     # Save unselected paths if available (MCTS-specific attribute)
@@ -236,3 +259,4 @@ def run_tree_search(
 
     # Save terminal nodes separately for post-search evaluation
     save_terminal_nodes(algo_output, query_or_goals, query_idx, result_dir, _logger)
+    return algo_output

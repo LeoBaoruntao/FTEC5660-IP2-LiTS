@@ -207,7 +207,7 @@ def check_search_example():
     """Exercise search.py::run_example with real zero-iteration MCTS.
 
     Bind components exactly as a benchmark caller would. Verify query extraction,
-    saved terminal metadata, preparation on every invocation, and unchanged files
+    returned results, saved terminal metadata, preparation on every invocation, and unchanged files
     on resume. No inference is requested; nonempty answer resolution and memory
     persistence are not exercised by these zero-iteration searches.
     """
@@ -252,15 +252,17 @@ def check_search_example():
                 result_saver=TreeToJsonl(run_id="", root_dir=str(result_dir), override=False),
                 **kwargs,
             )
-            if execute(example, index, 0) is not None:
-                raise RuntimeError("run_example must retain its file-based return behavior")
+            result = execute(example, index, 0)
+            if result is None or result.root.action != expected_query or result.terminal_nodes_collected:
+                raise RuntimeError("New search did not return its zero-iteration result")
             terminal_file = result_dir / "terminal_nodes" / f"terminal_nodes_{index}.json"
             saved = json.loads(terminal_file.read_text())
             if saved != {"query": expected_query, "query_idx": index, "terminal_nodes": []}:
                 raise RuntimeError(f"Unexpected saved output: {saved}")
             before = {p: (p.read_bytes(), p.stat().st_mtime_ns)
                       for p in result_dir.rglob("*") if p.is_file()}
-            execute(example, index, 0)
+            if execute(example, index, 0) is not None:
+                raise RuntimeError("Skipped search must return None, not a new result")
             after = {p: (p.read_bytes(), p.stat().st_mtime_ns)
                      for p in result_dir.rglob("*") if p.is_file()}
             if before != after:

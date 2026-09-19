@@ -20,6 +20,7 @@ os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 import time
 import json
 import logging
+from functools import partial
 from pathlib import Path
 from typing import Optional, Dict
 
@@ -32,7 +33,7 @@ from lits.eval.llm_call_logger import create_llm_call_logger, load_llm_calls, pr
 from lits.log import setup_logging
 from lits.utils.sys_utils import is_running_in_jupyter
 from lits.benchmarks.registry import infer_task_type, load_dataset, load_resource, has_resource
-from lits.benchmarks import run_benchmark
+from lits.benchmarks import run_benchmark, run_example
 from lits.benchmarks.search import run_tree_search, save_terminal_nodes
 from lits.config import ExperimentConfig
 from lits.lm import configure_hf_model_logging, setup_inference_logging, load_models
@@ -569,86 +570,27 @@ def main() -> int:
     prepare_tool_state = tool_use_spec.get("prepare_tool_state") if tool_use_spec else None
     resolve_answer = tool_use_spec.get("resolve_answer") if tool_use_spec else None
 
-    def run_example(example, query_idx, repetition_index):
-        """Run the CLI's preparation, search, answer resolution, and memory saving.
-
-        The CLI uses one repetition. Resume checking stays inside run_tree_search:
-        resource preparation and memory saving still run for completed examples,
-        while answer resolution runs only for newly saved terminal files.
-        """
-        if task_type == "env_grounded":
-            query_or_goals = example.get("query_or_goals", example.get("question", ""))
-        else:
-            query_or_goals = example["question"]
-
-        if prepare_tool_state is not None:
-            prepare_tool_state(example)
-
-        tn_file = Path(result_dir) / "terminal_nodes" / f"terminal_nodes_{query_idx}.json"
-        tn_existed_before = tn_file.exists()
-
-        run_tree_search(
-            query_or_goals=query_or_goals,
-            query_idx=query_idx,
-            search_config=search_config,
-            world_model=world_model,
-            policy=policy,
-            evaluator=evaluator,
-            bn_evaluator=bn_evaluator,
-            result_saver=result_saver,
-            result_dir=result_dir,
-            result_saver_unselected=result_saver_unselected,
-            init_state_kwargs=example,
-            augmentors=augmentors,
-            search_algorithm=config.search_algorithm,
-            run_logger=run_logger,
-        )
-
-        # Skip resolve on resume (search was a no-op). See docs/cli/search.md.
-        if resolve_answer is not None and not tn_existed_before:
-            tn_file = Path(result_dir) / "terminal_nodes" / f"terminal_nodes_{query_idx}.json"
-            if tn_file.exists():
-                with open(tn_file) as f:
-                    tn_data = json.load(f)
-                modified = False
-                for node in tn_data.get("terminal_nodes", []):
-                    state_data = node.get("state", {})
-                    # state can be a dict {"__type__": ..., "steps": [...]} or a list
-                    if isinstance(state_data, dict):
-                        state_steps = state_data.get("steps", [])
-                    else:
-                        state_steps = state_data
-                    if state_steps:
-                        last_step = state_steps[-1]
-                        raw = last_step.get("answer")
-                        if raw:
-                            # Deserialize to ToolUseState so resolve_answer
-                            # always receives the same type as chain.py
-                            from lits.structures.tool_use import ToolUseState
-                            tool_state = ToolUseState.from_dict({"steps": state_steps})
-                            resolved = resolve_answer(raw, tool_state)
-                            if resolved != raw:
-                                last_step["answer"] = resolved
-                                # Also update node.step.answer (eval reads this first)
-                                node_step = node.get("step")
-                                if isinstance(node_step, dict) and "answer" in node_step:
-                                    node_step["answer"] = resolved
-                                modified = True
-                if modified:
-                    with open(tn_file, "w") as f:
-                        json.dump(tn_data, f, indent=2)
-                    run_logger.info(f"[{query_idx}] Resolved answers in terminal nodes")
-
-        # Save memory backend per-example (facts persist for inspection/debugging)
-        if memory_manager is not None and hasattr(memory_manager, 'backend'):
-            memory_dir = os.path.join(result_dir, "memory", str(query_idx))
-            try:
-                memory_manager.backend.save(memory_dir)
-            except Exception as e:
-                run_logger.warning(f"[{query_idx}] Failed to save memory: {e}")
+    execute_example = partial(
+        run_example,
+        task_type=task_type,
+        search_config=search_config,
+        world_model=world_model,
+        policy=policy,
+        evaluator=evaluator,
+        bn_evaluator=bn_evaluator,
+        result_saver=result_saver,
+        result_dir=result_dir,
+        result_saver_unselected=result_saver_unselected,
+        augmentors=augmentors,
+        search_algorithm=config.search_algorithm,
+        prepare_tool_state=prepare_tool_state,
+        resolve_answer=resolve_answer,
+        memory_manager=memory_manager,
+        run_logger=run_logger,
+    )
 
     run_benchmark(
-        config.dataset, run_example, dataset=full_dataset,
+        config.dataset, execute_example, dataset=full_dataset,
         eval_idx=config.eval_idx, offset=config.offset, limit=config.limit,
     )
 

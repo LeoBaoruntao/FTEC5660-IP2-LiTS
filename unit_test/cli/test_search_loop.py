@@ -3,37 +3,53 @@
 Run: ``PYTHONBREAKPOINT=0 python -m unit_test.cli.test_search_loop``.
 Calls ``search.py::main`` with a registered local cohort, real LiTS components,
 and the configured OpenAI-compatible model client. Zero MCTS iterations avoid
-generation. A recording wrapper delegates to the real ``search.py::run_tree_search``;
+generation. A recording wrapper delegates to the real benchmark
+``search.py::run_tree_search``;
 no models or search implementations are replaced. Results remain in a fresh directory.
-Tool preparation, answer resolution, and nonzero-iteration search are not tested here.
+Registered preparation is counted on fresh and resumed runs. Answer resolution,
+memory saving, and nonzero-iteration search are not tested here.
 """
 
 import json
+from functools import partial
 import os
 from pathlib import Path
 import sys
 import tempfile
 
-from lits.benchmarks.registry import register_dataset
+from lits.benchmarks.registry import register_dataset, register_resource
+from lits.benchmarks import search as benchmark_search
 from lits.cli import search
 
 
 EXAMPLES = [{"question": f"What is {i} + 1?", "answer": str(i + 1)} for i in range(4)]
 LOADS = []
+PREPARED = []
 
 
 @register_dataset("cli_loop_check", task_type="language_grounded")
+@register_dataset("cli_loop_preparation_check", task_type="language_grounded")
 def load_cohort():
     """Return a small local cohort with distinguishable questions and original indices."""
     LOADS.append("load")
     return EXAMPLES
 
 
-def run_cli(output_dir, overrides):
+@register_resource("cli_loop_preparation_check")
+def load_preparation_resource():
+    """Provide an observable preparation callback through the actual registry."""
+    def prepare(example):
+        """Record the original example supplied by shared per-example execution."""
+        PREPARED.append(example)
+    return {"prepare_tool_state": prepare}
+
+
+def run_cli(output_dir, overrides, dataset_name="cli_loop_check"):
     """Record real CLI dispatch; restore argv and the delegating wrapper afterward."""
-    original_run, original_argv = search.run_tree_search, sys.argv
+    original_run, original_argv = benchmark_search.run_tree_search, sys.argv
     original_benchmark = search.run_benchmark
     loads_before = len(LOADS)
+    prepared_before = len(PREPARED)
     benchmark_calls = []
     observed = []
 
@@ -41,6 +57,9 @@ def run_cli(output_dir, overrides):
         """Verify delegation uses the full loaded dataset and keeps CLI resume handling."""
         if kwargs.get("dataset") is not EXAMPLES or kwargs.get("is_complete") is not None:
             raise RuntimeError("CLI must reuse its loaded dataset and internal resume handling")
+        execute = args[1]
+        if not isinstance(execute, partial) or execute.func is not benchmark_search.run_example:
+            raise RuntimeError("CLI must bind the shared run_example directly")
         benchmark_calls.append(args[0])
         return original_benchmark(*args, **kwargs)
 
@@ -54,10 +73,10 @@ def run_cli(output_dir, overrides):
         observed.append(index)
         return original_run(*args, **kwargs)
 
-    search.run_tree_search = record_search
+    benchmark_search.run_tree_search = record_search
     search.run_benchmark = record_benchmark
     sys.argv = [
-        "lits-search", "--dataset", "cli_loop_check",
+        "lits-search", "--dataset", dataset_name,
         "--policy-model", "openai/local-instruct", "--output-dir", str(output_dir),
         "--search-arg", "n_iters=0", "add_continuation=false",
         "terminate_constraints=[step_signal]", "--cfg", *overrides,
@@ -65,12 +84,31 @@ def run_cli(output_dir, overrides):
     try:
         if search.main() != 0:
             raise RuntimeError("CLI returned a nonzero exit code")
-        if benchmark_calls != ["cli_loop_check"] or LOADS[loads_before:] != ["load"]:
+        if benchmark_calls != [dataset_name] or LOADS[loads_before:] != ["load"]:
             raise RuntimeError("CLI did not delegate once or loaded the dataset more than once")
+        prepared = PREPARED[prepared_before:]
+        if dataset_name == "cli_loop_preparation_check":
+            if len(prepared) != len(observed) or any(
+                example is not EXAMPLES[idx] for example, idx in zip(prepared, observed)
+            ):
+                raise RuntimeError("Preparation must run once per dispatched example, including resume")
+        elif prepared:
+            raise RuntimeError("Preparation ran without a configured resource")
     finally:
-        search.run_tree_search, sys.argv = original_run, original_argv
+        benchmark_search.run_tree_search, sys.argv = original_run, original_argv
         search.run_benchmark = original_benchmark
     return observed
+
+
+def check_resource_preparation(root):
+    """Run registered preparation once per example on both fresh and resumed runs."""
+    output_dir = root / "preparation"
+    overrides = ["eval_idx=[2,0]"]
+    for _ in range(2):
+        observed = run_cli(output_dir, overrides, "cli_loop_preparation_check")
+        if observed != [2, 0]:
+            raise RuntimeError(f"Unexpected preparation cohort: {observed}")
+    print("PASS registered preparation: once per example on fresh and resumed runs")
 
 
 def check_dataset_loop(root):
@@ -117,6 +155,7 @@ def main():
     os.environ.update(settings)
     try:
         check_dataset_loop(root)
+        check_resource_preparation(root)
     finally:
         for key, value in previous.items():
             if value is None:

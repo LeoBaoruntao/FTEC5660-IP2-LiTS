@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+from contextlib import nullcontext
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
@@ -25,6 +26,7 @@ def run_example(
     result_saver_unselected=None, augmentors: list = None,
     prepare_tool_state: Callable | None = None, resolve_answer: Callable | None = None,
     memory_manager=None, run_logger=None, search_kwargs: dict | None = None,
+    search_context: Callable | None = None,
 ) -> SearchResult | None:
     """Run preparation, search, answer resolution, and memory saving.
 
@@ -56,6 +58,8 @@ def run_example(
         search_kwargs: Extra registered-search constructor arguments, such as
             beam_selector, frontier_selector, or selection_events. Forwarded
             without copying their values; cannot replace explicit search inputs.
+        search_context: Optional zero-argument context-manager factory wrapping
+            only search.run(); see run_tree_search. Not entered on resume.
 
     Returns:
         The newly executed SearchResult, after saving; None when search is skipped.
@@ -67,6 +71,25 @@ def run_example(
     callback accepted by runner.py::run_benchmark. Model/resource construction
     remains outside this function. Memory-save errors are logged; other uncaught
     errors propagate to the caller.
+
+    Saving and search-only timing:
+        This function does not measure time. The timing column describes a timer
+        around BaseTreeSearch.run(), not around this entire workflow. References
+        use symbols/calls so they remain useful when source lines move.
+
+        Operation                 Save?             Timed?  Code reference
+        ------------------------  ----------------  ------  -----------------------------
+        Internal checkpoints      When configured   Yes     search_base.py::save_checkpoint
+        Internal full-tree save   When invoked      Yes     search_base.py::save_full_tree
+        Final paths               Keep              No      run_tree_search: result_saver.append_result
+        Terminal nodes            Keep              No      save_terminal_nodes
+        Unselected rollout paths  Optional writer   No      run_tree_search: result_saver_unselected
+        Memory snapshot           Optional manager  No      run_example: memory_manager.backend.save
+        Answer resolution         Saved if changed  No      run_example: resolve_answer(raw, tool_state)
+        Correctness evaluation    External caller   No      Not called by this module
+
+        Internal writes remain part of run() wall time; final paths and terminal
+        files are written after it returns. Optional writers/managers can be None.
     """
     run_logger = run_logger or logger
     if task_type == "env_grounded":
@@ -96,6 +119,7 @@ def run_example(
         search_algorithm=search_algorithm,
         run_logger=run_logger,
         search_kwargs=search_kwargs,
+        search_context=search_context,
     )
 
     # Skip resolve on resume (search was a no-op). See docs/cli/search.md.
@@ -181,6 +205,7 @@ def run_tree_search(
     search_algorithm: str = "mcts",
     run_logger=None,
     search_kwargs: dict | None = None,
+    search_context: Callable | None = None,
 ) -> SearchResult | None:
     """Run tree search and save results to checkpoint files.
 
@@ -209,6 +234,10 @@ def run_tree_search(
             and its values retain identity. Conflicts with explicit inputs raise
             ValueError before construction; unsupported keys follow the registered
             constructor's validation. Skipped searches do not construct anything.
+        search_context: Optional zero-argument factory returning a context manager.
+            Entered after construction, around search.run() only, and exited before
+            final serialization. Allows caller-owned accounting without importing
+            its metrics here. Not invoked on resume; exceptions propagate normally.
 
     Returns:
         The newly executed SearchResult after writing outputs, or None when an
@@ -226,8 +255,8 @@ def run_tree_search(
         _logger.info(f"[{query_idx}] terminal_nodes already exists, skipping")
         return
 
-    # Look up search function from registry (unified invocation)
-    search_fn = AgentRegistry.get_search(search_algorithm)
+    # Construct separately so caller accounting excludes constructor work.
+    search_class = AgentRegistry.get_search_class(search_algorithm)
 
     constructor_kwargs = {
         "config": search_config,
@@ -245,9 +274,9 @@ def run_tree_search(
         raise ValueError(f"search_kwargs duplicates explicit inputs: {sorted(conflicts)}")
     constructor_kwargs.update(extra)
 
-    algo_output = search_fn(
-        query_or_goals, query_idx, **constructor_kwargs
-    )
+    search = search_class(**constructor_kwargs)
+    with search_context() if search_context is not None else nullcontext():
+        algo_output = search.run(query_or_goals, query_idx)
 
     # Save unselected paths if available (MCTS-specific attribute)
     if result_saver_unselected and hasattr(algo_output, 'unselected_terminal_paths_during_simulate'):

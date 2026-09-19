@@ -13,6 +13,7 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 - Registered search-class lookup (注册搜索类查询) [T1.2]
 - Search-result return from shared execution (共享执行返回搜索结果) [T1.5.1]
 - Custom search arguments in shared execution (共享执行支持自定义搜索参数) [T1.5.2]
+- Caller-owned search measurement context (调用方管理的搜索统计上下文) [T1.5.4]
 
 ### Changed
 - CLI delegation to shared per-example execution (CLI 接入共享单样本执行函数) [T1.3]

@@ -467,7 +467,18 @@ def check_result_terminals():
                 raise RuntimeError("Result validation mutated the input collection or tree")
             checks.append({"case": f"{result_class.__name__}_{name}", "passed": True})
             print(f"PASS {result_class.__name__}/{name}")
-    breakpoint()  # inspect: checks, root, cutoff; cutoff remains in the tree
+    bfs_result = BFSResult(
+        root=root, terminal_nodes_collected=[complete, other],
+        buckets_with_terminal={1: [other, cutoff, complete], 0: [root]},
+    )
+    paths = bfs_result.to_paths()
+    expected = [[root], [root, other], [root, cutoff], [root, complete]]
+    if paths != expected or BFSResult(root=root).to_paths() != []:
+        raise RuntimeError("BFS path conversion lost bucket entries or changed their order")
+    if cutoff.is_terminal or bfs_result.terminal_nodes_collected != [complete, other]:
+        raise RuntimeError("BFS path conversion changed terminal eligibility")
+    print("PASS BFS path conversion: depth order, cutoff/internal nodes, empty buckets")
+    breakpoint()  # inspect: checks, root, cutoff, paths; cutoff remains in the tree
     return checks
 
 

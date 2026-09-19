@@ -19,6 +19,22 @@ if TYPE_CHECKING:
     from lits.agents.tree.node import SearchNode
 
 
+def buckets_to_paths(buckets_with_terminal: dict[int, list[SearchNode]]) -> list[list[SearchNode]]:
+    """Return one root-to-node path per BFS bucket entry, in ascending depth order.
+
+    Preserve node order within each bucket and retain internal/cutoff nodes, not
+    just terminals. Shared ancestors therefore occur in multiple returned paths.
+    Node objects are reused, not copied; an empty mapping returns an empty list.
+
+    Example: {0: [root], 1: [child]} returns [[root], [root, child]].
+    """
+    return [
+        node.get_path()
+        for _, nodes in sorted(buckets_with_terminal.items())
+        for node in nodes
+    ]
+
+
 def _format_action(action, max_len: int = 60) -> str:
     """Format a node's action for compact display.
 

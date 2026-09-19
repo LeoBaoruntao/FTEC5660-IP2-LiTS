@@ -18,6 +18,9 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 ### Changed
 - CLI delegation to shared per-example execution (CLI 接入共享单样本执行函数) [T1.3]
 
+### Fixed
+- Missing BFS bucket-to-path serialization helper (BFS 分层节点转路径函数缺失) [T1.6]
+
 ## 2026-09-18 Unreleased (`0916-major-agent-runtime/tasks_observability`)
 
 ### Added

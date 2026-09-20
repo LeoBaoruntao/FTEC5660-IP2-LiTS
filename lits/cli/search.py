@@ -447,10 +447,6 @@ def main() -> int:
 
     # Create SearchConfig for the search algorithm (pure search params only)
     search_config = config.create_search_config()
-    if cli_args.import_modules:
-        search_config.import_modules = cli_args.import_modules
-    if dataset_kwargs:
-        search_config.dataset_kwargs = dataset_kwargs
 
     # Login to Hugging Face (only if HF_TOKEN is set)
     hf_token = os.getenv("HF_TOKEN")
@@ -573,7 +569,6 @@ def main() -> int:
         run_example,
         experiment_config=config,
         task_type=task_type,
-        search_config=search_config,
         world_model=world_model,
         policy=policy,
         evaluator=evaluator,
@@ -582,7 +577,6 @@ def main() -> int:
         result_dir=result_dir,
         result_saver_unselected=result_saver_unselected,
         augmentors=augmentors,
-        search_algorithm=config.search_algorithm,
         prepare_tool_state=prepare_tool_state,
         resolve_answer=resolve_answer,
         memory_manager=memory_manager,

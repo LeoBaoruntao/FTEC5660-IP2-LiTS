@@ -20,14 +20,13 @@ logger = logging.getLogger(__name__)
 
 def run_example(
     example: dict, query_idx: int, repetition_index: int, *,
-    task_type: str, search_config, world_model: Transition, policy: Policy,
+    task_type: str, experiment_config, world_model: Transition, policy: Policy,
     evaluator: RewardModel, result_saver: TreeToJsonl, result_dir: str,
-    search_algorithm: str = "mcts", bn_evaluator: BNEvaluatorBase = None,
+    bn_evaluator: BNEvaluatorBase = None,
     result_saver_unselected=None, augmentors: list = None,
     prepare_tool_state: Callable | None = None, resolve_answer: Callable | None = None,
     memory_manager=None, run_logger=None, search_kwargs: dict | None = None,
     search_context: Callable | None = None,
-    experiment_config=None,
 ) -> SearchResult | None:
     """Run preparation, search, answer resolution, and memory saving.
 
@@ -44,12 +43,11 @@ def run_example(
             repetition to prevent one repetition resuming another's output.
         task_type: Use query_or_goals (falling back to question) for env_grounded;
             otherwise use question.
-        search_config, world_model, policy, evaluator, bn_evaluator: Caller-built
-            configuration and components forwarded to the registered search.
+        world_model, policy, evaluator, bn_evaluator: Caller-built components
+            forwarded to the registered search.
         result_saver, result_saver_unselected: Existing path writers; the second
             optionally saves unselected MCTS simulation paths.
         result_dir: Root for checkpoints, terminal files, and memory snapshots.
-        search_algorithm: Name registered with AgentRegistry.
         augmentors: Optional search augmentors.
         prepare_tool_state: Resource callback accepting the original example.
         resolve_answer: Resource callback accepting raw answer and ToolUseState;
@@ -61,8 +59,9 @@ def run_example(
             without copying their values; cannot replace explicit search inputs.
         search_context: Optional zero-argument context-manager factory wrapping
             only search.run(); see run_tree_search. Not entered on resume.
-        experiment_config: Optional full ExperimentConfig forwarded for config.json
-            saving and compatibility checking before search/resume.
+        experiment_config: Full ExperimentConfig supplying the registered algorithm
+            and create_search_config(). Also saved and checked before search/resume.
+            Matching config.json files are unchanged; conflicts raise ValueError.
 
     Returns:
         The newly executed SearchResult, after saving; None when search is skipped.
@@ -95,6 +94,7 @@ def run_example(
         files are written after it returns. Optional writers/managers can be None.
     """
     run_logger = run_logger or logger
+    experiment_config.save_config(result_dir, overwrite=False)
     if task_type == "env_grounded":
         query_or_goals = example.get("query_or_goals", example.get("question", ""))
     else:
@@ -109,7 +109,7 @@ def run_example(
     algo_output = run_tree_search(
         query_or_goals=query_or_goals,
         query_idx=query_idx,
-        search_config=search_config,
+        search_config=experiment_config.create_search_config(),
         world_model=world_model,
         policy=policy,
         evaluator=evaluator,
@@ -119,11 +119,10 @@ def run_example(
         result_saver_unselected=result_saver_unselected,
         init_state_kwargs=example,
         augmentors=augmentors,
-        search_algorithm=search_algorithm,
+        search_algorithm=experiment_config.search_algorithm,
         run_logger=run_logger,
         search_kwargs=search_kwargs,
         search_context=search_context,
-        experiment_config=experiment_config,
     )
 
     # Skip resolve on resume (search was a no-op). See docs/cli/search.md.
@@ -210,13 +209,13 @@ def run_tree_search(
     run_logger=None,
     search_kwargs: dict | None = None,
     search_context: Callable | None = None,
-    experiment_config=None,
 ) -> SearchResult | None:
     """Run tree search and save results to checkpoint files.
 
     This function only performs tree search and saves results. Answer extraction
     and evaluation should be done separately as post-processing using the saved
     checkpoint files.
+    The caller saves the full experiment configuration before invoking this function.
 
     Args:
         query_or_goals: Question to solve
@@ -243,11 +242,6 @@ def run_tree_search(
             Entered after construction, around search.run() only, and exited before
             final serialization. Allows caller-owned accounting without importing
             its metrics here. Not invoked on resume; exceptions propagate normally.
-        experiment_config: Full ExperimentConfig, distinct from search_config.
-            Save via its existing save_config() before search. An existing config
-            must match its JSON representation; mismatches raise ValueError without
-            overwriting it, even on resume. None preserves legacy callers without
-            a full configuration. Empty dataset loops do not call this function.
 
     Returns:
         The newly executed SearchResult after writing outputs, or None when an
@@ -258,9 +252,6 @@ def run_tree_search(
     from lits.agents import AgentRegistry
 
     _logger = run_logger or logger
-
-    if experiment_config is not None:
-        experiment_config.save_config(result_dir, overwrite=False)
 
     # Skip if terminal nodes already exist for this query (resume support)
     tn_file = Path(result_dir) / "terminal_nodes" / f"terminal_nodes_{query_idx}.json"

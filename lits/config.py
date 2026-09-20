@@ -461,6 +461,7 @@ class ExperimentConfig:
         
         Note: SearchConfig only contains search algorithm parameters. Component args
         and experiment metadata are saved separately via ExperimentConfig.save_config().
+        Import modules and dataset settings are also attached for reconstruction.
 
         Shared defaults unsupported by the selected constructor are omitted.
         Explicit search_args remain subject to constructor validation; unsupported
@@ -491,7 +492,12 @@ class ExperimentConfig:
         config_dict["dataset"] = self.dataset
         config_dict["output_dir"] = self.output_dir
         
-        return config_cls(**config_dict)
+        search_config = config_cls(**config_dict)
+        if self.import_modules:
+            search_config.import_modules = self.import_modules
+        if self.dataset_kwargs:
+            search_config.dataset_kwargs = self.dataset_kwargs
+        return search_config
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert ExperimentConfig to a dictionary for serialization.

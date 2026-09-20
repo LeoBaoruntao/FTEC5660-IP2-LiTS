@@ -216,7 +216,8 @@ def check_search_example():
     from pathlib import Path
     from tempfile import TemporaryDirectory
     from lits import get_lm
-    from lits.agents import AgentRegistry, MCTSConfig, MCTSSearch
+    from lits.agents import AgentRegistry, MCTSSearch
+    from lits.config import ExperimentConfig
     from lits.benchmarks import run_example
     from lits.components.policy.concat import ConcatPolicy
     from lits.components.reward.generative import GenerativePRM
@@ -235,9 +236,17 @@ def check_search_example():
         """Record original examples received before new or resumed searches."""
         prepared.append(value)
 
-    config = MCTSConfig(n_iters=0, add_continuation=False)
+    config = ExperimentConfig(
+        dataset="math500", policy_model_name="openai/local-instruct",
+        eval_model_name="openai/local-instruct", search_algorithm="mcts",
+        search_args={"n_iters": 0, "add_continuation": False},
+        import_modules=["lits.benchmarks"], dataset_kwargs={"subset": "test"},
+    )
+    derived = config.create_search_config()
+    if derived.import_modules != config.import_modules or derived.dataset_kwargs != config.dataset_kwargs:
+        raise RuntimeError("Derived search configuration lost reconstruction metadata")
     kwargs = dict(
-        search_algorithm="mcts", search_config=config,
+        experiment_config=config,
         world_model=ConcatTransition(base_model=model, terminate_constraints=["step_signal"]),
         policy=ConcatPolicy(base_model=model, task_name="math500"),
         evaluator=GenerativePRM(base_model=model, task_name="math500"),
@@ -270,7 +279,7 @@ def check_search_example():
             if len(prepared) != 2 * (index + 1) or any(p is not example for p in prepared[-2:]):
                 raise RuntimeError("Preparation must receive the original example once per call")
         breakpoint()  # inspect: saved, prepared, result_dir
-    if AgentRegistry.get_search_class("mcts") is not MCTSSearch or config.n_iters != 0:
+    if AgentRegistry.get_search_class("mcts") is not MCTSSearch or config.search_args["n_iters"] != 0:
         raise RuntimeError("Registry lookup or caller configuration changed")
     for lookup in (AgentRegistry.get_search, AgentRegistry.get_search_class):
         try:

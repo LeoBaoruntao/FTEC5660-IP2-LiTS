@@ -10,6 +10,7 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 
 ### Changed
 - Shared experiment configuration saving and conflict checking (共享实验配置保存与冲突检查) [T2.2]
+- Configuration-derived per-example execution inputs (从完整配置派生单样本执行参数) [T2.2.1, T2.2.2]
 
 ## 2026-09-19 Unreleased (`0919-major-unified-search-execution2/tasks`)
 

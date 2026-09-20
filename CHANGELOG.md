@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-09-20 Unreleased (`0919-major-unified-search-execution2/tasks`)
+
+### Changed
+- Shared experiment configuration saving and conflict checking (共享实验配置保存与冲突检查) [T2.2]
+
 ## 2026-09-19 Unreleased (`0919-major-unified-search-execution2/tasks`)
 
 ### Added

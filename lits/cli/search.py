@@ -444,7 +444,6 @@ def main() -> int:
         config.import_modules = cli_args.import_modules
     if dataset_kwargs:
         config.dataset_kwargs = dataset_kwargs
-    config.save_config(result_dir)
 
     # Create SearchConfig for the search algorithm (pure search params only)
     search_config = config.create_search_config()
@@ -572,6 +571,7 @@ def main() -> int:
 
     execute_example = partial(
         run_example,
+        experiment_config=config,
         task_type=task_type,
         search_config=search_config,
         world_model=world_model,

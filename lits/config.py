@@ -535,7 +535,7 @@ class ExperimentConfig:
             "package_version": self.package_version,
         }
     
-    def save_config(self, result_dir: str, filename: str = "config.json") -> None:
+    def save_config(self, result_dir: str, filename: str = "config.json", *, overwrite: bool = True) -> None:
         """Save experiment configuration to JSON file.
         
         Saves the complete ExperimentConfig (including search_args and component_args)
@@ -544,8 +544,21 @@ class ExperimentConfig:
         Args:
             result_dir: Directory where the config file will be saved
             filename: Name of the config file (default: "config.json")
+            overwrite: Replace existing files by default. False leaves matching
+                files untouched and raises ValueError for differing configurations.
+                Comparison uses JSON-normalized values (e.g., tuples become lists).
+
+        Creates result_dir when absent. Invalid existing JSON raises a decoding
+        error when overwrite=False; neither error case rewrites the file.
         """
         import json
         save_config_path = os.path.join(result_dir, filename)
+        payload = self.to_dict()
+        if not overwrite and os.path.exists(save_config_path):
+            with open(save_config_path, encoding="utf-8") as f:
+                if json.load(f) != json.loads(json.dumps(payload)):
+                    raise ValueError(f"Existing experiment configuration differs: {save_config_path}")
+            return
+        os.makedirs(result_dir, exist_ok=True)
         with open(save_config_path, "w", encoding="utf-8") as f:
-            json.dump(self.to_dict(), f, indent=4)
+            json.dump(payload, f, indent=4)

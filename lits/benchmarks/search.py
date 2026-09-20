@@ -27,6 +27,7 @@ def run_example(
     prepare_tool_state: Callable | None = None, resolve_answer: Callable | None = None,
     memory_manager=None, run_logger=None, search_kwargs: dict | None = None,
     search_context: Callable | None = None,
+    experiment_config=None,
 ) -> SearchResult | None:
     """Run preparation, search, answer resolution, and memory saving.
 
@@ -60,6 +61,8 @@ def run_example(
             without copying their values; cannot replace explicit search inputs.
         search_context: Optional zero-argument context-manager factory wrapping
             only search.run(); see run_tree_search. Not entered on resume.
+        experiment_config: Optional full ExperimentConfig forwarded for config.json
+            saving and compatibility checking before search/resume.
 
     Returns:
         The newly executed SearchResult, after saving; None when search is skipped.
@@ -120,6 +123,7 @@ def run_example(
         run_logger=run_logger,
         search_kwargs=search_kwargs,
         search_context=search_context,
+        experiment_config=experiment_config,
     )
 
     # Skip resolve on resume (search was a no-op). See docs/cli/search.md.
@@ -206,6 +210,7 @@ def run_tree_search(
     run_logger=None,
     search_kwargs: dict | None = None,
     search_context: Callable | None = None,
+    experiment_config=None,
 ) -> SearchResult | None:
     """Run tree search and save results to checkpoint files.
 
@@ -238,6 +243,11 @@ def run_tree_search(
             Entered after construction, around search.run() only, and exited before
             final serialization. Allows caller-owned accounting without importing
             its metrics here. Not invoked on resume; exceptions propagate normally.
+        experiment_config: Full ExperimentConfig, distinct from search_config.
+            Save via its existing save_config() before search. An existing config
+            must match its JSON representation; mismatches raise ValueError without
+            overwriting it, even on resume. None preserves legacy callers without
+            a full configuration. Empty dataset loops do not call this function.
 
     Returns:
         The newly executed SearchResult after writing outputs, or None when an
@@ -248,6 +258,9 @@ def run_tree_search(
     from lits.agents import AgentRegistry
 
     _logger = run_logger or logger
+
+    if experiment_config is not None:
+        experiment_config.save_config(result_dir, overwrite=False)
 
     # Skip if terminal nodes already exist for this query (resume support)
     tn_file = Path(result_dir) / "terminal_nodes" / f"terminal_nodes_{query_idx}.json"

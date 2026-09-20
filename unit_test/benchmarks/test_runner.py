@@ -282,7 +282,43 @@ def check_search_example():
     print("PASS extracted run_example: 3 query cases, saved outputs, preparation, unchanged resume")
 
 
+def check_config_saving():
+    """Check config.py::ExperimentConfig.save_config overwrite and resume behavior."""
+    import json
+    from pathlib import Path
+    from tempfile import TemporaryDirectory
+    from lits.config import ExperimentConfig
+
+    config = ExperimentConfig(
+        dataset="math500", policy_model_name="openai/local-instruct",
+        eval_model_name="openai/local-instruct", dataset_kwargs={"subset": (1, 2)},
+    )
+    with TemporaryDirectory() as directory:
+        target = Path(directory) / "nested"
+        config.save_config(target, overwrite=False)
+        path = target / "config.json"
+        before = (path.read_bytes(), path.stat().st_mtime_ns)
+        config.save_config(target, overwrite=False)
+        if (path.read_bytes(), path.stat().st_mtime_ns) != before:
+            raise RuntimeError("Matching JSON-normalized config was rewritten")
+        config.dataset = "gsm8k"
+        try:
+            config.save_config(target, overwrite=False)
+        except ValueError:
+            pass
+        else:
+            raise RuntimeError("Conflicting config was accepted")
+        if (path.read_bytes(), path.stat().st_mtime_ns) != before:
+            raise RuntimeError("Conflict handling changed the saved config")
+        config.save_config(target)
+        if json.loads(path.read_text()) != json.loads(json.dumps(config.to_dict())):
+            raise RuntimeError("Default overwrite did not save the new config")
+        breakpoint()  # inspect: config, path, before
+    print("PASS config saving: directory creation, normalization, resume, conflict, overwrite")
+
+
 if __name__ == "__main__":
+    check_config_saving()
     check_order()
     check_loaded_dataset()
     check_slicing_and_progress()

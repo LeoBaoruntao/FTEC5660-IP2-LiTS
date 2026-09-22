@@ -286,12 +286,16 @@ def check_search_example():
             saved = json.loads(terminal_file.read_text())
             if saved != {"query": expected_query, "query_idx": index, "terminal_nodes": []}:
                 raise RuntimeError(f"Unexpected saved output: {saved}")
+            facts = json.loads((result_dir / f"search_facts_{index}.json").read_text())
+            if facts != {"query_idx": index, "repetition_index": 0, "status": "complete"}:
+                raise RuntimeError(f"Unexpected execution status: {facts}")
+            # Lock-file timestamps may change on acquisition; saved evidence must not.
             before = {p: (p.read_bytes(), p.stat().st_mtime_ns)
-                      for p in result_dir.rglob("*") if p.is_file()}
+                      for p in result_dir.rglob("*") if p.is_file() and p.suffix != ".lock"}
             if execute(example, index, 0) is not None:
                 raise RuntimeError("Skipped search must return None, not a new result")
             after = {p: (p.read_bytes(), p.stat().st_mtime_ns)
-                     for p in result_dir.rglob("*") if p.is_file()}
+                     for p in result_dir.rglob("*") if p.is_file() and p.suffix != ".lock"}
             if before != after:
                 raise RuntimeError("Resumed example rewrote saved output")
             if len(prepared) != 2 * (index + 1) or any(p is not example for p in prepared[-2:]):

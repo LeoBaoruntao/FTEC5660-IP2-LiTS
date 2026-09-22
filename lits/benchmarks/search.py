@@ -7,7 +7,10 @@ import logging
 import os
 from contextlib import nullcontext
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import TYPE_CHECKING, Callable
+
+from filelock import FileLock, SoftFileLock
 
 if TYPE_CHECKING:
     from lits.agents.tree.search_base import SearchResult
@@ -27,6 +30,7 @@ def run_example(
     prepare_tool_state: Callable | None = None, resolve_answer: Callable | None = None,
     memory_manager=None, run_logger=None, search_kwargs: dict | None = None,
     search_context: Callable | None = None,
+    collect_search_facts: Callable[[SearchResult], dict] | None = None,
     query_or_goals: str | None = None, init_state_kwargs: dict | None = None,
 ) -> SearchResult | None:
     """Run preparation, search, answer resolution, and memory saving.
@@ -70,6 +74,11 @@ def run_example(
         search_context: Optional zero-argument context-manager factory wrapping
             only search.run(). Entered after construction and exited before final
             serialization; exceptions propagate normally. Not entered on resume.
+        collect_search_facts: Optional callback receiving the newly saved result and
+            returning JSON-serializable evidence (e.g. measured costs and selection
+            events). Runs after saving, outside search_context, before completion.
+            Execution status and query/repetition indices belong to this function.
+            Not called on resume; correctness evaluation belongs to the caller.
         experiment_config: Full ExperimentConfig supplying the registered algorithm
             and create_search_config(). Also saved and checked before search/resume.
             Matching config.json files are unchanged; conflicts raise ValueError.
@@ -77,8 +86,8 @@ def run_example(
     Returns:
         The newly executed SearchResult, after saving; None when search is skipped.
         Answer resolution updates saved terminal answers only, not this object.
-        Terminal-file existence is the current resume rule, not a completeness
-        guarantee. No correctness judging or experiment metrics are added here.
+        Terminal-file existence remains the legacy resume rule, not an artifact
+        validation guarantee. No correctness judging is performed here.
         Search and saving errors propagate; retained checkpoints alone do not
         certify successful execution.
 
@@ -86,6 +95,32 @@ def run_example(
     callback accepted by runner.py::run_benchmark. Model/resource construction
     remains outside this function. Memory-save errors are logged; other uncaught
     errors propagate to the caller.
+
+    Execution evidence and local ownership:
+        search_facts_<query_idx>.json is atomically replaced after flushing/fsync.
+        The separate OS-backed .lock file is never deleted or replaced. Its mere
+        existence says nothing about ownership; acquisition is nonblocking.
+
+        Lock acquired?  Saved status  Meaning / action
+        --------------  ------------  -------------------------------------------
+        No              Any           Active owner; filelock.Timeout propagates
+        Yes             running       Interrupted; refuse to overwrite evidence
+        Yes             failed        Recorded failure; refuse to overwrite
+        Yes             complete      Retain existing terminal-file resume check
+
+        The lock covers preparation, search, saving, and collect_search_facts.
+        New execution writes running, then complete after all required calls return.
+        Exceptions write failed best-effort and propagate unchanged; interrupts may
+        leave running, but release ownership. A dead process need not write an
+        interrupted status. Malformed or incomplete existing evidence is preserved;
+        legacy terminal files are skipped without inventing completion metadata.
+        This establishes call completion, not independent artifact/identity validation.
+        Optional memory-save warnings retain their existing nonfatal behavior.
+
+        Ownership inference assumes original local directories and cooperating
+        writers on an OS-lock-capable filesystem, not copied or remote archives.
+        It does not prove progress or coordinate shared path writers across examples.
+        Telemetry closure and later correctness evaluation do not alter this status.
 
     Saving and search-only timing:
         This function does not measure time. The timing column describes a timer
@@ -114,93 +149,183 @@ def run_example(
         else:
             query_or_goals = example["question"]
 
-    if prepare_tool_state is not None:
-        prepare_tool_state(example)
-
+    facts_path = Path(result_dir) / f"search_facts_{query_idx}.json"
     tn_file = Path(result_dir) / "terminal_nodes" / f"terminal_nodes_{query_idx}.json"
-    tn_existed_before = tn_file.exists()
-    algo_output = None
-    if tn_existed_before:
-        run_logger.info(f"[{query_idx}] terminal_nodes already exists, skipping")
-    else:
-        # Load agents only when executing, not when importing benchmark registration.
-        from lits.agents import AgentRegistry
+    lock = FileLock(facts_path.with_suffix(".lock"), timeout=0)
+    if isinstance(lock, SoftFileLock):
+        raise NotImplementedError("Search ownership requires an OS-backed file lock")
+    with lock:
+        # Read only after acquiring ownership; never overwrite an unfinished attempt.
+        tn_existed_before = tn_file.exists()
+        if facts_path.exists():
+            saved = json.loads(facts_path.read_text(encoding="utf-8"))
+            status = saved.get("status")
+            if status == "running":
+                raise FileExistsError(f"Interrupted search (no active owner): {facts_path}")
+            if status == "failed":
+                raise FileExistsError(f"Failed search; retained evidence: {facts_path}")
+            if status not in (None, "complete") or not tn_existed_before:
+                raise FileExistsError(f"Unverified existing search evidence: {facts_path}")
 
-        # Construct separately so caller accounting excludes constructor work.
-        search_class = AgentRegistry.get_search_class(experiment_config.search_algorithm)
-        constructor_kwargs = {
-            "config": experiment_config.create_search_config(),
-            "world_model": world_model,
-            "policy": policy,
-            "reward_model": evaluator,
-            "bn_evaluator": bn_evaluator,
-            "init_state_kwargs": example if init_state_kwargs is None else init_state_kwargs,
-            "checkpoint_dir": result_dir,
-            "augmentors": augmentors or [],
-        }
-        extra = dict(search_kwargs or {})
-        conflicts = extra.keys() & (constructor_kwargs.keys() | {"query", "query_idx"})
-        if conflicts:
-            raise ValueError(f"search_kwargs duplicates explicit inputs: {sorted(conflicts)}")
-        constructor_kwargs.update(extra)
-
-        search = search_class(**constructor_kwargs)
-        with search_context() if search_context is not None else nullcontext():
-            algo_output = search.run(query_or_goals, query_idx)
-
-        # Save unselected paths if available (MCTS-specific attribute)
-        if result_saver_unselected and hasattr(algo_output, 'unselected_terminal_paths_during_simulate'):
-            result_saver_unselected.append_result(algo_output.unselected_terminal_paths_during_simulate)
-
-        # Convert to paths for saving — all results support to_paths()
-        paths = algo_output.to_paths()
-        result_saver.append_result(paths)
-
-        # Save terminal nodes separately for post-search evaluation
-        save_terminal_nodes(algo_output, query_or_goals, query_idx, result_dir, run_logger)
-
-    # Skip resolve on resume (search was a no-op). See docs/cli/search.md.
-    if resolve_answer is not None and not tn_existed_before:
-        if tn_file.exists():
-            with open(tn_file) as f:
-                tn_data = json.load(f)
-            modified = False
-            for node in tn_data.get("terminal_nodes", []):
-                state_data = node.get("state", {})
-                # state can be a dict {"__type__": ..., "steps": [...]} or a list
-                if isinstance(state_data, dict):
-                    state_steps = state_data.get("steps", [])
-                else:
-                    state_steps = state_data
-                if state_steps:
-                    last_step = state_steps[-1]
-                    raw = last_step.get("answer")
-                    if raw:
-                        # Deserialize to ToolUseState so resolve_answer
-                        # always receives the same type as chain.py
-                        from lits.structures.tool_use import ToolUseState
-                        tool_state = ToolUseState.from_dict({"steps": state_steps})
-                        resolved = resolve_answer(raw, tool_state)
-                        if resolved != raw:
-                            last_step["answer"] = resolved
-                            # Also update node.step.answer (eval reads this first)
-                            node_step = node.get("step")
-                            if isinstance(node_step, dict) and "answer" in node_step:
-                                node_step["answer"] = resolved
-                            modified = True
-            if modified:
-                with open(tn_file, "w") as f:
-                    json.dump(tn_data, f, indent=2)
-                run_logger.info(f"[{query_idx}] Resolved answers in terminal nodes")
-
-    # Save memory backend per-example (facts persist for inspection/debugging)
-    if memory_manager is not None and hasattr(memory_manager, 'backend'):
-        memory_dir = os.path.join(result_dir, "memory", str(query_idx))
+        facts = {"query_idx": query_idx, "repetition_index": repetition_index, "status": "running"}
+        algo_output = None
         try:
-            memory_manager.backend.save(memory_dir)
-        except Exception as e:
-            run_logger.warning(f"[{query_idx}] Failed to save memory: {e}")
-    return algo_output
+            if not tn_existed_before:
+                _write_search_facts(facts_path, facts)
+            if prepare_tool_state is not None:
+                prepare_tool_state(example)
+
+            if tn_existed_before:
+                run_logger.info(f"[{query_idx}] terminal_nodes already exists, skipping")
+            else:
+                # Load agents only when executing, not when importing benchmark registration.
+                from lits.agents import AgentRegistry
+
+                # Construct separately so caller accounting excludes constructor work.
+                search_class = AgentRegistry.get_search_class(experiment_config.search_algorithm)
+                constructor_kwargs = {
+                    "config": experiment_config.create_search_config(),
+                    "world_model": world_model,
+                    "policy": policy,
+                    "reward_model": evaluator,
+                    "bn_evaluator": bn_evaluator,
+                    "init_state_kwargs": example if init_state_kwargs is None else init_state_kwargs,
+                    "checkpoint_dir": result_dir,
+                    "augmentors": augmentors or [],
+                }
+                extra = dict(search_kwargs or {})
+                conflicts = extra.keys() & (constructor_kwargs.keys() | {"query", "query_idx"})
+                if conflicts:
+                    raise ValueError(f"search_kwargs duplicates explicit inputs: {sorted(conflicts)}")
+                constructor_kwargs.update(extra)
+
+                search = search_class(**constructor_kwargs)
+                with search_context() if search_context is not None else nullcontext():
+                    algo_output = search.run(query_or_goals, query_idx)
+
+                # Save unselected paths if available (MCTS-specific attribute)
+                if result_saver_unselected and hasattr(algo_output, 'unselected_terminal_paths_during_simulate'):
+                    result_saver_unselected.append_result(algo_output.unselected_terminal_paths_during_simulate)
+
+                # Convert to paths for saving — all results support to_paths()
+                paths = algo_output.to_paths()
+                result_saver.append_result(paths)
+
+                # Save terminal nodes separately for post-search evaluation
+                save_terminal_nodes(algo_output, query_or_goals, query_idx, result_dir, run_logger)
+
+                if resolve_answer is not None:
+                    _resolve_terminal_answers(tn_file, resolve_answer, query_idx, run_logger)
+
+            # Save memory backend per-example (facts persist for inspection/debugging)
+            if memory_manager is not None and hasattr(memory_manager, 'backend'):
+                memory_dir = os.path.join(result_dir, "memory", str(query_idx))
+                try:
+                    memory_manager.backend.save(memory_dir)
+                except Exception as e:
+                    run_logger.warning(f"[{query_idx}] Failed to save memory: {e}")
+            if not tn_existed_before:
+                if collect_search_facts is not None:
+                    facts = {**collect_search_facts(algo_output), **facts}
+                facts["status"] = "complete"
+                _write_search_facts(facts_path, facts)
+        except Exception as error:
+            if not tn_existed_before:
+                facts.update(status="failed", error={"type": type(error).__name__, "message": str(error)})
+                try:
+                    _write_search_facts(facts_path, facts)
+                except Exception:
+                    run_logger.warning(f"[{query_idx}] Could not save failure status", exc_info=True)
+            raise
+        return algo_output
+
+
+def _resolve_terminal_answers(
+    tn_file: Path, resolve_answer: Callable, query_idx: int, run_logger,
+) -> None:
+    """Resolve saved answer references using each terminal's complete trajectory.
+
+    Used for KGQA-style tasks: an answer such as '#3' references a trajectory
+    variable rather than concrete answer values. The benchmark resolver rebuilds
+    that variable from ToolUseState and queries the knowledge graph for entity
+    results. This resolves references; it does not judge correctness.
+
+    Args:
+        tn_file: Terminal-node JSON file; a missing file is a no-op.
+        resolve_answer: Callback accepting (raw_answer, ToolUseState) and returning
+            the resolved answer. Only truthy last-step answers are passed to it.
+        query_idx: Dataset index used in the log message.
+        run_logger: Logger for reporting a changed file.
+
+    流程：
+        读取 terminal_nodes 文件
+            ↓
+        遍历每个终点，取出完整轨迹的 steps
+            ↓
+        读取最后一步的 answer
+            ↓
+        resolve_answer(原始答案, 完整轨迹对象)
+            ↓
+        答案发生变化？
+            ├─ 否：不修改
+            └─ 是：更新轨迹最后一步及节点 step 中已有的 answer
+                        ↓
+        至少一个答案变化 → 写回整个 JSON 文件
+
+    Only this file changes, not in-memory search results, paths, or checkpoints.
+    Unchanged files are not rewritten; read, resolver, and write errors propagate.
+    The caller skips this operation on resumed searches.
+    """
+    if not tn_file.exists():
+        return
+    with open(tn_file) as f:
+        tn_data = json.load(f)
+    modified = False
+    for node in tn_data.get("terminal_nodes", []):
+        state_data = node.get("state", {})
+        # state can be a dict {"__type__": ..., "steps": [...]} or a list
+        if isinstance(state_data, dict):
+            state_steps = state_data.get("steps", [])
+        else:
+            state_steps = state_data
+        if state_steps:
+            last_step = state_steps[-1]
+            raw = last_step.get("answer")
+            if raw:
+                # Deserialize to ToolUseState so resolve_answer
+                # always receives the same type as chain.py
+                from lits.structures.tool_use import ToolUseState
+                tool_state = ToolUseState.from_dict({"steps": state_steps})
+                resolved = resolve_answer(raw, tool_state)
+                if resolved != raw:
+                    last_step["answer"] = resolved
+                    # Also update node.step.answer (eval reads this first)
+                    node_step = node.get("step")
+                    if isinstance(node_step, dict) and "answer" in node_step:
+                        node_step["answer"] = resolved
+                    modified = True
+    if modified:
+        with open(tn_file, "w") as f:
+            json.dump(tn_data, f, indent=2)
+        run_logger.info(f"[{query_idx}] Resolved answers in terminal nodes")
+
+
+def _write_search_facts(path: Path, facts: dict) -> None:
+    """Flush JSON to a temporary file, then atomically replace the facts file.
+
+    The caller holds the separate, stable OS lock. Failed serialization or writes
+    leave the previous JSON intact and remove the temporary file when possible.
+    """
+    payload = json.dumps(facts, sort_keys=True) + "\n"
+    temporary = NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent, delete=False)
+    try:
+        with temporary as stream:
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        Path(temporary.name).replace(path)
+    finally:
+        Path(temporary.name).unlink(missing_ok=True)
 
 
 def save_terminal_nodes(algo_output, query_or_goals, query_idx, result_dir, run_logger):

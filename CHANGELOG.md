@@ -8,6 +8,10 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 
 ## 2026-09-22 Unreleased (`0919-major-unified-search-execution2/tasks`)
 
+### Added
+- Shared search-facts persistence and execution status (共享搜索事实保存与执行状态) [T3.3]
+- OS-lock-based active/interrupted search detection (基于操作系统锁区分运行中与中断搜索) [T3.3]
+
 ### Fixed
 - Search errors hidden by partial-result returns (部分结果返回掩盖搜索异常) [T3.2]
 - Skipped search cleanup on uncaught exceptions (未捕获异常跳过搜索清理) [T3.2]

@@ -458,10 +458,4 @@ class BFSSearch(BaseTreeSearch):
                 buckets_with_terminal=buckets_with_terminal
             )
 
-    def _fallback_result(self, query, query_idx) -> BFSResult:
-        """Return partial BFS result on error."""
-        return BFSResult(
-            root=self.root,
-            terminal_nodes_collected=self.collect_terminal_nodes(),
-        )
 ##### BFS (END) #####

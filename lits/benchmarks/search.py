@@ -79,7 +79,8 @@ def run_example(
         Answer resolution updates saved terminal answers only, not this object.
         Terminal-file existence is the current resume rule, not a completeness
         guarantee. No correctness judging or experiment metrics are added here.
-        Saving errors propagate; a returned result does not certify successful execution.
+        Search and saving errors propagate; retained checkpoints alone do not
+        certify successful execution.
 
     Bind keyword dependencies with functools.partial to obtain the three-argument
     callback accepted by runner.py::run_benchmark. Model/resource construction

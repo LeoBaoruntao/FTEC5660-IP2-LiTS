@@ -8,6 +8,10 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 
 ## 2026-09-22 Unreleased (`0919-major-unified-search-execution2/tasks`)
 
+### Fixed
+- Search errors hidden by partial-result returns (部分结果返回掩盖搜索异常) [T3.2]
+- Skipped search cleanup on uncaught exceptions (未捕获异常跳过搜索清理) [T3.2]
+
 ### Removed
 - Redundant `run_tree_search` entry point (合并到 `run_example` 的重复搜索入口) [T3.1]
 

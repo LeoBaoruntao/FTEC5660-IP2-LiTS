@@ -1143,11 +1143,4 @@ class MCTSSearch(BaseTreeSearch):
             unselected_terminal_paths_during_simulate=unselected_terminal_paths_during_simulate,
         )
 
-    def _fallback_result(self, query, query_idx) -> MCTSResult:
-        """Return partial MCTS result on error."""
-        return MCTSResult(
-            root=self.root,
-            terminal_nodes_collected=self.collect_terminal_nodes(),
-            trace_in_each_iter=[[deepcopy(self.root)]],
-        )
 ##### MCTS (END) #####

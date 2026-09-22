@@ -171,16 +171,19 @@ class BaseTreeSearch(ABC):
     def run(self, query, query_idx) -> SearchResult:
         """Template method: ``_setup`` → ``search`` → ``_teardown``.
 
+        After successful setup, cleanup runs on both return and exception.
+        Search errors propagate; existing checkpoints remain, but no partial
+        result is returned. A checkpoint may precede the last in-memory update.
         Not intended to be overridden by subclasses.
         """
         self._setup(query, query_idx)
         try:
-            result = self.search(query, query_idx)
+            return self.search(query, query_idx)
         except (ValueError, *_optional_cuda_errors()) as e:
             self._handle_error(e)
-            result = self._fallback_result(query, query_idx)
-        self._teardown()
-        return result
+            raise
+        finally:
+            self._teardown()
 
     # ------------------------------------------------------------------
     # Setup / teardown
@@ -235,17 +238,10 @@ class BaseTreeSearch(ABC):
     # ------------------------------------------------------------------
 
     def _handle_error(self, error):
-        """Handle OOM or runtime-limit errors raised during ``search()``."""
+        """Log a search ValueError or CUDA OOM; release CUDA cache before re-raising."""
         if torch is not None and isinstance(error, torch.cuda.OutOfMemoryError):
             torch.cuda.empty_cache()
         logger.debug(str(error))
-
-    def _fallback_result(self, query, query_idx) -> SearchResult:
-        """Return a partial result when ``search()`` fails."""
-        return SearchResult(
-            root=self.root,
-            terminal_nodes_collected=self.collect_terminal_nodes(),
-        )
 
     # ------------------------------------------------------------------
     # Helpers available to subclasses

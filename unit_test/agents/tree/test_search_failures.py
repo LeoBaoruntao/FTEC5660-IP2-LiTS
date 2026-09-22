@@ -121,34 +121,39 @@ def _zero_iteration_execution(model, directory):
     )
 
 
-def check_legacy_resume(model):
-    """Check search.py::run_example rejects legacy output without rewriting evidence."""
-    for legacy in ("missing_file", "missing_status"):
+def check_rejected_resume(model):
+    """Check search.py::run_example rejects legacy/mismatched runs without rewriting evidence."""
+    for defect in ("missing_file", "missing_status", "query_idx", "repetition_index"):
         with TemporaryDirectory(prefix="lits-legacy-resume-") as directory:
             root = Path(directory)
             kwargs = _zero_iteration_execution(model, root)
             example = {"question": "What is 1 + 1?"}
             run_example(example, 0, 0, **kwargs)
             facts_path = root / "search_facts_0.json"
-            if legacy == "missing_file":
+            if defect == "missing_file":
                 facts_path.unlink()
-            else:
+            elif defect in ("missing_status", "query_idx"):
                 facts = json.loads(facts_path.read_text())
-                del facts["status"]
+                if defect == "missing_status":
+                    del facts["status"]
+                else:
+                    facts["query_idx"] = 1
                 facts_path.write_text(json.dumps(facts))
             before = {p: p.read_bytes() for p in root.rglob("*") if p.is_file()}
             try:
-                run_example(example, 0, 0, **kwargs)
+                run_example(example, 0, 1 if defect == "repetition_index" else 0, **kwargs)
             except FileExistsError as error:
                 message = str(error)
-                if str(facts_path) not in message or "new result directory" not in message:
-                    raise RuntimeError(f"Unhelpful legacy error: {message}")
+                if str(facts_path) not in message or "result directory" not in message:
+                    raise RuntimeError(f"Unhelpful resume error: {message}")
+                if defect in ("query_idx", "repetition_index") and "Search identity mismatch" not in message:
+                    raise RuntimeError(f"Missing identity explanation: {message}")
             else:
-                raise RuntimeError("Legacy output was silently skipped")
+                raise RuntimeError("Unverified output was silently skipped")
             after = {p: p.read_bytes() for p in root.rglob("*") if p.is_file()}
             if before != after:
-                raise RuntimeError("Legacy rejection changed saved evidence")
-            print(f"PASS legacy rejection: {legacy}")
+                raise RuntimeError("Resume rejection changed saved evidence")
+            print(f"PASS resume rejection: {defect}")
             breakpoint()  # inspect: message, before, after
 
 
@@ -383,7 +388,7 @@ if __name__ == "__main__":
         "openai/local-instruct", base_url="http://localhost:8080/v1", api_key="no-key",
     )
     check_search_failures(model)
-    check_legacy_resume(model)
+    check_rejected_resume(model)
     check_facts_callback_failures(model)
     check_facts_payload_validation(model)
     check_terminal_answer_resolution()

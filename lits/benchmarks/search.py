@@ -106,7 +106,7 @@ def run_example(
         No              Any           Active owner; filelock.Timeout propagates
         Yes             running       Interrupted; refuse to overwrite evidence
         Yes             failed        Recorded failure; refuse to overwrite
-        Yes             complete      Retain existing terminal-file resume check
+        Yes             complete      Require matching query/repetition and terminal file
 
         The lock covers preparation, search, saving, and collect_search_facts.
         New execution writes running, then complete after all required calls return.
@@ -174,6 +174,14 @@ def run_example(
                 raise FileExistsError(f"Failed search; retained evidence: {facts_path}")
             if status not in (None, "complete") or not tn_existed_before:
                 raise FileExistsError(f"Unverified existing search evidence: {facts_path}")
+            saved_identity = (saved.get("query_idx"), saved.get("repetition_index"))
+            if saved_identity != (query_idx, repetition_index):
+                raise FileExistsError(
+                    f"Search identity mismatch in {facts_path}: saved query/repetition "
+                    f"{saved_identity}, requested {(query_idx, repetition_index)}. "
+                    "Existing output was not overwritten. Use a separate result directory "
+                    "for a different example or repetition."
+                )
 
         facts = {"query_idx": query_idx, "repetition_index": repetition_index, "status": "running"}
         algo_output = None

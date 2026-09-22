@@ -15,6 +15,9 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 - Explicit legacy search-resume rejection (明确拒绝缺失完成状态的旧搜索结果恢复) [T3.5.1]
 - Default benchmark error logging and continuation (benchmark 默认记录单样本错误并继续) [T3.5.2]
 
+### Fixed
+- Search resume query/repetition mismatch detection (搜索恢复时的问题与重复编号不匹配检查) [T3.5.3]
+
 ## 2026-09-22 Unreleased (`0919-major-unified-search-execution2/tasks`)
 
 ### Added

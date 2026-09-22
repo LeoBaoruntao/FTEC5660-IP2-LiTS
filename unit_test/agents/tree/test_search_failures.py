@@ -121,6 +121,37 @@ def _zero_iteration_execution(model, directory):
     )
 
 
+def check_legacy_resume(model):
+    """Check search.py::run_example rejects legacy output without rewriting evidence."""
+    for legacy in ("missing_file", "missing_status"):
+        with TemporaryDirectory(prefix="lits-legacy-resume-") as directory:
+            root = Path(directory)
+            kwargs = _zero_iteration_execution(model, root)
+            example = {"question": "What is 1 + 1?"}
+            run_example(example, 0, 0, **kwargs)
+            facts_path = root / "search_facts_0.json"
+            if legacy == "missing_file":
+                facts_path.unlink()
+            else:
+                facts = json.loads(facts_path.read_text())
+                del facts["status"]
+                facts_path.write_text(json.dumps(facts))
+            before = {p: p.read_bytes() for p in root.rglob("*") if p.is_file()}
+            try:
+                run_example(example, 0, 0, **kwargs)
+            except FileExistsError as error:
+                message = str(error)
+                if str(facts_path) not in message or "new result directory" not in message:
+                    raise RuntimeError(f"Unhelpful legacy error: {message}")
+            else:
+                raise RuntimeError("Legacy output was silently skipped")
+            after = {p: p.read_bytes() for p in root.rglob("*") if p.is_file()}
+            if before != after:
+                raise RuntimeError("Legacy rejection changed saved evidence")
+            print(f"PASS legacy rejection: {legacy}")
+            breakpoint()  # inspect: message, before, after
+
+
 def check_facts_callback_failures(model):
     """Check search.py::run_example preserves callback errors, even if status writing fails."""
     for block_status_write in (False, True):
@@ -352,6 +383,7 @@ if __name__ == "__main__":
         "openai/local-instruct", base_url="http://localhost:8080/v1", api_key="no-key",
     )
     check_search_failures(model)
+    check_legacy_resume(model)
     check_facts_callback_failures(model)
     check_facts_payload_validation(model)
     check_terminal_answer_resolution()

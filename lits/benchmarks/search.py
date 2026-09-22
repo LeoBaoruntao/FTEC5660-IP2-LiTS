@@ -113,7 +113,7 @@ def run_example(
         Exceptions write failed best-effort and propagate unchanged; interrupts may
         leave running, but release ownership. A dead process need not write an
         interrupted status. Malformed or incomplete existing evidence is preserved;
-        legacy terminal files are skipped without inventing completion metadata.
+        legacy terminal files without a completion status are refused for manual review.
         Completion follows successful execution and saving, not a full read-back
         comparison. Serialization coverage is checked in tests; resume is separate.
         Optional memory-save warnings retain their existing nonfatal behavior.
@@ -158,8 +158,15 @@ def run_example(
     with lock:
         # Read only after acquiring ownership; never overwrite an unfinished attempt.
         tn_existed_before = tn_file.exists()
+        saved = json.loads(facts_path.read_text(encoding="utf-8")) if facts_path.exists() else {}
+        if tn_existed_before and saved.get("status") is None:
+            raise FileExistsError(
+                f"Cannot verify completion for example {query_idx}, repetition {repetition_index}: "
+                f"terminal output exists at {tn_file}, but {facts_path} is missing or has no status. "
+                "Existing output was not overwritten and search was not resumed. "
+                "Inspect the saved run manually; use a new result directory to rerun."
+            )
         if facts_path.exists():
-            saved = json.loads(facts_path.read_text(encoding="utf-8"))
             status = saved.get("status")
             if status == "running":
                 raise FileExistsError(f"Interrupted search (no active owner): {facts_path}")

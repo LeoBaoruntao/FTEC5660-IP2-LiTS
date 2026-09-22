@@ -11,6 +11,9 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 ### Added
 - Caller-facts payload validation (调用方事实数据校验) [T3.4]
 
+### Changed
+- Explicit legacy search-resume rejection (明确拒绝缺失完成状态的旧搜索结果恢复) [T3.5.1]
+
 ## 2026-09-22 Unreleased (`0919-major-unified-search-execution2/tasks`)
 
 ### Added

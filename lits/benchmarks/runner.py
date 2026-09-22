@@ -1,6 +1,7 @@
 """Sequential execution over registered datasets, with caller-owned search and persistence."""
 
 from collections.abc import Callable, Mapping, Sequence
+import logging
 from typing import Any
 
 from lits.benchmarks.registry import load_dataset
@@ -11,6 +12,15 @@ def _slice_dataset(dataset: Sequence[Any], offset: int, limit: int | None) -> Se
     if limit is None:
         return dataset[offset:]
     return dataset[offset : offset + limit]
+
+
+def log_example_error(example: Any, query_idx: int, repetition_index: int, error: Exception) -> None:
+    """Log example identity and traceback; returning lets the benchmark continue."""
+    logging.getLogger(__name__).error(
+        "[%s] repetition %s failed: %s: %s. Continuing with remaining examples.",
+        query_idx, repetition_index, type(error).__name__, error,
+        exc_info=(type(error), error, error.__traceback__),
+    )
 
 
 def run_benchmark(
@@ -24,7 +34,7 @@ def run_benchmark(
     limit: int | None = None,
     repetitions: int = 1,
     is_complete: Callable[[Any, int, int], bool] | None = None,
-    on_error: Callable[[Any, int, int, Exception], None] | None = None,
+    on_error: Callable[[Any, int, int, Exception], None] | None = log_example_error,
     show_progress: bool = True,
 ) -> None:
     """Execute selected example/repetition pairs from a registered or preloaded dataset.
@@ -46,9 +56,10 @@ def run_benchmark(
             run consecutively for each example before moving to the next example.
         is_complete: Optional ``is_complete(example, query_idx, repetition_index)``.
             A true result skips run_example, including its resource preparation.
-        on_error: Optional ``on_error(example, query_idx, repetition_index, error)``.
-            Handles an execution exception; returning normally continues to the next
-            pair. Without this callback, execution errors propagate immediately.
+        on_error: ``on_error(example, query_idx, repetition_index, error)``.
+            Defaults to logging the error and traceback, then continuing to the next
+            pair. Custom handlers continue when they return normally. Explicit None
+            propagates execution errors immediately instead.
         show_progress: Display a tqdm progress bar by default; False disables it.
 
     Returns:

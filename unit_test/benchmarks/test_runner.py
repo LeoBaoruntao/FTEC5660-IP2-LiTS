@@ -7,6 +7,7 @@ not inference; ``test_search_loop.py::check_dataset_loop`` covers actual CLI exe
 
 from contextlib import redirect_stderr
 from io import StringIO
+import logging
 
 from lits.benchmarks import register_dataset, run_benchmark
 
@@ -135,7 +136,7 @@ def check_slicing_and_progress():
 
 
 def check_propagation():
-    """Propagate execution, completion-check, handler, loader errors, and interrupts."""
+    """Check runner.py::run_benchmark default logging and explicit error propagation."""
     failure = RuntimeError("Deliberate callback failure")
     interrupt = KeyboardInterrupt()
     events = []
@@ -157,8 +158,30 @@ def check_propagation():
         """Exercise a user interruption, which must not be handled as a run failure."""
         raise interrupt
 
+    def fail_first(example, query_idx, repetition_index):
+        """Fail the first example and record whether the next example executes."""
+        if query_idx == 0:
+            fail()
+        succeed()
+
+    output = StringIO()
+    handler = logging.StreamHandler(output)
+    logger = logging.getLogger("lits.benchmarks.runner")
+    logger.addHandler(handler)
+    try:
+        run_benchmark("benchmark_loop_check", fail_first, limit=2, show_progress=False)
+    finally:
+        logger.removeHandler(handler)
+        handler.close()
+    if events != ["fail", "success"] or "[0] repetition 0 failed" not in output.getvalue():
+        raise RuntimeError("Default handler did not log and continue")
+    if "Traceback" not in output.getvalue():
+        raise RuntimeError("Default handler omitted the traceback")
+    print("PASS default error logging: traceback retained, next example executed")
+    breakpoint()  # inspect: events, output.getvalue()
+
     cases = (
-        (fail, {}, failure, ["fail"]),
+        (fail, {"on_error": None}, failure, ["fail"]),
         (succeed, {"is_complete": fail, "on_error": handle}, failure, ["fail"]),
         (fail, {"on_error": fail}, failure, ["fail", "fail"]),
         (stop, {"on_error": handle}, interrupt, []),

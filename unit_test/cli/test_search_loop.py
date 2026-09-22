@@ -56,6 +56,8 @@ def run_cli(output_dir, overrides, dataset_name="cli_loop_check"):
         """Verify delegation uses the full loaded dataset and keeps CLI resume handling."""
         if kwargs.get("dataset") is not EXAMPLES or kwargs.get("is_complete") is not None:
             raise RuntimeError("CLI must reuse its loaded dataset and internal resume handling")
+        if "on_error" in kwargs:
+            raise RuntimeError("CLI must reuse default benchmark error logging")
         execute = args[1]
         if not isinstance(execute, partial) or execute.func is not search.run_example:
             raise RuntimeError("CLI must bind the shared run_example directly")
@@ -109,6 +111,31 @@ def check_resource_preparation(root):
     print("PASS registered preparation: once per example on fresh and resumed runs")
 
 
+def check_rejected_resume_continues(root):
+    """Check search.py::main logs legacy rejection and executes the next example."""
+    output_dir = root / "rejected_resume"
+    overrides = ["eval_idx=[0,1]"]
+    run_cli(output_dir, overrides)
+    terminal = output_dir / "terminal_nodes/terminal_nodes_0.json"
+    before = (terminal.read_bytes(), terminal.stat().st_mtime_ns)
+    (output_dir / "search_facts_0.json").unlink()
+    (output_dir / "search_facts_1.json").unlink()
+    (output_dir / "terminal_nodes/terminal_nodes_1.json").unlink()
+    observed = run_cli(output_dir, overrides)
+    if observed != [0, 1] or (terminal.read_bytes(), terminal.stat().st_mtime_ns) != before:
+        raise RuntimeError("Legacy rejection blocked later dispatch or changed its terminal file")
+    if (output_dir / "search_facts_0.json").exists():
+        raise RuntimeError("Legacy rejection fabricated completion metadata")
+    facts = json.loads((output_dir / "search_facts_1.json").read_text())
+    if facts["status"] != "complete":
+        raise RuntimeError("The next example did not complete")
+    logs = "\n".join(path.read_text() for path in output_dir.rglob("*.log"))
+    if "Cannot verify completion for example 0" not in logs or "Continuing with remaining examples" not in logs:
+        raise RuntimeError("CLI did not persist an actionable rejection message")
+    print("PASS CLI legacy rejection: logged, preserved, next example completed")
+    breakpoint()  # inspect: observed, facts, logs, output_dir
+
+
 def check_dataset_loop(root):
     """Verify actual dispatch and saved query IDs, then repeat one run to test resume."""
     cases = (
@@ -154,6 +181,7 @@ def main():
     try:
         check_dataset_loop(root)
         check_resource_preparation(root)
+        check_rejected_resume_continues(root)
     finally:
         for key, value in previous.items():
             if value is None:

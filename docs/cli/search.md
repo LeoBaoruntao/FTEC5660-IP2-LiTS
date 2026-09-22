@@ -238,22 +238,21 @@ Tool-use benchmarks (KGQA, mapeval-sql, etc.) register two optional hooks via th
 For an example whose terminal_nodes file already exists from a prior run:
 
 ```python
-for query_idx, example in tqdm(indexed_dataset):
+def run_example(example, query_idx, repetition_index, ...):
     # ① Per-example tool state setup
     if prepare_tool_state is not None:
         prepare_tool_state(example)                      # SPARQL: entity → ID lookup
                                                          #   ~1s, results cached
 
-    # ② Snapshot existence before search; gates ③ below
+    # ② Snapshot existence before search; gates ③ and ④ below
     tn_existed_before = tn_file.exists()                 # True for already-completed examples
 
     # ③ Search itself
-    run_tree_search(query_idx=query_idx, ...)
-    # ↳ run_tree_search internally:
-    #     if tn_file.exists():
-    #         logger.info(f"[{query_idx}] terminal_nodes already exists, skipping")
-    #         return                                     # ← early return on resume
-    #     ... otherwise: run MCTS/Beam, write tn_file ...
+    algo_output = None
+    if tn_existed_before:
+        logger.info(f"[{query_idx}] terminal_nodes already exists, skipping")
+    else:
+        ...  # Construct MCTS/Beam, call search.run(), save paths and terminals.
 
     # ④ Post-search answer resolution
     if resolve_answer is not None and not tn_existed_before:
@@ -262,6 +261,10 @@ for query_idx, example in tqdm(indexed_dataset):
         # call resolve_answer to convert "#N" → "m.0xxx" via SPARQL,
         # rewrite tn_file if any answer changed.
         ...
+
+    # ⑤ Memory saving still runs on resume when configured.
+    ...
+    return algo_output                                  # None on resume
 ```
 
 Without the `not tn_existed_before` gate (the framework's prior behavior), step ④ ran on every example regardless of skip — re-walking every terminal of every already-completed example, doing 3-7 SPARQL calls per terminal to rebuild `KGState`, and re-emitting the same warnings for any unresolvable answers. That accounted for the bulk of the per-example cost during resume.

@@ -210,6 +210,8 @@ def check_search_example():
     returned results, saved terminal metadata, preparation on every invocation, and unchanged files
     on resume. No inference is requested; nonempty answer resolution and memory
     persistence are not exercised by these zero-iteration searches.
+    Explicit query/init inputs also support arbitrary example schemas and keep
+    references outside world-model initialization while preparation sees the original.
     """
     from functools import partial
     import json
@@ -226,11 +228,25 @@ def check_search_example():
 
     model = get_lm("openai/local-instruct", base_url="http://localhost:8080/v1", api_key="no-key")
     examples = [
-        ("language_grounded", {"question": "What is 1 + 1?"}, "What is 1 + 1?"),
-        ("env_grounded", {"query_or_goals": "Goal text", "question": "Fallback"}, "Goal text"),
-        ("env_grounded", {"question": "Fallback"}, "Fallback"),
+        ("language_grounded", {"question": "What is 1 + 1?"}, "What is 1 + 1?", {}),
+        ("env_grounded", {"query_or_goals": "Goal text", "question": "Fallback"}, "Goal text", {}),
+        ("env_grounded", {"question": "Fallback"}, "Fallback", {}),
+        ("env_grounded", {"prompt": "Custom goal", "reference": "private"}, "Custom goal",
+         {"query_or_goals": "Custom goal", "init_state_kwargs": {"init_state_str": "Initial state"}}),
+        ("language_grounded", {"prompt": "Custom question", "reference": "private"}, "Custom question",
+         {"query_or_goals": "Custom question", "init_state_kwargs": {}}),
     ]
     prepared = []
+    initialized = []
+    world_model = ConcatTransition(base_model=model, terminate_constraints=["step_signal"])
+    original_init = world_model.init_state
+
+    def record_init(**kwargs):
+        """Observe actual initialization inputs, then run the real transition initializer."""
+        initialized.append(kwargs)
+        return original_init(**kwargs)
+
+    world_model.init_state = record_init
 
     def prepare(value):
         """Record original examples received before new or resumed searches."""
@@ -247,23 +263,25 @@ def check_search_example():
         raise RuntimeError("Derived search configuration lost reconstruction metadata")
     kwargs = dict(
         experiment_config=config,
-        world_model=ConcatTransition(base_model=model, terminate_constraints=["step_signal"]),
+        world_model=world_model,
         policy=ConcatPolicy(base_model=model, task_name="math500"),
         evaluator=GenerativePRM(base_model=model, task_name="math500"),
         prepare_tool_state=prepare,
     )
     with TemporaryDirectory(prefix="lits-run-example-") as directory:
-        for index, (task_type, example, expected_query) in enumerate(examples):
+        for index, (task_type, example, expected_query, inputs) in enumerate(examples):
             result_dir = Path(directory) / str(index)
             result_dir.mkdir()
             execute = partial(
                 run_example, task_type=task_type, result_dir=str(result_dir),
                 result_saver=TreeToJsonl(run_id="", root_dir=str(result_dir), override=False),
-                **kwargs,
+                **kwargs, **inputs,
             )
             result = execute(example, index, 0)
             if result is None or result.root.action != expected_query or result.terminal_nodes_collected:
                 raise RuntimeError("New search did not return its zero-iteration result")
+            if initialized[-1] != inputs.get("init_state_kwargs", example):
+                raise RuntimeError("World-model initialization did not use the selected inputs")
             terminal_file = result_dir / "terminal_nodes" / f"terminal_nodes_{index}.json"
             saved = json.loads(terminal_file.read_text())
             if saved != {"query": expected_query, "query_idx": index, "terminal_nodes": []}:
@@ -278,6 +296,8 @@ def check_search_example():
                 raise RuntimeError("Resumed example rewrote saved output")
             if len(prepared) != 2 * (index + 1) or any(p is not example for p in prepared[-2:]):
                 raise RuntimeError("Preparation must receive the original example once per call")
+            if len(initialized) != index + 1:
+                raise RuntimeError("Resume unexpectedly initialized the world model")
         breakpoint()  # inspect: saved, prepared, result_dir
     if AgentRegistry.get_search_class("mcts") is not MCTSSearch or config.search_args["n_iters"] != 0:
         raise RuntimeError("Registry lookup or caller configuration changed")
@@ -288,7 +308,7 @@ def check_search_example():
             pass
         else:
             raise RuntimeError("Unknown search name was accepted")
-    print("PASS extracted run_example: 3 query cases, saved outputs, preparation, unchanged resume")
+    print("PASS run_example: 5 query/init cases, saved outputs, preparation, unchanged resume")
 
 
 def check_config_saving():

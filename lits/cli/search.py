@@ -34,7 +34,7 @@ from lits.log import setup_logging
 from lits.utils.sys_utils import is_running_in_jupyter
 from lits.benchmarks.registry import infer_task_type, load_dataset, load_resource, has_resource
 from lits.benchmarks import run_benchmark, run_example
-from lits.benchmarks.search import run_tree_search, save_terminal_nodes
+from lits.benchmarks.search import save_terminal_nodes
 from lits.config import ExperimentConfig
 from lits.lm import configure_hf_model_logging, setup_inference_logging, load_models
 from lits.components.factory import create_components, create_bn_evaluator

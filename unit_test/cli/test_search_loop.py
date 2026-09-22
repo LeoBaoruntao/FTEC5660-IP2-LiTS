@@ -4,7 +4,7 @@ Run: ``PYTHONBREAKPOINT=0 python -m unit_test.cli.test_search_loop``.
 Calls ``search.py::main`` with a registered local cohort, real LiTS components,
 and the configured OpenAI-compatible model client. Zero MCTS iterations avoid
 generation. A recording wrapper delegates to the real benchmark
-``search.py::run_tree_search``;
+``search.py::run_example``;
 no models or search implementations are replaced. Results remain in a fresh directory.
 Registered preparation is counted on fresh and resumed runs. Answer resolution,
 memory saving, and nonzero-iteration search are not tested here.
@@ -18,7 +18,6 @@ import sys
 import tempfile
 
 from lits.benchmarks.registry import register_dataset, register_resource
-from lits.benchmarks import search as benchmark_search
 from lits.cli import search
 
 
@@ -46,7 +45,7 @@ def load_preparation_resource():
 
 def run_cli(output_dir, overrides, dataset_name="cli_loop_check"):
     """Record real CLI dispatch; restore argv and the delegating wrapper afterward."""
-    original_run, original_argv = benchmark_search.run_tree_search, sys.argv
+    original_run, original_argv = search.run_example, sys.argv
     original_benchmark = search.run_benchmark
     loads_before = len(LOADS)
     prepared_before = len(PREPARED)
@@ -58,22 +57,21 @@ def run_cli(output_dir, overrides, dataset_name="cli_loop_check"):
         if kwargs.get("dataset") is not EXAMPLES or kwargs.get("is_complete") is not None:
             raise RuntimeError("CLI must reuse its loaded dataset and internal resume handling")
         execute = args[1]
-        if not isinstance(execute, partial) or execute.func is not benchmark_search.run_example:
+        if not isinstance(execute, partial) or execute.func is not search.run_example:
             raise RuntimeError("CLI must bind the shared run_example directly")
         benchmark_calls.append(args[0])
         return original_benchmark(*args, **kwargs)
 
-    def record_search(*args, **kwargs):
+    def record_search(example, query_idx, repetition_index, **kwargs):
         """Observe dispatch and delegate unchanged, rejecting nonzero iteration settings."""
-        if kwargs["search_config"].n_iters != 0:
+        if kwargs["experiment_config"].create_search_config().n_iters != 0:
             raise RuntimeError("This check must not run model inference")
-        index = kwargs["query_idx"]
-        if kwargs["init_state_kwargs"] is not EXAMPLES[index]:
+        if example is not EXAMPLES[query_idx]:
             raise RuntimeError("CLI changed the example passed for initialization")
-        observed.append(index)
-        return original_run(*args, **kwargs)
+        observed.append(query_idx)
+        return original_run(example, query_idx, repetition_index, **kwargs)
 
-    benchmark_search.run_tree_search = record_search
+    search.run_example = record_search
     search.run_benchmark = record_benchmark
     sys.argv = [
         "lits-search", "--dataset", dataset_name,
@@ -95,7 +93,7 @@ def run_cli(output_dir, overrides, dataset_name="cli_loop_check"):
         elif prepared:
             raise RuntimeError("Preparation ran without a configured resource")
     finally:
-        benchmark_search.run_tree_search, sys.argv = original_run, original_argv
+        search.run_example, sys.argv = original_run, original_argv
         search.run_benchmark = original_benchmark
     return observed
 

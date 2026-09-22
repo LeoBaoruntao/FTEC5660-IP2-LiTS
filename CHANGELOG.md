@@ -6,11 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-09-22 Unreleased (`0919-major-unified-search-execution2/tasks`)
+
+### Removed
+- Redundant `run_tree_search` entry point (合并到 `run_example` 的重复搜索入口) [T3.1]
+
 ## 2026-09-20 Unreleased (`0919-major-unified-search-execution2/tasks`)
 
 ### Changed
 - Shared experiment configuration saving and conflict checking (共享实验配置保存与冲突检查) [T2.2]
 - Configuration-derived per-example execution inputs (从完整配置派生单样本执行参数) [T2.2.1, T2.2.2]
+
+### Added
+- Caller-resolved query and initialization inputs for shared execution (共享执行支持调用方提供问题与初始化参数) [T1.7]
 
 ## 2026-09-19 Unreleased (`0919-major-unified-search-execution2/tasks`)
 

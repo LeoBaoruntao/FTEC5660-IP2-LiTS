@@ -9,6 +9,7 @@ must preserve it without writing final outputs. CUDA OOM is injected, not alloca
 from cProfile import Profile
 from contextlib import contextmanager
 import json
+import logging
 from multiprocessing import get_context
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -172,6 +173,80 @@ def check_facts_callback_failures(model):
             breakpoint()  # inspect: facts, root, expected
 
 
+def check_facts_payload_validation(model):
+    """Invalid callback payloads must still permit a readable failed-status record.
+
+    All searches use actual factory components and zero iterations, without inference.
+    """
+    for defect in ("not_dict", "identity", "nonfinite", "unserializable"):
+        with TemporaryDirectory(prefix="lits-artifact-check-") as directory:
+            root = Path(directory)
+            kwargs = _zero_iteration_execution(model, root)
+
+            def corrupt_saved_evidence(result):
+                """Return invalid caller data after real search and saving."""
+                return {"not_dict": None, "identity": {"query_idx": 1},
+                        "nonfinite": {"cost": float("nan")},
+                        "unserializable": {"cost": {1, 2}}}[defect]
+
+            try:
+                run_example({"question": "What is 1 + 1?"}, 0, 0, **kwargs,
+                            collect_search_facts=corrupt_saved_evidence)
+            except (ValueError, TypeError, FileNotFoundError):
+                pass
+            else:
+                raise RuntimeError(f"Bad facts marked complete: {defect}")
+            facts = json.loads((root / "search_facts_0.json").read_text())
+            if facts["status"] != "failed" or facts["query_idx"] != 0:
+                raise RuntimeError(f"Invalid failure record: {facts}")
+            print(f"PASS facts rejection: {defect}")
+            breakpoint()  # inspect: defect, facts, root
+
+
+def check_terminal_answer_resolution():
+    """Check BFS serialization and KGQA-style resolution, without a live KGQA service."""
+    from lits.agents.tree.bfs import BFSResult
+    from lits.agents.tree.node import SearchNode
+    from lits.benchmarks.search import _resolve_terminal_answers, save_terminal_nodes
+    from lits.structures.tool_use import ToolUseState, ToolUseStep
+
+    for shape in ("dict", "list"):
+        with TemporaryDirectory(prefix="lits-resolved-artifacts-") as directory:
+            root = SearchNode(state=ToolUseState(), action="Question")
+            step = ToolUseStep(answer="#3")
+            state = ToolUseState([step]) if shape == "dict" else [step]
+            terminal = SearchNode(state=state, action="answer", parent=root, is_terminal=True)
+            terminal.step = step
+            root.add_child(terminal)
+            result = BFSResult(root=root, terminal_nodes_collected=[terminal],
+                               buckets_with_terminal={0: [root], 1: [terminal]})
+            saver = TreeToJsonl(run_id="", root_dir=directory)
+            saver.append_result(result.to_paths())
+            original_paths = Path(saver.filepath).read_bytes()
+            run_logger = logging.getLogger(__name__)
+            save_terminal_nodes(result, "Question", 0, directory, run_logger)
+            path = Path(directory) / "terminal_nodes/terminal_nodes_0.json"
+
+            def resolve(raw, trajectory):
+                """Verify the callback receives the raw answer and typed full trajectory."""
+                if raw != "#3" or not isinstance(trajectory, ToolUseState) or trajectory[-1].answer != raw:
+                    raise RuntimeError("Resolver received the wrong answer or state type")
+                return "entity-id"
+
+            _resolve_terminal_answers(path, resolve, 0, run_logger)
+            if terminal.step.answer != "#3":
+                raise RuntimeError("File resolution changed the in-memory result")
+            data = json.loads(path.read_text())
+            saved = data["terminal_nodes"][0]
+            steps = saved["state"]["steps"] if isinstance(saved["state"], dict) else saved["state"]
+            if saved["step"]["answer"] != "entity-id" or steps[-1]["answer"] != "entity-id":
+                raise RuntimeError("Resolution did not update both saved answer locations")
+            if Path(saver.filepath).read_bytes() != original_paths:
+                raise RuntimeError("Terminal resolution changed saved paths")
+            print(f"PASS terminal answer resolution: {shape} state, file-only answer changes")
+            breakpoint()  # inspect: result, data, directory
+
+
 def _hold_execution(directory, phase, connection):
     """Run real zero-iteration search in a child, pausing at the selected lifecycle boundary."""
     model = get_lm("openai/local-instruct", base_url="http://localhost:8080/v1", api_key="no-key")
@@ -278,4 +353,6 @@ if __name__ == "__main__":
     )
     check_search_failures(model)
     check_facts_callback_failures(model)
+    check_facts_payload_validation(model)
+    check_terminal_answer_resolution()
     check_process_ownership(model)

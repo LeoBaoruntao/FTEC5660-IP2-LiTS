@@ -114,7 +114,8 @@ def run_example(
         leave running, but release ownership. A dead process need not write an
         interrupted status. Malformed or incomplete existing evidence is preserved;
         legacy terminal files are skipped without inventing completion metadata.
-        This establishes call completion, not independent artifact/identity validation.
+        Completion follows successful execution and saving, not a full read-back
+        comparison. Serialization coverage is checked in tests; resume is separate.
         Optional memory-save warnings retain their existing nonfatal behavior.
 
         Ownership inference assumes original local directories and cooperating
@@ -226,7 +227,15 @@ def run_example(
                     run_logger.warning(f"[{query_idx}] Failed to save memory: {e}")
             if not tn_existed_before:
                 if collect_search_facts is not None:
-                    facts = {**collect_search_facts(algo_output), **facts}
+                    supplied = collect_search_facts(algo_output)
+                    if not isinstance(supplied, dict):
+                        raise ValueError("collect_search_facts must return a dictionary")
+                    for key in facts.keys() & supplied.keys():
+                        if supplied[key] != facts[key]:
+                            raise ValueError(f"Search facts conflict with execution: {key}")
+                    # Reject bad caller data before it can also break failed-status saving.
+                    json.dumps(supplied, allow_nan=False)
+                    facts.update(supplied)
                 facts["status"] = "complete"
                 _write_search_facts(facts_path, facts)
         except Exception as error:

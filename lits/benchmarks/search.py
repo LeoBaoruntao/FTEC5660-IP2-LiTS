@@ -9,6 +9,7 @@ from contextlib import nullcontext
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import TYPE_CHECKING, Callable
+from uuid import uuid4
 
 from filelock import FileLock, SoftFileLock
 from lits import observability as tracing
@@ -33,6 +34,7 @@ def run_example(
     search_context: Callable | None = None,
     collect_search_facts: Callable[[SearchResult], dict] | None = None,
     query_or_goals: str | None = None, init_state_kwargs: dict | None = None,
+    trace_enabled: bool = False,
 ) -> SearchResult | None:
     """Run preparation, search, answer resolution, and memory saving.
 
@@ -76,7 +78,7 @@ def run_example(
             only search.run(). Entered after construction and exited before final
             serialization; exceptions propagate normally. Not entered on resume.
             A nested benchmark.search tracing span records algorithm, query index,
-            and repetition index. It uses the caller's tracing configuration and
+            and repetition index. It uses the active tracing configuration and
             closes before measurement ends; it is a no-op when tracing is disabled.
         collect_search_facts: Optional callback receiving the newly saved result and
             returning JSON-serializable evidence (e.g. measured costs and selection
@@ -86,12 +88,23 @@ def run_example(
         experiment_config: Full ExperimentConfig supplying the registered algorithm
             and create_search_config(). Also saved and checked before search/resume.
             Matching config.json files are unchanged; conflicts raise ValueError.
+        trace_enabled: Own local tracing for a fresh run. Create a unique archive
+            under result_dir/telemetry and save its path in search facts. Configure
+            existing OpenAIChatModel clients from policy, world_model, evaluator,
+            and bn_evaluator; custom components sharing those clients are covered.
+            Does not discover separate clients inside custom selectors/augmentors.
+            Configure before preparation and close after saving, outside search-only
+            timing, including on exceptions. Hosted export and console tracing are off.
+            False leaves caller-managed tracing unchanged. Resume creates no archive
+            and does not configure/close tracing. Enabled execution replaces existing
+            LiTS tracing, so call it outside active caller-owned spans.
 
     Returns:
         The newly executed SearchResult, after saving; None when search is skipped.
         Answer resolution updates saved terminal answers only, not this object.
-        Terminal-file existence remains the legacy resume rule, not an artifact
-        validation guarantee. No correctness judging is performed here.
+        Resume requires matching configuration, completion status, query/repetition
+        identity, and a terminal file; it is not a full artifact validation guarantee.
+        No correctness judging is performed here.
         Search and saving errors propagate; retained checkpoints alone do not
         certify successful execution.
 
@@ -146,6 +159,8 @@ def run_example(
         Internal writes remain part of run() wall time; final paths and terminal
         files are written after it returns. Optional writers/managers can be None.
     """
+    if type(trace_enabled) is not bool:
+        raise TypeError("trace_enabled must be a boolean")
     run_logger = run_logger or logger
     experiment_config.save_config(result_dir, overwrite=False)
     if query_or_goals is None:
@@ -189,9 +204,25 @@ def run_example(
 
         facts = {"query_idx": query_idx, "repetition_index": repetition_index, "status": "running"}
         algo_output = None
+        trace_owned = False
         try:
             if not tn_existed_before:
+                if trace_enabled:
+                    run_id = f"example-{query_idx}-repeat-{repetition_index}-attempt-{uuid4().hex}"
+                    archive_dir = Path(result_dir).resolve() / "telemetry" / run_id
+                    facts["telemetry_dir"] = str(archive_dir)
                 _write_search_facts(facts_path, facts)
+                if trace_enabled:
+                    from lits.lm.openai_chat import OpenAIChatModel
+
+                    models = (getattr(component, "base_model", None)
+                              for component in (policy, world_model, evaluator, bn_evaluator))
+                    tracing.configure(
+                        enabled=True, send_to_logfire=False, console=False,
+                        archive_dir=archive_dir, run_id=run_id,
+                        clients=(model.client for model in models if isinstance(model, OpenAIChatModel)),
+                    )
+                    trace_owned = True
             if prepare_tool_state is not None:
                 prepare_tool_state(example)
 
@@ -269,6 +300,11 @@ def run_example(
                 except Exception:
                     run_logger.warning(f"[{query_idx}] Could not save failure status", exc_info=True)
             raise
+        finally:
+            if trace_owned:
+                export_succeeded = tracing.close()
+                if not export_succeeded:
+                    run_logger.warning("Telemetry export incomplete: %s", archive_dir)
         return algo_output
 
 

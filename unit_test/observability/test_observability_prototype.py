@@ -313,6 +313,75 @@ def check_shared_search_spans():
         print("SKIP enabled shared-search spans: observability extra is not installed")
 
 
+def check_executor_tracing():
+    """Check search.py::run_example owned archives and reused clients without inference.
+
+    Real zero-iteration searches reuse one model across success, error, and interrupt.
+    Exceptions are injected by the existing search measurement context, not a model.
+    """
+    from lits import get_lm
+    from lits.benchmarks import run_example
+    from unit_test.agents.tree.test_search_failures import _zero_iteration_execution
+
+    with TemporaryDirectory(prefix="lits-owned-tracing-") as directory, telemetry_environment():
+        root = Path(directory)
+        tracing.configure(enabled=False)
+        model = get_lm("openai/local-instruct", base_url="http://localhost:8080/v1", api_key="no-key")
+        plain_request = model.client.request
+        run_ids = set()
+        try:
+            for repetition, failure in enumerate((None, RuntimeError("search failure"), KeyboardInterrupt())):
+                run_dir = root / str(repetition)
+                run_dir.mkdir()
+                kwargs = _zero_iteration_execution(model, run_dir)
+
+                @contextmanager
+                def measure_search():
+                    """Verify tracing setup precedes measurement; fail after real search returns."""
+                    if model.client.request == plain_request or tracing_impl._get_logfire() is None:
+                        raise RuntimeError("Executor did not re-instrument the reused client")
+                    yield
+                    if failure is not None:
+                        raise failure
+
+                try:
+                    run_example({"question": "What is 1 + 1?"}, 7, repetition,
+                                trace_enabled=True, search_context=measure_search, **kwargs)
+                except BaseException as error:
+                    if error is not failure:
+                        raise
+                else:
+                    if failure is not None:
+                        raise RuntimeError("Executor swallowed the original failure")
+                if model.client.request != plain_request or tracing_impl._get_logfire() is not None:
+                    raise RuntimeError("Executor did not close tracing and remove instrumentation")
+                facts = json.loads((run_dir / "search_facts_7.json").read_text())
+                expected = "complete" if failure is None else "running" if isinstance(failure, KeyboardInterrupt) else "failed"
+                if facts["status"] != expected:
+                    raise RuntimeError(f"Tracing changed search status: {facts}")
+                archive = Path(facts["telemetry_dir"])
+                metadata = json.loads((archive / "archive.json").read_text())
+                run_ids.add(metadata["run_id"])
+                if metadata["status"] != "complete" or archive.parent != run_dir.resolve() / "telemetry":
+                    raise RuntimeError(f"Invalid executor-owned archive: {metadata}")
+                spans = read_archive(archive, metadata["run_id"])["spans"]
+                if sum(span["name"] == "benchmark.search" for span in spans) != 1:
+                    raise RuntimeError("Missing or duplicate executor search span")
+                if failure is None:
+                    before = {p: p.read_bytes() for p in run_dir.rglob("*") if p.is_file()}
+                    run_example({"question": "What is 1 + 1?"}, 7, repetition, trace_enabled=True, **kwargs)
+                    after = {p: p.read_bytes() for p in run_dir.rglob("*") if p.is_file()}
+                    if before != after:
+                        raise RuntimeError("Resume created or changed tracing evidence")
+                print(f"PASS executor-owned tracing: search={expected}, archive=complete")
+                breakpoint()  # inspect: facts, metadata, spans
+            if len(run_ids) != 3:
+                raise RuntimeError("Attempt archive identities collided")
+        finally:
+            tracing.close()
+            model.client.close()
+
+
 def check_archive_filter(source_root, run_ids, incomplete_run_id):
     """Check archive.py::filter_archives using the real SDK files from check_archives.
 
@@ -735,6 +804,7 @@ def main():
             check_enabled()
             check_stored_configuration()
             check_model_endpoint()
+            check_executor_tracing()
             check_archives()
             check_observations()
             check_logging(enabled=True)

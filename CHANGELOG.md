@@ -12,6 +12,7 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 - Caller-facts payload validation (调用方事实数据校验) [T3.4]
 - Shared search spans with example/repetition identity (携带样本与重复编号的共享搜索跨度) [T4.1]
 - Client registration during tracing configuration (tracing 配置时接入客户端) [T4.2]
+- Opt-in executor-owned local tracing lifecycle (可选的执行器托管本地 tracing 生命周期) [T4.3]
 
 ### Changed
 - Explicit legacy search-resume rejection (明确拒绝缺失完成状态的旧搜索结果恢复) [T3.5.1]

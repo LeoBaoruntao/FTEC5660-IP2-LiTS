@@ -1,12 +1,13 @@
 import os
 import logging
+import math
 import json
 import copy
 import numpy as np
 from ..utils import verbalize_concat_state, strip_num
 from ..base import RewardModel
 from ..registry import register_reward_model
-from ...structures import StateT, ActionT
+from ...structures import StateT, ActionT, ThoughtStep
 from ...lm import HfChatModel, infer_chat_model
 from ...eval import parse_reasoning_and_label
 from ...log import log_phase, log_event
@@ -225,3 +226,44 @@ class GenerativePRM(RewardModel):
             confidence: float = None) -> tuple[float, dict]:
         
         return fast_reward
+
+
+class PolicyScoreRM(RewardModel):
+    """Read policy-generated scores without inference or a policy reference.
+
+    fast_reward() requires a scored ThoughtStep; reward() reuses the supplied
+    fast reward even when the caller passes only the action text.
+    """
+
+    def __init__(self) -> None:
+        """Initialize without a language model or reward prompts."""
+        super().__init__(base_model=None, task_prompt_spec="", usr_prompt_spec="")
+
+    def _fast_reward(
+        self, state: StateT, action_or_step: ThoughtStep, query: str,
+        query_idx: int, from_phase: str = "",
+    ) -> float:
+        """Read the step's score; state, query, and phase are interface context.
+
+        Raise ValueError for raw actions or steps without policy scores. The
+        inherited fast_reward() validates the value and returns (score, {}).
+        """
+        if not isinstance(action_or_step, ThoughtStep) or action_or_step.policy_score is None:
+            raise ValueError("PolicyScoreRM requires a ThoughtStep with policy_score")
+        return action_or_step.policy_score
+
+    def calculate_reward(self, fast_reward: float) -> float:
+        """Return the score as a float; reject missing, nonfinite, or invalid values."""
+        if (type(fast_reward) not in (int, float) or not 0 <= fast_reward <= 1
+                or not math.isfinite(fast_reward)):
+            raise ValueError("Policy score must be a finite number in [0, 1]")
+        return float(fast_reward)
+
+    def reward(
+        self, state: StateT, action: ActionT, fast_reward: float = None, **kwargs,
+    ) -> float:
+        """Reuse fast_reward unchanged; ignore state, action, and transition metadata.
+
+        Raise ValueError when no valid fast reward is supplied.
+        """
+        return self.calculate_reward(fast_reward)

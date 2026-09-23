@@ -11,6 +11,7 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 ### Added
 - ThoughtStep policy-score serialization [T1]
 - Joint action generation with native tool calling [T2]
+- Policy-score reward model [T3]
 
 ## 2026-09-23 Unreleased (`0919-major-unified-search-execution2/tasks`)
 

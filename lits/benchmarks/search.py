@@ -11,6 +11,7 @@ from tempfile import NamedTemporaryFile
 from typing import TYPE_CHECKING, Callable
 
 from filelock import FileLock, SoftFileLock
+from lits import observability as tracing
 
 if TYPE_CHECKING:
     from lits.agents.tree.search_base import SearchResult
@@ -74,6 +75,9 @@ def run_example(
         search_context: Optional zero-argument context-manager factory wrapping
             only search.run(). Entered after construction and exited before final
             serialization; exceptions propagate normally. Not entered on resume.
+            A nested benchmark.search tracing span records algorithm, query index,
+            and repetition index. It uses the caller's tracing configuration and
+            closes before measurement ends; it is a no-op when tracing is disabled.
         collect_search_facts: Optional callback receiving the newly saved result and
             returning JSON-serializable evidence (e.g. measured costs and selection
             events). Runs after saving, outside search_context, before completion.
@@ -217,7 +221,11 @@ def run_example(
 
                 search = search_class(**constructor_kwargs)
                 with search_context() if search_context is not None else nullcontext():
-                    algo_output = search.run(query_or_goals, query_idx)
+                    with tracing.span(
+                        "benchmark.search", algorithm=experiment_config.search_algorithm,
+                        query_idx=query_idx, repetition_index=repetition_index,
+                    ):
+                        algo_output = search.run(query_or_goals, query_idx)
 
                 # Save unselected paths if available (MCTS-specific attribute)
                 if result_saver_unselected and hasattr(algo_output, 'unselected_terminal_paths_during_simulate'):

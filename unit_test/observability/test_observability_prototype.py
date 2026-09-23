@@ -236,6 +236,62 @@ def read_archive(directory, run_id):
     return records
 
 
+def check_shared_search_spans():
+    """Check benchmarks/search.py::run_example spans using real zero-iteration MCTS.
+
+    No inference is requested. Caller-owned archives wrap two repetitions; resuming
+    each run must not emit another search span or change completion metadata.
+    """
+    from lits import get_lm
+    from lits.benchmarks import run_example
+    from unit_test.agents.tree.test_search_failures import _zero_iteration_execution
+
+    model = get_lm("openai/local-instruct", base_url="http://localhost:8080/v1", api_key="no-key")
+    modes = (False, True) if find_spec("logfire") is not None else (False,)
+    for enabled in modes:
+        with TemporaryDirectory(prefix="lits-shared-tracing-") as directory, telemetry_environment():
+            root = Path(directory)
+            archive = root / "telemetry"
+            options = {"archive_dir": archive, "run_id": "shared-search"} if enabled else {}
+            tracing.configure(enabled=enabled, console=False, **options)
+            try:
+                for repetition in (0, 1):
+                    run_dir = root / str(repetition)
+                    run_dir.mkdir()
+                    kwargs = _zero_iteration_execution(model, run_dir)
+                    example = {"question": "What is 1 + 1?"}
+                    run_example(example, 7, repetition, **kwargs)
+                    facts_path = run_dir / "search_facts_7.json"
+                    before = facts_path.read_bytes()
+                    if json.loads(before)["status"] != "complete":
+                        raise RuntimeError("Tracing affected search completion")
+                    if run_example(example, 7, repetition, **kwargs) is not None:
+                        raise RuntimeError("Resume unexpectedly executed search")
+                    if facts_path.read_bytes() != before:
+                        raise RuntimeError("Resume changed completion metadata")
+            finally:
+                closed = tracing.close()
+            if not closed:
+                raise RuntimeError("Shared-search tracing failed to close")
+            if enabled:
+                spans = [span for span in read_archive(archive, "shared-search")["spans"]
+                         if span["name"] == "benchmark.search"]
+                identities = []
+                for span in spans:
+                    attrs = {item["key"]: item["value"] for item in span["attributes"]}
+                    identities.append((attrs["algorithm"]["stringValue"],
+                                       int(attrs["query_idx"]["intValue"]),
+                                       int(attrs["repetition_index"]["intValue"])))
+                if sorted(identities) != [("mcts", 7, 0), ("mcts", 7, 1)]:
+                    raise RuntimeError(f"Incorrect shared-search spans: {identities}")
+            elif archive.exists():
+                raise RuntimeError("Disabled tracing created an archive")
+            print(f"PASS shared search tracing enabled={enabled}: identity, completion, resume")
+            breakpoint()  # inspect: enabled, root, before
+    if modes == (False,):
+        print("SKIP enabled shared-search spans: observability extra is not installed")
+
+
 def check_archive_filter(source_root, run_ids, incomplete_run_id):
     """Check archive.py::filter_archives using the real SDK files from check_archives.
 
@@ -644,6 +700,7 @@ def main():
         check_logging()
         count = check_rejected_configuration()
         print(f"PASS {count} rejected configurations before SDK initialization")
+        check_shared_search_spans()
         if find_spec("logfire") is None:
             try:
                 tracing.configure(enabled=True)

@@ -49,13 +49,14 @@ def vote_answers(
     model: LanguageModel,
     max_new_tokens: int = 2048,
 ) -> dict[str, int]:
-    """Group raw answers with one LLM tool call, then count votes in Python.
+    """Group raw answers with an LLM tool call, then count votes in Python.
 
     Workflow::
 
         Raw terminal answers (no numeric-prefix extraction, no ground truth)
             -> LLM extracts and groups equivalent answers
             -> Python validates that every input ID occurs exactly once
+            -> invalid output receives one corrective retry with the validation error
             -> Python counts group members, excluding unanswered IDs
             -> caller selects the largest group
             -> registered correctness checker, then optional LLM double-check
@@ -66,7 +67,7 @@ def vote_answers(
             Mapping order defines tie-breaking, independently of LLM group order.
         model: Caller-configured LiTS model supporting tools and ToolCallOutput.
             Does not mutate its system prompt; usage is logged as evaluator_voting.
-        max_new_tokens: Output-token limit for the single grouping call.
+        max_new_tokens: Output-token limit per grouping call (at most two calls).
 
     Returns:
         Answer -> member count, ordered by each group's first input member.
@@ -82,7 +83,8 @@ def vote_answers(
 
     Raises:
         ValueError: Invalid inputs, missing/multiple/wrong tool calls, malformed groups,
-            duplicate/unknown/omitted IDs, or duplicate answer labels. No silent repair
+            duplicate/unknown/omitted IDs, or duplicate answer labels after one retry.
+            Invalid inputs fail before inference. No silent repair
             or numeric-extraction fallback is applied. Model/API errors propagate.
 
     Strict schema support depends on the backend. Local validation checks structure
@@ -117,15 +119,27 @@ def vote_answers(
             "question": query, "answers": dict(raw_answers_by_id),
         })},
     ]
-    output = model(
-        prompt, tools=[_ANSWER_GROUPS_TOOL], role="evaluator_voting",
-        temperature=1e-6, max_new_tokens=max_new_tokens,
-    )
-    logging.getLogger(__name__).debug("Answer voting output: %r", output)
-    if (not isinstance(output, ToolCallOutput) or len(output.tool_calls) != 1
-            or output.tool_calls[0].name != _ANSWER_GROUPS_TOOL["name"]):
-        raise ValueError("Answer voting requires exactly one group_answers tool call")
-    return _count_answer_votes(output.tool_calls[0].input_args, raw_answers_by_id)
+    for attempt in range(2):
+        output = model(
+            prompt, tools=[_ANSWER_GROUPS_TOOL], role="evaluator_voting",
+            temperature=1e-6, max_new_tokens=max_new_tokens,
+        )
+        logging.getLogger(__name__).debug("Answer voting output: %r", output)
+        try:
+            if (not isinstance(output, ToolCallOutput) or len(output.tool_calls) != 1
+                    or output.tool_calls[0].name != _ANSWER_GROUPS_TOOL["name"]):
+                raise ValueError("Answer voting requires exactly one group_answers tool call")
+            return _count_answer_votes(output.tool_calls[0].input_args, raw_answers_by_id)
+        except ValueError as error:
+            if attempt == 1:
+                raise
+            logging.getLogger(__name__).warning("Retrying invalid answer grouping: %s", error)
+            prompt.append({"role": "user", "content": (
+                f"Your grouping failed validation: {error}. "
+                "Call group_answers again with the complete grouping of the original inputs. "
+                "Check that every original ID occurs exactly once, including IDs with long "
+                "explanations. Extract their stated final answers; do not omit them."
+            )})
 
 
 def _count_answer_votes(payload: dict, raw_answers_by_id: Mapping[str, str]) -> dict[str, int]:

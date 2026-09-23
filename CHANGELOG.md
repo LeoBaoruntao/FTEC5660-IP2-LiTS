@@ -33,6 +33,7 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 
 ### Fixed
 - Search resume query/repetition mismatch detection (搜索恢复时的问题与重复编号不匹配检查) [T3.5.3]
+- Corrective retry for invalid answer-voting groups (答案投票分组无效时的纠正重试) [T5.2]
 
 ## 2026-09-22 Unreleased (`0919-major-unified-search-execution2/tasks`)
 

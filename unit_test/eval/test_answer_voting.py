@@ -220,8 +220,8 @@ def check_live_answer_voting(output_dir, model_name):
             ])
             print(f"PASS {name}: {votes}; prediction={outcome['prediction']}", flush=True)
         usage = model.inference_logger.get_metrics_by_role("evaluator_voting")
-        if usage["num_calls"] != 2 * len(cases):
-            raise RuntimeError(f"Expected two voting calls per case: {usage}")
+        if not 2 * len(cases) <= usage["num_calls"] <= 4 * len(cases):
+            raise RuntimeError(f"Expected at most one retry per voting evaluation: {usage}")
     finally:
         voter_logger.removeHandler(handler)
         voter_logger.setLevel(previous_level)
@@ -230,10 +230,47 @@ def check_live_answer_voting(output_dir, model_name):
     return checks
 
 
+def check_saved_answer_voting(terminal_file, output_dir, model_name):
+    """Evaluate saved terminals with answer_voting.py::vote_answers, without search.
+
+    Retain responses and votes separately; never rewrite the source terminal file.
+    This checks real grouping, but only exercises retry when the model is invalid.
+    """
+    from lits.cli.eval_search import load_terminal_nodes_from_file
+
+    original = terminal_file.read_bytes()
+    data = load_terminal_nodes_from_file(terminal_file)
+    raw = _raw_terminal_answers(data["terminal_nodes"])
+    model = get_lm(model_name, enable_thinking=False)
+    model.client = model.client.with_options(timeout=120, max_retries=0)
+    setup_inference_logging(model, root_dir=str(output_dir))
+    voter_logger = logging.getLogger("lits.eval.answer_voting")
+    handler = logging.FileHandler(output_dir / "voting.log")
+    previous_level = voter_logger.level
+    voter_logger.setLevel(logging.DEBUG)
+    voter_logger.addHandler(handler)
+    try:
+        votes = vote_answers(data["query"], raw, model=model)
+    finally:
+        voter_logger.removeHandler(handler)
+        voter_logger.setLevel(previous_level)
+        handler.close()
+    if terminal_file.read_bytes() != original:
+        raise RuntimeError("Source terminal file changed")
+    result = {"source": str(terminal_file), "raw_answers": raw, "votes": votes,
+              "prediction": max(votes, key=votes.get) if votes else "",
+              "usage": model.inference_logger.get_metrics_by_role("evaluator_voting")}
+    print(json.dumps(result, indent=2), flush=True)
+    breakpoint()  # inspect: raw, votes, result; compare with the saved cohort reference
+    return result
+
+
 def main():
     """Run deterministic voting checks and optional real-model checks; retain results."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--voting-model", help="Real model for thinking-enabled semantic voting checks")
+    parser.add_argument("--terminal-file", type=Path,
+                        help="Evaluate saved terminals only, using the pilot's non-thinking voter")
     args = parser.parse_args()
     os.environ.setdefault("OPENAI_API_KEY", "no-key")
     os.environ.setdefault("OPENAI_API_BASE", "http://localhost:8000/v1")
@@ -241,7 +278,11 @@ def main():
     print(f"Voting artifacts: {output_dir}", flush=True)
     checks = check_voting_contract()
     checks.extend(check_answer_groups())
-    if args.voting_model:
+    if args.terminal_file:
+        checks.append(check_saved_answer_voting(
+            args.terminal_file, output_dir, args.voting_model or MODEL_NAME,
+        ))
+    elif args.voting_model:
         checks.extend(check_live_answer_voting(output_dir, args.voting_model))
     (output_dir / "results.json").write_text(json.dumps(checks, indent=2) + "\n")
     print(f"Passed {len(checks)} checks. Results: {output_dir / 'results.json'}")

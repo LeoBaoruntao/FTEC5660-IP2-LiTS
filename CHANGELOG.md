@@ -14,6 +14,7 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 - Client registration during tracing configuration (tracing 配置时接入客户端) [T4.2]
 - Opt-in executor-owned local tracing lifecycle (可选的执行器托管本地 tracing 生命周期) [T4.3]
 - CLI configuration for local tracing (CLI 本地 tracing 配置开关) [T4.4]
+- MCTS run and iteration tracing (MCTS 搜索与迭代 tracing) [T4.6]
 
 ### Changed
 - Explicit legacy search-resume rejection (明确拒绝缺失完成状态的旧搜索结果恢复) [T3.5.1]

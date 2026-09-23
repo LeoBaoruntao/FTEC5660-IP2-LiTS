@@ -24,6 +24,7 @@ from .augmentor_setup import setup_augmentors
 from ..registry import register_search
 from ...log import log_phase, log_event, log_metric
 from ...visualize import visualize_tree
+from ... import observability as tracing
 
 logger = logging.getLogger(__name__)
 
@@ -949,198 +950,203 @@ class MCTSSearch(BaseTreeSearch):
         The repetition flag also ends the path independently of reward.
         The global terminal-stop rule applies both before and after rollout, only
         after backup and recording; a low-scoring terminal never keeps its path open.
+        A search.run span contains one search.iteration span per attempted iteration,
+        including terminal revisits and early exits. Context managers close spans on
+        break, continue, and exceptions; tracing does not change search decisions.
         """
-        logger.debug(f"Question: {query}")
-        log_phase(logger, "MCTS", f"Begin (example={query_idx})")
+        with tracing.span("search.run", algorithm="mcts", query=query, query_idx=query_idx):
+            logger.debug(f"Question: {query}")
+            log_phase(logger, "MCTS", f"Begin (example={query_idx})")
 
-        config = self.config
+            config = self.config
 
-        # Setup augmentor callbacks
-        on_step_complete = None
-        on_trajectory_complete = None
-        augmentor_query_context = None
-        if hasattr(self, 'augmentors') and self.augmentors:
-            augmentor_query_context = {
-                'policy_model_name': getattr(self.policy.base_model, 'model_name', 'unknown'),
-                'task_type': getattr(self.policy, 'TASK_TYPE', 'tool_use'),
-                'query_or_goals': query,
-                'query_idx': query_idx,
-                'save_dir': getattr(self, 'checkpoint_dir', None),
-            }
-            on_step_complete, on_trajectory_complete = setup_augmentors(
-                self.policy, self.augmentors, query_context=augmentor_query_context)
+            # Setup augmentor callbacks
+            on_step_complete = None
+            on_trajectory_complete = None
+            augmentor_query_context = None
+            if hasattr(self, 'augmentors') and self.augmentors:
+                augmentor_query_context = {
+                    'policy_model_name': getattr(self.policy.base_model, 'model_name', 'unknown'),
+                    'task_type': getattr(self.policy, 'TASK_TYPE', 'tool_use'),
+                    'query_or_goals': query,
+                    'query_idx': query_idx,
+                    'save_dir': getattr(self, 'checkpoint_dir', None),
+                }
+                on_step_complete, on_trajectory_complete = setup_augmentors(
+                    self.policy, self.augmentors, query_context=augmentor_query_context)
 
-        def _dfs_max_reward(path: list[MCTSNode]) -> tuple[float, list[MCTSNode]]:
-            cur = path[-1]
-            if cur.is_terminal:
-                return config.backprop_reward_func([node.reward for node in path[1:]]), path
-            if cur.children is None:
-                return -math.inf, path
-            visited_children = [x for x in cur.children if x.state is not None]
-            if len(visited_children) == 0:
-                return -math.inf, path
-            return max((_dfs_max_reward(path + [child]) for child in visited_children), key=lambda x: x[0])
+            def _dfs_max_reward(path: list[MCTSNode]) -> tuple[float, list[MCTSNode]]:
+                cur = path[-1]
+                if cur.is_terminal:
+                    return config.backprop_reward_func([node.reward for node in path[1:]]), path
+                if cur.children is None:
+                    return -math.inf, path
+                visited_children = [x for x in cur.children if x.state is not None]
+                if len(visited_children) == 0:
+                    return -math.inf, path
+                return max((_dfs_max_reward(path + [child]) for child in visited_children), key=lambda x: x[0])
 
-        _output_cum_reward = -math.inf,
-        _output_iter = None
-        trace_in_each_iter = []
-        unselected_terminal_paths_during_simulate = []
+            _output_cum_reward = -math.inf,
+            _output_iter = None
+            trace_in_each_iter = []
+            unselected_terminal_paths_during_simulate = []
 
-        for idx_iter in trange(config.n_iters, desc='MCTS iteration', leave=False):
-            self.check_runtime_limit()
-            logger.info(f"{'='*20} [MCTS] Iteration {idx_iter}/{config.n_iters} (example={query_idx}) {'='*20}")
+            for idx_iter in trange(config.n_iters, desc='MCTS iteration', leave=False):
+                with tracing.span("search.iteration", iteration=idx_iter):
+                    self.check_runtime_limit()
+                    logger.info(f"{'='*20} [MCTS] Iteration {idx_iter}/{config.n_iters} (example={query_idx}) {'='*20}")
             
-            # Set iteration field for all LLM calls in this iteration
-            self.set_log_field("iteration", idx_iter)
+                    # Set iteration field for all LLM calls in this iteration
+                    self.set_log_field("iteration", idx_iter)
             
-            # Define callback to update trajectory_key at each hop
-            def update_traj_key(node):
-                if node.trajectory_key:
-                    # Alawys update for inference logging
-                    traj_key_str = node.trajectory_key.path_str
-                    self.set_log_field("trajectory_key", traj_key_str)
+                    # Define callback to update trajectory_key at each hop
+                    def update_traj_key(node):
+                        if node.trajectory_key:
+                            # Alawys update for inference logging
+                            traj_key_str = node.trajectory_key.path_str
+                            self.set_log_field("trajectory_key", traj_key_str)
                     
-                    # Update augmentor query_context so _combined_retrieve()
-                    # sees the current trajectory_key for memory retrieval
-                    if augmentor_query_context is not None:
-                        augmentor_query_context["trajectory_key"] = traj_key_str
+                            # Update augmentor query_context so _combined_retrieve()
+                            # sees the current trajectory_key for memory retrieval
+                            if augmentor_query_context is not None:
+                                augmentor_query_context["trajectory_key"] = traj_key_str
             
-            path = self._do_select_path(query, query_idx, idx_iter)
+                    path = self._do_select_path(query, query_idx, idx_iter)
             
-            # Update trajectory_key after select
-            update_traj_key(path[-1])
+                    # Update trajectory_key after select
+                    update_traj_key(path[-1])
 
-            # ====== Terminate Check (after select) ======
-            endpoint = path[-1]
-            # Execute selected actions at the depth bound; answers override the legacy repeat flag.
-            if endpoint.state is None and (
-                getattr(getattr(endpoint, "step", None), "terminate", False)
-                or not _should_end_path(endpoint, config, checks=("repeat",))
-            ):
-                _world_modeling(
-                    query, query_idx, endpoint, self.world_model, self.reward_model,
-                    from_phase="expand",
-                )
-            completion_callback = on_trajectory_complete if endpoint.is_terminal else None
-            if self._handle_early_exit(
-                path, query_idx, idx_iter, trace_in_each_iter,
-                stage="select",
-                on_trajectory_complete=completion_callback,
-            ):
-                if self._should_stop_search(endpoint):
-                    break
-                continue
+                    # ====== Terminate Check (after select) ======
+                    endpoint = path[-1]
+                    # Execute selected actions at the depth bound; answers override the legacy repeat flag.
+                    if endpoint.state is None and (
+                        getattr(getattr(endpoint, "step", None), "terminate", False)
+                        or not _should_end_path(endpoint, config, checks=("repeat",))
+                    ):
+                        _world_modeling(
+                            query, query_idx, endpoint, self.world_model, self.reward_model,
+                            from_phase="expand",
+                        )
+                    completion_callback = on_trajectory_complete if endpoint.is_terminal else None
+                    if self._handle_early_exit(
+                        path, query_idx, idx_iter, trace_in_each_iter,
+                        stage="select",
+                        on_trajectory_complete=completion_callback,
+                    ):
+                        if self._should_stop_search(endpoint):
+                            break
+                        continue
 
-            # ====== Continuation ======
-            if config.add_continuation:
-                continuous_trace = _continuation(
-                    query, query_idx, path[-1],
-                    self.world_model, self.policy, self.reward_model,
-                    expand_func=self._do_expand, world_modeling_func=_world_modeling,
-                    bn_evaluator=self.bn_evaluator,
-                    depth_limit=config.max_steps,
-                    threshold_alpha=config.reward_alpha,
-                    threshold_conf=config.reward_beta,
-                    threshold_gamma=config.reward_gamma,
-                    threshold_gamma1=config.reward_gamma1,
-                    n_actions_for_bne=config.n_actions_for_bne,
-                    on_step=update_traj_key,
-                    transition_before_evaluate=config.transition_before_evaluate)
-                path.extend(continuous_trace[1:])
+                    # ====== Continuation ======
+                    if config.add_continuation:
+                        continuous_trace = _continuation(
+                            query, query_idx, path[-1],
+                            self.world_model, self.policy, self.reward_model,
+                            expand_func=self._do_expand, world_modeling_func=_world_modeling,
+                            bn_evaluator=self.bn_evaluator,
+                            depth_limit=config.max_steps,
+                            threshold_alpha=config.reward_alpha,
+                            threshold_conf=config.reward_beta,
+                            threshold_gamma=config.reward_gamma,
+                            threshold_gamma1=config.reward_gamma1,
+                            n_actions_for_bne=config.n_actions_for_bne,
+                            on_step=update_traj_key,
+                            transition_before_evaluate=config.transition_before_evaluate)
+                        path.extend(continuous_trace[1:])
                 
-                # Update trajectory_key after continuation (path[-1] changed)
-                update_traj_key(path[-1])
+                        # Update trajectory_key after continuation (path[-1] changed)
+                        update_traj_key(path[-1])
 
-                # Notify per-trajectory augmentors when continuation completes a trajectory.
-                if self._handle_early_exit(
-                    path, query_idx, idx_iter, trace_in_each_iter, stage="continuation",
-                    on_trajectory_complete=on_trajectory_complete,
-                ):
+                        # Notify per-trajectory augmentors when continuation completes a trajectory.
+                        if self._handle_early_exit(
+                            path, query_idx, idx_iter, trace_in_each_iter, stage="continuation",
+                            on_trajectory_complete=on_trajectory_complete,
+                        ):
+                            if self._should_stop_search(path[-1]):
+                                break
+                            continue
+
+                    # ====== Expansion ======
+                    self._do_expand(
+                        query, query_idx, path[-1], self.policy,
+                        n_actions=self.policy.n_actions,
+                        reward_model=self.reward_model, world_model=self.world_model,
+                        assign_rewards=True,
+                        from_phase="expand",
+                        transition_before_evaluate=config.transition_before_evaluate,
+                        on_step_complete=on_step_complete,
+                    )
+
+                    # ====== Simulate ======
+                    if path[-1].state is None:
+                        _world_modeling(query, query_idx, path[-1], self.world_model, self.reward_model, from_phase="expand")
+
+                    # Notify per-trajectory augmentors when expansion completes a trajectory.
+                    if self._handle_early_exit(
+                        path, query_idx, idx_iter, trace_in_each_iter, stage="pre_simulate",
+                        on_trajectory_complete=on_trajectory_complete,
+                    ):
+                        if self._should_stop_search(path[-1]):
+                            break
+                        continue
+
+                    is_terminal_for_repeat, unselected_terminal_paths = self._do_simulate(
+                        query, query_idx, path, config,
+                        self.world_model, self.policy, self.reward_model,
+                        roll_out_steps=config.roll_out_steps,
+                        on_step=update_traj_key,
+                        transition_before_evaluate=config.transition_before_evaluate,
+                        on_step_complete=on_step_complete,
+                    )
+
+                    # Back up, trigger per-trajectory augmentors, and save before any stop.
+                    self._finalize_iteration(
+                        path, query_idx, idx_iter, trace_in_each_iter, from_phase="simulate",
+                        on_trajectory_complete=on_trajectory_complete,
+                    )
+
+                    # Log tree snapshot
+                    n_terminals = len(self.collect_terminal_nodes())
+                    tree_str = visualize_tree(self.root)
+                    logger.info(f"[MCTS] Iteration {idx_iter}/{config.n_iters} (example={query_idx}) | terminals={n_terminals}\n{tree_str}")
+
+                    # ====== Terminal / First-Solution Search Stop ======
                     if self._should_stop_search(path[-1]):
+                        log_event(
+                            logger, "MCTS",
+                            f"Search stop accepted (reward={path[-1].fast_reward:.3f})",
+                            level="debug",
+                        )
                         break
-                    continue
 
-            # ====== Expansion ======
-            self._do_expand(
-                query, query_idx, path[-1], self.policy,
-                n_actions=self.policy.n_actions,
-                reward_model=self.reward_model, world_model=self.world_model,
-                assign_rewards=True,
-                from_phase="expand",
-                transition_before_evaluate=config.transition_before_evaluate,
-                on_step_complete=on_step_complete,
+                    unselected_terminal_paths_during_simulate.extend(unselected_terminal_paths)
+
+            # Retrieve the path with maximum cumulative reward
+            if config.output_strategy == 'max_reward':
+                _output_cum_reward, _output_iter = _dfs_max_reward([self.root])
+
+            # Save final result path checkpoint
+            if self._checkpoint_path and _output_iter:
+                from ...structures.trace import _serialize_obj
+                result_file = self._checkpoint_path / f"{query_idx}_result.json"
+                result_data = _serialize_obj(_output_iter)
+                with open(result_file, 'w') as f:
+                    json.dump(result_data, f, indent=2)
+                log_event(logger, "CHECKPOINT", f"Saved result: {result_file}", level="debug")
+
+            terminal_nodes_collected = self.collect_terminal_nodes()
+            self.save_full_tree(query_idx)
+            log_event(logger, "MCTS", f"Total terminal nodes: {len(terminal_nodes_collected)}", level="debug")
+            log_phase(logger, "MCTS", f"End (example={query_idx})")
+
+            return MCTSResult(
+                root=self.root,
+                terminal_nodes_collected=terminal_nodes_collected,
+                cum_reward=_output_cum_reward,
+                trace=([node.state for node in _output_iter], [node.action for node in _output_iter[1:]]) if _output_iter is not None else None,
+                trace_of_nodes=_output_iter if _output_iter is not None else [],
+                trace_in_each_iter=trace_in_each_iter,
+                unselected_terminal_paths_during_simulate=unselected_terminal_paths_during_simulate,
             )
-
-            # ====== Simulate ======
-            if path[-1].state is None:
-                _world_modeling(query, query_idx, path[-1], self.world_model, self.reward_model, from_phase="expand")
-
-            # Notify per-trajectory augmentors when expansion completes a trajectory.
-            if self._handle_early_exit(
-                path, query_idx, idx_iter, trace_in_each_iter, stage="pre_simulate",
-                on_trajectory_complete=on_trajectory_complete,
-            ):
-                if self._should_stop_search(path[-1]):
-                    break
-                continue
-
-            is_terminal_for_repeat, unselected_terminal_paths = self._do_simulate(
-                query, query_idx, path, config,
-                self.world_model, self.policy, self.reward_model,
-                roll_out_steps=config.roll_out_steps,
-                on_step=update_traj_key,
-                transition_before_evaluate=config.transition_before_evaluate,
-                on_step_complete=on_step_complete,
-            )
-
-            # Back up, trigger per-trajectory augmentors, and save before any stop.
-            self._finalize_iteration(
-                path, query_idx, idx_iter, trace_in_each_iter, from_phase="simulate",
-                on_trajectory_complete=on_trajectory_complete,
-            )
-
-            # Log tree snapshot
-            n_terminals = len(self.collect_terminal_nodes())
-            tree_str = visualize_tree(self.root)
-            logger.info(f"[MCTS] Iteration {idx_iter}/{config.n_iters} (example={query_idx}) | terminals={n_terminals}\n{tree_str}")
-
-            # ====== Terminal / First-Solution Search Stop ======
-            if self._should_stop_search(path[-1]):
-                log_event(
-                    logger, "MCTS",
-                    f"Search stop accepted (reward={path[-1].fast_reward:.3f})",
-                    level="debug",
-                )
-                break
-
-            unselected_terminal_paths_during_simulate.extend(unselected_terminal_paths)
-
-        # Retrieve the path with maximum cumulative reward
-        if config.output_strategy == 'max_reward':
-            _output_cum_reward, _output_iter = _dfs_max_reward([self.root])
-
-        # Save final result path checkpoint
-        if self._checkpoint_path and _output_iter:
-            from ...structures.trace import _serialize_obj
-            result_file = self._checkpoint_path / f"{query_idx}_result.json"
-            result_data = _serialize_obj(_output_iter)
-            with open(result_file, 'w') as f:
-                json.dump(result_data, f, indent=2)
-            log_event(logger, "CHECKPOINT", f"Saved result: {result_file}", level="debug")
-
-        terminal_nodes_collected = self.collect_terminal_nodes()
-        self.save_full_tree(query_idx)
-        log_event(logger, "MCTS", f"Total terminal nodes: {len(terminal_nodes_collected)}", level="debug")
-        log_phase(logger, "MCTS", f"End (example={query_idx})")
-
-        return MCTSResult(
-            root=self.root,
-            terminal_nodes_collected=terminal_nodes_collected,
-            cum_reward=_output_cum_reward,
-            trace=([node.state for node in _output_iter], [node.action for node in _output_iter[1:]]) if _output_iter is not None else None,
-            trace_of_nodes=_output_iter if _output_iter is not None else [],
-            trace_in_each_iter=trace_in_each_iter,
-            unselected_terminal_paths_during_simulate=unselected_terminal_paths_during_simulate,
-        )
 
 ##### MCTS (END) #####

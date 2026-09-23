@@ -47,6 +47,7 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Iterable
 from contextlib import AbstractContextManager, ExitStack, nullcontext
 from copy import deepcopy
 from pathlib import Path
@@ -96,6 +97,7 @@ def _validate_export_environment() -> None:
 def configure(
     *, enabled: bool = False, send_to_logfire: bool = False, console: bool = True,
     archive_dir: str | os.PathLike[str] | None = None, run_id: str | None = None,
+    clients: Iterable[Any] = (),
 ) -> None:
     """Enable, replace, or disable LiTS tracing between runs, outside active spans.
 
@@ -122,6 +124,10 @@ def configure(
             Requires enabled=True and run_id; existing directories are rejected.
         run_id: Non-empty run identity, saved as the lits.run_id resource attribute
             on both traces and logs. Required only when archive_dir is supplied.
+        clients: Existing OpenAI-compatible SDK clients to instrument after enabling
+            the new configuration, e.g. clients=(model.client,). Ignored when disabled.
+            Reconfiguration removes old instrumentation before registering these clients.
+            Clients created later can still use instrument_openai() independently.
 
     OTLP endpoint and OpenTelemetry detector overrides are rejected before SDK
     initialization, even with hosted export enabled. Custom processors and SDK
@@ -129,6 +135,8 @@ def configure(
     booleans override environment/file defaults, so stored credentials cannot
     authorize upload. Preflight rejection leaves an existing instance unchanged.
     Other libraries' telemetry configuration is not managed by this facade.
+    If initialization or client registration fails, close the new SDK/archive and
+    remove registrations already made, then propagate the error.
     """
     global _logfire_instance, _archive
     if any(type(flag) is not bool for flag in (enabled, send_to_logfire, console)):
@@ -155,6 +163,7 @@ def configure(
     if not enabled:
         return
 
+    _archive = archive
     try:
         span_processors, log_processors = [], []
         archive_options = {}
@@ -182,13 +191,13 @@ def configure(
             ),
             **archive_options,
         )
+        for client in clients:
+            instrument_openai(client)
     except Exception as error:
         if archive is not None:
-            archive.fail(f"SDK initialization failed: {error}")
-            archive.close_exporters()
-            archive.write_status("incomplete")
+            archive.fail(f"Tracing initialization failed: {error}")
+        close()
         raise
-    _archive = archive
 
 
 def flush() -> bool:

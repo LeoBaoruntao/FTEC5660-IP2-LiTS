@@ -178,7 +178,7 @@ def check_stored_configuration():
 
 
 def check_model_endpoint():
-    """Construct the approved Tailscale client unchanged; do not call the model."""
+    """Check tracing.py::configure client registration and rollback without inference."""
     from lits import get_lm
 
     endpoint = "https://xinzhes-macbook-pro-2.tailde6fe4.ts.net/v1"
@@ -193,22 +193,43 @@ def check_model_endpoint():
                 tracing.instrument_openai(model.client)
                 if model.client.request is not instrumented_request:
                     raise RuntimeError("Repeated instrumentation changed the request wrapper")
-                tracing.configure(enabled=False)
+                tracing.configure(enabled=False, clients=(model.client,))
                 plain_request = model.client.request
                 if plain_request is instrumented_request:
                     raise RuntimeError("Disabling tracing did not remove client instrumentation")
                 tracing.instrument_openai(model.client)
                 if model.client.request is not plain_request:
                     raise RuntimeError("Disabled registration changed the client")
-                tracing.configure(enabled=True, console=False)
-                tracing.instrument_openai(model.client)
+                tracing.configure(enabled=True, console=False, clients=(model.client, model.client))
                 if model.client.request is plain_request:
                     raise RuntimeError("Client was not registered for the new configuration")
+                tracing.close()
+                if model.client.request is not plain_request:
+                    raise RuntimeError("Configuration-owned instrumentation was not removed")
+                with TemporaryDirectory(prefix="lits-client-rollback-") as directory:
+                    archive = Path(directory) / "telemetry"
+                    try:
+                        tracing.configure(
+                            enabled=True, console=False, archive_dir=archive, run_id="rollback",
+                            clients=(model.client, object()),
+                        )
+                    except (TypeError, AttributeError):
+                        pass
+                    else:
+                        raise RuntimeError("Invalid SDK client was accepted")
+                    status = json.loads((archive / "archive.json").read_text())
+                    if (model.client.request is not plain_request
+                            or tracing_impl._get_logfire() is not None
+                            or status["status"] != "incomplete"):
+                        raise RuntimeError("Failed client registration left tracing active")
+                    if tracing_impl._archive is not None:
+                        raise RuntimeError("Failed configuration retained its archive")
+                    breakpoint()  # inspect: status, model.client.request, plain_request
             finally:
                 model.client.close()
         finally:
             tracing.configure(enabled=False)
-    print("PASS Tailscale client, duplicate registration, cleanup and reconfiguration; no inference")
+    print("PASS Tailscale client, configured clients, duplicates, disabled mode and rollback; no inference")
 
 
 def read_archive(directory, run_id):

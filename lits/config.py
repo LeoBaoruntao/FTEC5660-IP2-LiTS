@@ -81,7 +81,7 @@ _EXCLUDE_FROM_SEARCH_CONFIG: Set[str] = {
     "dataset", "search_framework", "search_algorithm",
     "offset", "limit", "eval_idx",
     "verbose", "model_verbose", "print_answer_for_each_example", "override_log_result",
-    "memory_args", "check_action_sim"
+    "memory_args", "check_action_sim", "trace_enabled"
 }
 
 
@@ -260,6 +260,7 @@ class ExperimentConfig:
     verbose: bool = True
     print_answer_for_each_example: bool = True
     override_log_result: bool = False
+    trace_enabled: bool = False  # Local per-example tracing; CLI: --cfg trace_enabled=true
     package_version: str = PACKAGE_VERSION
     
     def get_search_args(self) -> Dict[str, Any]:
@@ -537,6 +538,7 @@ class ExperimentConfig:
             # Output
             "output_dir": self.output_dir,
             "root_dir": self.root_dir,
+            "trace_enabled": self.trace_enabled,
             # Version
             "package_version": self.package_version,
         }

@@ -568,6 +568,7 @@ def main() -> int:
     execute_example = partial(
         run_example,
         experiment_config=config,
+        trace_enabled=config.trace_enabled,
         task_type=task_type,
         world_model=world_model,
         policy=policy,

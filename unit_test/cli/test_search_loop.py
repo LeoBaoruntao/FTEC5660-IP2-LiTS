@@ -11,6 +11,7 @@ memory saving, and nonzero-iteration search are not tested here.
 """
 
 import json
+from importlib.util import find_spec
 from functools import partial
 import os
 from pathlib import Path
@@ -66,6 +67,8 @@ def run_cli(output_dir, overrides, dataset_name="cli_loop_check"):
 
     def record_search(example, query_idx, repetition_index, **kwargs):
         """Observe dispatch and delegate unchanged, rejecting nonzero iteration settings."""
+        if kwargs.get("trace_enabled") is not kwargs["experiment_config"].trace_enabled:
+            raise RuntimeError("CLI must forward its configured tracing option")
         if kwargs["experiment_config"].create_search_config().n_iters != 0:
             raise RuntimeError("This check must not run model inference")
         if example is not EXAMPLES[query_idx]:
@@ -168,6 +171,36 @@ def check_dataset_loop(root):
     breakpoint()  # inspect: report, root
 
 
+def check_cli_tracing(root):
+    """Check search.py::main forwards --cfg tracing and preserves archives on resume."""
+    if find_spec("logfire") is None:
+        print("SKIP enabled CLI tracing: observability extra is not installed")
+        return
+    output_dir = root / "tracing"
+    overrides = ["eval_idx=[0,1]", "trace_enabled=true"]
+    run_cli(output_dir, overrides)
+    config = json.loads((output_dir / "config.json").read_text())
+    if config["trace_enabled"] is not True:
+        raise RuntimeError("Saved configuration lost the tracing opt-in")
+    archives = []
+    for idx in (0, 1):
+        facts = json.loads((output_dir / f"search_facts_{idx}.json").read_text())
+        archive = Path(facts["telemetry_dir"])
+        metadata = json.loads((archive / "archive.json").read_text())
+        if facts["status"] != "complete" or metadata["status"] != "complete":
+            raise RuntimeError(f"Search or telemetry did not complete: {facts}, {metadata}")
+        archives.append(archive)
+    if archives[0] == archives[1]:
+        raise RuntimeError("Examples must have independent trace archives")
+    before = {p: p.read_bytes() for p in (output_dir / "telemetry").rglob("*") if p.is_file()}
+    run_cli(output_dir, overrides)
+    after = {p: p.read_bytes() for p in (output_dir / "telemetry").rglob("*") if p.is_file()}
+    if before != after:
+        raise RuntimeError("CLI resume changed completed trace archives")
+    print("PASS CLI tracing: configured, two closed archives, unchanged on resume")
+    breakpoint()  # inspect: config, archives, metadata
+
+
 def main():
     """Configure the real client without HF login and retain fresh CLI baseline artifacts."""
     settings = {
@@ -182,6 +215,7 @@ def main():
         check_dataset_loop(root)
         check_resource_preparation(root)
         check_rejected_resume_continues(root)
+        check_cli_tracing(root)
     finally:
         for key, value in previous.items():
             if value is None:

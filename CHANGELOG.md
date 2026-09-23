@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-09-23 Unreleased (`0923-major-joint-action-scoring/tasks`)
+
+### Added
+- ThoughtStep policy-score serialization [T1]
+
 ## 2026-09-23 Unreleased (`0919-major-unified-search-execution2/tasks`)
 
 ### Added

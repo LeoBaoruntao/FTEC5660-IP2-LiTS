@@ -8,9 +8,15 @@ from .base import ActionT, Step, State, TrajectoryState, StringAction
 @register_type
 @dataclass
 class ThoughtStep(Step):
-    """General reasoning step used by concatenation-style policies."""
+    """General reasoning step used by concatenation-style policies.
+
+    ``policy_score`` is an optional correctness/progress estimate in [0, 1]
+    supplied by the policy. It is checkpoint metadata, excluded from reasoning
+    text and chat messages. Missing scores default to None for older checkpoints.
+    """
 
     action: ActionT = ""
+    policy_score: float | None = None
 
     def get_action(self) -> ActionT:
         return self.action
@@ -27,9 +33,11 @@ class ThoughtStep(Step):
         return [{"role": "assistant", "content": str(self.action)}]
     
     def to_dict(self) -> dict:
-        """Serialize the step for checkpointing, including the action field."""
+        """Serialize the action and, when present, policy score for checkpointing."""
         data = super().to_dict()
         data["action"] = self.action
+        if self.policy_score is not None:
+            data["policy_score"] = self.policy_score
         return data
 
     @classmethod
@@ -47,4 +55,3 @@ class ThoughtStep(Step):
         """
         from lits.components.utils import verbalize_concat_state
         return verbalize_concat_state(question, state)
-    

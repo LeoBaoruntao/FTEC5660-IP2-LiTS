@@ -1,8 +1,9 @@
 from ..base import Policy
 from ..registry import register_policy
 import logging
+import math
 import re
-from ...lm.base import HfChatModel
+from ...lm.base import HfChatModel, ToolCallOutput
 from ...structures import State, Action, ThoughtStep
 from ..utils import verbalize_concat_state, extract_existing_steps
 from ...log import log_event
@@ -456,3 +457,129 @@ class ConcatPolicy(Policy):
                 embeddings.append(embedding)
         
         return outputs
+
+
+class JointActionPolicy(ConcatPolicy):
+    """Generate and score alternative thought steps in one native tool call.
+
+    Requires a model supporting tools and returning ToolCallOutput. One invalid
+    response is retried; a second fails without falling back to free-text parsing.
+    Completion formatting and depth-limit handling follow ConcatPolicy.
+    """
+
+    def __init__(self, **kwargs):
+        """Initialize with the joint-generation prompt and policy model options."""
+        from ...prompts.policy.concat import task_prompt_spec_joint_math_qa
+
+        if kwargs.get("task_prompt_spec") is None:
+            kwargs["task_prompt_spec"] = task_prompt_spec_joint_math_qa
+        super().__init__(**kwargs)
+
+    @staticmethod
+    def _action_tool(n_actions: int) -> dict:
+        """Return a native tool schema for exactly n_actions scored alternatives."""
+        variants = [
+            {
+                "type": "object",
+                "properties": {
+                    field: {"type": "string", "minLength": 1},
+                    "reward": {"type": "number", "minimum": 0, "maximum": 1},
+                },
+                "required": [field, "reward"],
+                "additionalProperties": False,
+            }
+            for field in ("step", "answer")
+        ]
+        return {
+            "name": "submit_actions",
+            "description": "Submit scored alternative next actions for the partial solution.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "actions": {
+                        "type": "array",
+                        "items": {"anyOf": variants},
+                        "minItems": n_actions,
+                        "maxItems": n_actions,
+                    },
+                },
+                "required": ["actions"],
+                "additionalProperties": False,
+            },
+        }
+
+    @classmethod
+    def _read_action_call(cls, response: ToolCallOutput, n_actions: int) -> list[ThoughtStep]:
+        """Validate one submit_actions call and return scored, canonical steps.
+
+        Reject malformed schemas, counts, scores, placeholders, and duplicate
+        canonical actions with ValueError. Boolean scores are not numeric scores.
+        """
+        if not isinstance(response, ToolCallOutput) or len(response.tool_calls) != 1:
+            raise ValueError("Expected exactly one submit_actions tool call")
+        call = response.tool_calls[0]
+        payload = call.input_args
+        if call.name != "submit_actions" or not isinstance(payload, dict):
+            raise ValueError("Expected submit_actions with object arguments")
+        if set(payload) != {"actions"}:
+            raise ValueError("Tool arguments must contain only actions")
+        items = payload["actions"]
+        if not isinstance(items, list) or len(items) != n_actions:
+            raise ValueError(f"Expected exactly {n_actions} actions")
+        steps = []
+        seen = set()
+        for item in items:
+            if not isinstance(item, dict) or set(item) not in (
+                {"step", "reward"}, {"answer", "reward"}
+            ):
+                raise ValueError("Each action requires reward and exactly one step/answer")
+            field = "step" if "step" in item else "answer"
+            content = item[field]
+            if not isinstance(content, str) or not content.strip():
+                raise ValueError("Action content must be a nonempty string")
+            content = content.strip()
+            if content.lower() in cls.STRUCTURED_PLACEHOLDERS:
+                raise ValueError("Action content must not be a placeholder")
+            score = item["reward"]
+            if (type(score) not in (int, float) or not 0 <= score <= 1
+                    or not math.isfinite(score)):
+                raise ValueError("Reward must be a finite number in [0, 1]")
+            step = cls._structured_payload_to_step({field: content})
+            if step.action in seen:
+                raise ValueError("Duplicate action in submit_actions")
+            seen.add(step.action)
+            step.policy_score = float(score)
+            steps.append(step)
+        return steps
+
+    def _get_actions(
+        self, query: str, state: State, n_actions: int, temperature: float,
+        at_depth_limit: bool, query_idx: int, from_phase: str = "",
+        existing_siblings: list = None, **kwargs,
+    ) -> list[ThoughtStep]:
+        """Request N alternatives (including rollout N=1); retry invalid output once.
+
+        query/state provide the shared prefix, existing_siblings supply exclusions,
+        and at_depth_limit requests completion. query_idx/from_phase are logging
+        context supplied by get_actions(). API exceptions propagate unchanged.
+        """
+        if type(n_actions) is not int or n_actions < 1:
+            raise ValueError("n_actions must be a positive integer")
+        prompt = self._build_messages(query, state, at_depth_limit=at_depth_limit)
+        prompt += f"\nSubmit exactly {n_actions} alternative actions in one tool call."
+        if existing_siblings:
+            prompt += "\nAlready chosen siblings; choose different actions:\n" + "\n".join(
+                step.verb_step() for step in existing_siblings
+            )
+        prompt = self.task_prompt_spec + "\n\n" + prompt
+        for attempt in range(2):
+            response = self._call_model(
+                prompt, temperature=temperature, tools=[self._action_tool(n_actions)]
+            )
+            try:
+                return self._read_action_call(response, n_actions)
+            except ValueError as error:
+                if attempt == 1:
+                    raise
+                logger.warning("Invalid joint action tool call: %s; retrying once", error)
+                prompt += f"\nThe previous response was invalid: {error}. Correct the tool call."

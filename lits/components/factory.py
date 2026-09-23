@@ -23,8 +23,8 @@ from ..lm.base import HfChatModel
 
 # Import core components to trigger @register_* decorators
 from .transition.concat import ConcatTransition  # noqa: F401
-from .policy.concat import ConcatPolicy  # noqa: F401
-from .reward.generative import GenerativePRM  # noqa: F401
+from .policy.concat import ConcatPolicy, JointActionPolicy  # noqa: F401
+from .reward.generative import GenerativePRM, PolicyScoreRM  # noqa: F401
 from .reward.thinkprm import ThinkPRM  # noqa: F401
 
 
@@ -51,6 +51,11 @@ def create_components_language_grounded(
     
         --search_framework rest --reward thinkprm
         --search_framework rap --policy concat
+
+    Joint generation and score reuse are opt-in: set policy_override="joint_action",
+    reward_override="policy_score", transition_override="concat", and
+    search_args["terminate_constraints"]=["step_signal"]. This uses the policy's
+    completion signal without reward or termination inference; defaults are unchanged.
     
     Args:
         base_model: LLM for policy generation

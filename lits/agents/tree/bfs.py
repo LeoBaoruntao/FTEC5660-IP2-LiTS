@@ -251,6 +251,7 @@ class BFSSearch(BaseTreeSearch):
 
         The default computes missing fast rewards, sorts candidates by
         descending reward, and retains at most ``config.beam_size`` nodes.
+        Scoring receives the full step so policy scores and other metadata survive.
         Subclasses may override this method to implement another selector.
         """
         if len(frontier) <= self.config.beam_size:
@@ -261,7 +262,7 @@ class BFSSearch(BaseTreeSearch):
                 logger.debug(f"Fast reward not computed for node {node.action} for sort")
                 fast_reward, _ = self.reward_model.fast_reward(
                     node.parent.state,
-                    node.action,
+                    node.step,
                     query,
                     query_idx,
                     from_phase="sort",

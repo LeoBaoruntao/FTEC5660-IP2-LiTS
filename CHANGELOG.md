@@ -12,6 +12,10 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 - ThoughtStep policy-score serialization [T1]
 - Joint action generation with native tool calling [T2]
 - Policy-score reward model [T3]
+- Joint-action policy and policy-score reward component selection [T4]
+
+### Fixed
+- LiTS beam fallback scoring step metadata [T5]
 
 ## 2026-09-23 Unreleased (`0919-major-unified-search-execution2/tasks`)
 

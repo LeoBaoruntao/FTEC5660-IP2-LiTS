@@ -459,12 +459,15 @@ class ConcatPolicy(Policy):
         return outputs
 
 
+@register_policy("joint_action", task_type="language_grounded")
 class JointActionPolicy(ConcatPolicy):
     """Generate and score alternative thought steps in one native tool call.
 
     Requires a model supporting tools and returning ToolCallOutput. One invalid
     response is retried; a second fails without falling back to free-text parsing.
     Completion formatting and depth-limit handling follow ConcatPolicy.
+    Select with ``--policy joint_action``; inherited from_config() supplies the
+    search and generation settings, while this class supplies the tool prompt.
     """
 
     def __init__(self, **kwargs):

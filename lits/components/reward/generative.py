@@ -228,12 +228,19 @@ class GenerativePRM(RewardModel):
         return fast_reward
 
 
+@register_reward_model("policy_score", task_type="language_grounded")
 class PolicyScoreRM(RewardModel):
     """Read policy-generated scores without inference or a policy reference.
 
     fast_reward() requires a scored ThoughtStep; reward() reuses the supplied
     fast reward even when the caller passes only the action text.
+    Select with ``--reward policy_score`` alongside a score-producing policy.
     """
+
+    @classmethod
+    def from_config(cls, base_model, search_args: dict, component_args: dict, **kwargs):
+        """Return a score reader; model, configuration, and task context are unused."""
+        return cls()
 
     def __init__(self) -> None:
         """Initialize without a language model or reward prompts."""

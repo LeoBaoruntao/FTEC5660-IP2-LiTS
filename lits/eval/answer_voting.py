@@ -33,7 +33,8 @@ _ANSWER_GROUPS_TOOL = {
             }},
             "unanswered_ids": {"type": "array", "items": {"type": "string"},
                                "description": (
-                                   "IDs with no identifiable answer; never repeat a grouped ID."
+                                   "IDs with no stated final answer, including instructions or plans; "
+                                   "never repeat a grouped ID."
                                )},
         },
         "required": ["groups", "unanswered_ids"],
@@ -80,6 +81,8 @@ def vote_answers(
         Python produces {'1/2': 2, '1/3': 1}; the model never supplies counts.
         Empty/all-blank inputs return {} without inference. IDs with no identifiable
         answer contribute no vote. A nonempty result supports max(votes, key=votes.get).
+        Instructions to calculate an answer are unanswered, even after 'The answer is'.
+        A stated final mathematical expression can be an answer without decimal evaluation.
 
     Raises:
         ValueError: Invalid inputs, missing/multiple/wrong tool calls, malformed groups,
@@ -113,6 +116,12 @@ def vote_answers(
             "Use an answer extracted from the earliest input member as each group label. "
             "Every supplied ID must appear exactly once: in one nonempty member_ids list "
             "or in unanswered_ids if no answer is identifiable. Blank text is unanswered. "
+            "Instructions, plans, or unfinished reasoning without a stated final answer "
+            "belong in unanswered_ids, even if prefixed with 'The answer is'. "
+            "For example, 'The answer is calculate the profit by subtracting costs from "
+            "revenue' states a procedure, not the profit. Do not execute that procedure "
+            "or mistake its intermediate numbers for an answer. A final value or "
+            "expression explicitly offered as the result is still an answer. "
             "Use unique nonempty answer labels. Do not output vote counts."
         )},
         {"role": "user", "content": json.dumps({

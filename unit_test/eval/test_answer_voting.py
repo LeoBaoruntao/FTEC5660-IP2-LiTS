@@ -137,6 +137,9 @@ def check_live_answer_voting(output_dir, model_name):
     if hasattr(getattr(model, "client", None), "with_options"):
         model.client = model.client.with_options(timeout=60, max_retries=0)
     cases = (
+        ("instruction_is_unanswered", "What was the profit?",
+         {"n0": "The answer is Calculate the profit by subtracting the total cost ($15) from the total revenue.",
+          "n1": "The profit is $59."}, {"$59": 1}),
         ("half", "What is one divided by two?",
          {"n1": "The answer is 1/2.", "n2": "The answer is 0.5.",
           "n3": "The answer is 1/3.", "n4": ""}, {"1/2": 2, "1/3": 1}),

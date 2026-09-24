@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-09-24 Unreleased (`lits/prompts/policy/concat.py`)
+
+### Changed
+- Joint-action reasoning prompt and `submit_reasoning_steps` tool schema (联合动作推导指令与工具格式)
+
 ## 2026-09-24 Unreleased (`0919-major-unified-search-execution2/tasks`)
 
 ### Added

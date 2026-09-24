@@ -4,17 +4,59 @@ Run with PYTHONBREAKPOINT=0 python -m unit_test.components.test_joint_action_ret
 Uses the configured Tailscale endpoint; at most four inference calls. Thirty-two output
 tokens deliberately truncate tool arguments. This tests bounded failure, not recovery
 of previously failed searches. A separate normal-limit call checks valid actions.
+Add --schema-only to check tool schema and parsing without inference.
 """
 
 import json
 import logging
 from pathlib import Path
 import tempfile
+import sys
 
 from lits import get_lm
 from lits.components.policy.concat import JointActionPolicy
 from lits.lm import setup_inference_logging
+from lits.lm.base import ToolCall, ToolCallOutput
 from lits.structures import TrajectoryState
+
+
+def check_reasoning_step_schema():
+    """Check concat.py::JointActionPolicy._read_action_call with explicit payload fixtures.
+
+    No model is substituted or called; fixtures exercise schema/parser agreement,
+    step termination, score preservation, and invalid-payload rejection.
+    """
+    tool = JointActionPolicy._action_tool(2)
+    schema = tool["input_schema"]
+    if (tool["name"] != "submit_reasoning_steps" or schema["required"] != ["candidates"]
+            or set(schema["properties"]) != {"candidates"}
+            or schema["properties"]["candidates"]["minItems"] != 2
+            or schema["properties"]["candidates"]["maxItems"] != 2):
+        raise RuntimeError("Unexpected reasoning-step tool schema")
+    candidates = [{"step": "17 + 25 = 42.", "reward": 0.8},
+                  {"answer": "42", "reward": 0.9}]
+    cases = [(tool["name"], {"candidates": candidates}, True),
+             ("submit_actions", {"candidates": candidates}, False),
+             (tool["name"], {"actions": candidates}, False),
+             (tool["name"], {"candidates": candidates[:1]}, False),
+             (tool["name"], {"candidates": [candidates[0], candidates[0]]}, False),
+             (tool["name"], {"candidates": [candidates[0], {"answer": "42", "reward": True}]}, False)]
+    for name, payload, valid in cases:
+        response = ToolCallOutput("", [ToolCall("fixture", name, payload)], "tool_use", {})
+        try:
+            steps = JointActionPolicy._read_action_call(response, 2)
+        except ValueError:
+            if valid:
+                raise
+        else:
+            if not valid:
+                raise RuntimeError(f"Accepted invalid tool payload: {name}, {payload}")
+            if (steps[0].action != "17 + 25 = 42." or steps[0].terminate
+                    or steps[1].action != "The answer is 42" or not steps[1].terminate
+                    or [step.policy_score for step in steps] != [0.8, 0.9]):
+                raise RuntimeError("Reasoning-step conversion changed")
+    print(f"PASS reasoning-step schema and parser: {len(cases)} cases; no inference")
+    breakpoint()  # inspect: tool, cases, steps
 
 
 def check_joint_action_retry():
@@ -59,4 +101,6 @@ def check_joint_action_retry():
 
 
 if __name__ == "__main__":
-    check_joint_action_retry()
+    check_reasoning_step_schema()
+    if "--schema-only" not in sys.argv:
+        check_joint_action_retry()

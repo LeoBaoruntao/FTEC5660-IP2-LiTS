@@ -473,10 +473,10 @@ class JointActionPolicy(ConcatPolicy):
 
     def __init__(self, **kwargs):
         """Initialize with the joint-generation prompt and policy model options."""
-        from ...prompts.policy.concat import task_prompt_spec_joint_math_qa
+        from ...prompts.policy.concat import task_prompt_spec_joint
 
         if kwargs.get("task_prompt_spec") is None:
-            kwargs["task_prompt_spec"] = task_prompt_spec_joint_math_qa
+            kwargs["task_prompt_spec"] = task_prompt_spec_joint
         super().__init__(**kwargs)
 
     @staticmethod
@@ -495,62 +495,65 @@ class JointActionPolicy(ConcatPolicy):
             for field in ("step", "answer")
         ]
         return {
-            "name": "submit_actions",
-            "description": "Submit scored alternative next actions for the partial solution.",
+            "name": "submit_reasoning_steps",
+            "description": (
+                "Submit scored alternative next reasoning steps, each containing the actual "
+                "deduction or calculation and its result, or an established final answer."
+            ),
             "input_schema": {
                 "type": "object",
                 "properties": {
-                    "actions": {
+                    "candidates": {
                         "type": "array",
                         "items": {"anyOf": variants},
                         "minItems": n_actions,
                         "maxItems": n_actions,
                     },
                 },
-                "required": ["actions"],
+                "required": ["candidates"],
                 "additionalProperties": False,
             },
         }
 
     @classmethod
     def _read_action_call(cls, response: ToolCallOutput, n_actions: int) -> list[ThoughtStep]:
-        """Validate one submit_actions call and return scored, canonical steps.
+        """Validate one submit_reasoning_steps call and return scored, canonical steps.
 
         Reject malformed schemas, counts, scores, placeholders, and duplicate
         canonical actions with ValueError. Boolean scores are not numeric scores.
         """
         if not isinstance(response, ToolCallOutput) or len(response.tool_calls) != 1:
-            raise ValueError("Expected exactly one submit_actions tool call")
+            raise ValueError("Expected exactly one submit_reasoning_steps tool call")
         call = response.tool_calls[0]
         payload = call.input_args
-        if call.name != "submit_actions" or not isinstance(payload, dict):
-            raise ValueError("Expected submit_actions with object arguments")
-        if set(payload) != {"actions"}:
-            raise ValueError("Tool arguments must contain only actions")
-        items = payload["actions"]
+        if call.name != "submit_reasoning_steps" or not isinstance(payload, dict):
+            raise ValueError("Expected submit_reasoning_steps with object arguments")
+        if set(payload) != {"candidates"}:
+            raise ValueError("Tool arguments must contain only candidates")
+        items = payload["candidates"]
         if not isinstance(items, list) or len(items) != n_actions:
-            raise ValueError(f"Expected exactly {n_actions} actions")
+            raise ValueError(f"Expected exactly {n_actions} candidates")
         steps = []
         seen = set()
         for item in items:
             if not isinstance(item, dict) or set(item) not in (
                 {"step", "reward"}, {"answer", "reward"}
             ):
-                raise ValueError("Each action requires reward and exactly one step/answer")
+                raise ValueError("Each candidate requires reward and exactly one step/answer")
             field = "step" if "step" in item else "answer"
             content = item[field]
             if not isinstance(content, str) or not content.strip():
-                raise ValueError("Action content must be a nonempty string")
+                raise ValueError("Candidate content must be a nonempty string")
             content = content.strip()
             if content.lower() in cls.STRUCTURED_PLACEHOLDERS:
-                raise ValueError("Action content must not be a placeholder")
+                raise ValueError("Candidate content must not be a placeholder")
             score = item["reward"]
             if (type(score) not in (int, float) or not 0 <= score <= 1
                     or not math.isfinite(score)):
                 raise ValueError("Reward must be a finite number in [0, 1]")
             step = cls._structured_payload_to_step({field: content})
             if step.action in seen:
-                raise ValueError("Duplicate action in submit_actions")
+                raise ValueError("Duplicate candidate in submit_reasoning_steps")
             seen.add(step.action)
             step.policy_score = float(score)
             steps.append(step)
@@ -571,9 +574,9 @@ class JointActionPolicy(ConcatPolicy):
         if type(n_actions) is not int or n_actions < 1:
             raise ValueError("n_actions must be a positive integer")
         prompt = self._build_messages(query, state, at_depth_limit=at_depth_limit)
-        prompt += f"\nSubmit exactly {n_actions} alternative actions in one tool call."
+        prompt += f"\nSubmit exactly {n_actions} alternative reasoning steps in one tool call."
         if existing_siblings:
-            prompt += "\nAlready chosen siblings; choose different actions:\n" + "\n".join(
+            prompt += "\nAlready chosen siblings; provide different reasoning steps:\n" + "\n".join(
                 step.verb_step() for step in existing_siblings
             )
         prompt = self.task_prompt_spec + "\n\n" + prompt
@@ -596,6 +599,6 @@ class JointActionPolicy(ConcatPolicy):
             logger.warning("Invalid joint action tool call: %s; retrying once", error_message)
             prompt += (
                 f"\nThe previous response was invalid: {error_message}. "
-                f"Submit exactly {n_actions} concise alternative actions in one complete "
-                "submit_actions tool call. Do not repeat text or emit multiple tool calls."
+                f"Submit exactly {n_actions} concise alternative reasoning steps in one complete "
+                "submit_reasoning_steps tool call. Do not repeat text or emit multiple tool calls."
             )

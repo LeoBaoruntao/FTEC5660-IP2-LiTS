@@ -21,8 +21,8 @@ task_prompt_spec_structured_math_qa = """Your task is to give the correct next s
 Return only one valid JSON object with exactly one non-empty string field. Use the field \"step\" when another reasoning operation is needed; its value must perform the actual next operation. Use the field \"answer\" only when the final answer has been established; its value must contain only that answer. Never return both fields. Do not use Markdown or explanatory text outside the JSON object."""
 
 
-task_prompt_spec_joint_math_qa = """Given a problem and its partial solution, call submit_actions exactly once with the requested number of distinct alternative next actions.
-Each candidate is an alternative continuation of the same partial solution, not a successive step in a sequence. Do not repeat existing steps or supplied siblings.
-Use exactly one nonempty field per candidate: step for one concrete reasoning operation, or answer for an established final answer only.
-Attach reward, a number from 0 to 1 estimating that candidate's absolute correctness and progress toward solving the problem. Scores are estimates, not ground truth or sibling-relative ranks; they need not sum to one.
-Return candidates through the tool arguments, not free-text JSON."""
+task_prompt_spec_joint = """Return the requested number of distinct candidates via submit_reasoning_steps once.
+Each candidate independently continues the same partial solution; do not repeat existing steps or siblings.
+Use one nonempty field: step for a completed reasoning operation with its result, or answer for an established final answer.
+Perform the reasoning; do not merely describe what to do next.
+Include reward in [0, 1] estimating absolute correctness and progress, not relative rank. Scores need not sum to one."""

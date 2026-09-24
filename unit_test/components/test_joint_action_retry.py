@@ -39,7 +39,6 @@ def check_reasoning_step_schema():
              ("submit_actions", {"candidates": candidates}, False),
              (tool["name"], {"actions": candidates}, False),
              (tool["name"], {"candidates": candidates[:1]}, False),
-             (tool["name"], {"candidates": [candidates[0], candidates[0]]}, False),
              (tool["name"], {"candidates": [candidates[0], {"answer": "42", "reward": True}]}, False)]
     for name, payload, valid in cases:
         response = ToolCallOutput("", [ToolCall("fixture", name, payload)], "tool_use", {})
@@ -57,6 +56,37 @@ def check_reasoning_step_schema():
                 raise RuntimeError("Reasoning-step conversion changed")
     print(f"PASS reasoning-step schema and parser: {len(cases)} cases; no inference")
     breakpoint()  # inspect: tool, cases, steps
+
+
+def check_duplicate_candidates():
+    """Check concat.py::JointActionPolicy._read_action_call deduplication without inference.
+
+    Repeated candidates retain their first score, not additional branches/votes.
+    All candidates remain validated, including duplicates with invalid scores.
+    """
+    candidates = [{"step": "The sum is 284.", "reward": 0.9},
+                  {"step": "The sum is 284.", "reward": 0.8},
+                  {"answer": "284", "reward": 0.7},
+                  {"answer": "The answer is 284", "reward": 0.6},
+                  {"step": "The answer is 284", "reward": 0.5}]
+    response = ToolCallOutput("", [ToolCall(
+        "fixture", "submit_reasoning_steps", {"candidates": candidates}
+    )], "tool_use", {})
+    steps = JointActionPolicy._read_action_call(response, len(candidates))
+    actual = [(step.action, step.terminate, step.policy_score) for step in steps]
+    expected = [("The sum is 284.", False, 0.9), ("The answer is 284", True, 0.7),
+                ("The answer is 284", False, 0.5)]
+    if actual != expected:
+        raise RuntimeError(f"Duplicate handling changed: {actual}")
+    candidates[1]["reward"] = True
+    try:
+        JointActionPolicy._read_action_call(response, len(candidates))
+    except ValueError:
+        pass
+    else:
+        raise RuntimeError("Invalid duplicate score escaped validation")
+    print("PASS duplicate candidates: stable scores/order, termination flags, validation")
+    breakpoint()  # inspect: actual, expected, response
 
 
 def check_joint_action_retry():
@@ -91,8 +121,8 @@ def check_joint_action_retry():
     policy.max_new_tokens = 1024
     steps = policy.get_actions(TrajectoryState([]), query="What is 17 + 25?",
                                query_idx=1, from_phase="expand")
-    if len(steps) != 3:
-        raise RuntimeError(f"Expected three valid actions, got {steps}")
+    if not 1 <= len(steps) <= 3:
+        raise RuntimeError(f"Expected one to three unique actions, got {steps}")
     result = {"malformed_attempts": calls, "valid_actions": [s.to_dict() for s in steps],
               "usage": model.inference_logger.get_metrics_by_role()}
     (directory / "results.json").write_text(json.dumps(result, indent=2))
@@ -102,5 +132,6 @@ def check_joint_action_retry():
 
 if __name__ == "__main__":
     check_reasoning_step_schema()
+    check_duplicate_candidates()
     if "--schema-only" not in sys.argv:
         check_joint_action_retry()

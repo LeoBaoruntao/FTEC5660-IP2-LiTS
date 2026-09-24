@@ -519,8 +519,10 @@ class JointActionPolicy(ConcatPolicy):
     def _read_action_call(cls, response: ToolCallOutput, n_actions: int) -> list[ThoughtStep]:
         """Validate one submit_reasoning_steps call and return scored, canonical steps.
 
-        Reject malformed schemas, counts, scores, placeholders, and duplicate
-        canonical actions with ValueError. Boolean scores are not numeric scores.
+        Reject malformed schemas, counts, scores, and placeholders with ValueError.
+        Boolean scores are not numeric scores. Collapse identical canonical text
+        with the same termination flag, preserving the first occurrence and score.
+        The result can therefore contain fewer than n_actions distinct steps.
         """
         if not isinstance(response, ToolCallOutput) or len(response.tool_calls) != 1:
             raise ValueError("Expected exactly one submit_reasoning_steps tool call")
@@ -552,9 +554,10 @@ class JointActionPolicy(ConcatPolicy):
                     or not math.isfinite(score)):
                 raise ValueError("Reward must be a finite number in [0, 1]")
             step = cls._structured_payload_to_step({field: content})
-            if step.action in seen:
-                raise ValueError("Duplicate candidate in submit_reasoning_steps")
-            seen.add(step.action)
+            key = (step.action, step.terminate)
+            if key in seen:
+                continue
+            seen.add(key)
             step.policy_score = float(score)
             steps.append(step)
         return steps

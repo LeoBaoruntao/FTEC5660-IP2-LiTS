@@ -11,6 +11,9 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 ### Changed
 - Joint-action reasoning prompt and `submit_reasoning_steps` tool schema (联合动作推导指令与工具格式)
 
+### Fixed
+- Duplicate joint-reasoning candidates aborting search (重复推导候选导致搜索中断)
+
 ## 2026-09-24 Unreleased (`0919-major-unified-search-execution2/tasks`)
 
 ### Added

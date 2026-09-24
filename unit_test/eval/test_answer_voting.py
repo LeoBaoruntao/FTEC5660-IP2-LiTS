@@ -21,7 +21,7 @@ import tempfile
 
 from lits.agents.tree.node import MCTSNode
 from lits.benchmarks.registry import get_evaluator
-from lits.eval.answer_voting import vote_answers, _count_answer_votes, _raw_terminal_answers
+from lits.eval.answer_voting import vote_answers, _count_answer_votes, _raw_terminal_answers, _answer_groups_tool
 from lits.eval.search import evaluate_search_result, retrieve_answer_from_tool_use_node
 from lits.lm import get_lm, setup_inference_logging
 from lits.structures.base import TrajectoryState
@@ -75,17 +75,16 @@ def check_answer_groups():
     """
     raw = {"n1": "The answer is 1/2.", "n2": "The answer is 0.5.",
            "n3": "The answer is 1/3.", "n4": "   "}
-    valid = {
-        "groups": [{"answer": "1/3", "member_ids": ["n3"]},
-                   {"answer": "1/2", "member_ids": ["n1", "n2"]}],
-        "unanswered_ids": ["n4"],
-    }
+    valid = {"n3": "1/3", "n2": "1/2", "n1": "1/2", "n4": None}
+    schema = _answer_groups_tool(list(raw))["input_schema"]
+    if (schema["required"] != list(raw) or set(schema["properties"]) != set(raw)
+            or schema["additionalProperties"] is not False
+            or any(field["type"] != ["string", "null"] for field in schema["properties"].values())):
+        raise RuntimeError("Voting schema does not require every input ID")
     votes = _count_answer_votes(valid, raw)
     if list(votes.items()) != [("1/2", 2), ("1/3", 1)]:
         raise RuntimeError(f"Wrong grouping counts/order: {votes}")
-    tie_payload = {"groups": [valid["groups"][0],
-                              {"answer": "1/2", "member_ids": ["n1"]}],
-                   "unanswered_ids": []}
+    tie_payload = {"n3": "1/3", "n1": "1/2"}
     tied = _count_answer_votes(tie_payload, {"n1": raw["n1"], "n3": raw["n3"]})
     if max(tied, key=tied.get) != "1/2":
         raise RuntimeError("Tie-breaking followed model order rather than input order")
@@ -94,29 +93,27 @@ def check_answer_groups():
     if list(observed.values()) != ["The answer is 1/2", "The answer is 1/3", "The answer is 1e-3"]:
         raise RuntimeError(f"Raw answer text changed: {observed}")
     cases = {
-        "unknown_id": {"groups": [{"answer": "1/2", "member_ids": ["unknown"]}], "unanswered_ids": []},
-        "repeated_id": {"groups": valid["groups"], "unanswered_ids": ["n1", "n4"]},
-        "omitted_id": {"groups": valid["groups"], "unanswered_ids": []},
-        "empty_group": {"groups": [{"answer": "1/2", "member_ids": []}], "unanswered_ids": list(raw)},
-        "blank_answer": {"groups": [{"answer": " ", "member_ids": ["n1"]}], "unanswered_ids": []},
-        "duplicate_label_repeated_id": {"groups": [{"answer": "1/2", "member_ids": ["n1"]},
-                                        {"answer": " 1/2 ", "member_ids": ["n1"]}], "unanswered_ids": ["n2", "n3", "n4"]},
-        "blank_member": {"groups": [{"answer": "0", "member_ids": ["n4"]}], "unanswered_ids": ["n1", "n2", "n3"]},
-        "wrong_type": {"groups": {}, "unanswered_ids": []},
+        "unknown_id": {**valid, "unknown": None},
+        "omitted_id": {key: value for key, value in valid.items() if key != "n1"},
+        "blank_answer": {**valid, "n1": " "},
+        "list_label": {**valid, "n1": ["1/2"]},
+        "numeric_label": {**valid, "n1": 0.5},
+        "blank_member": {**valid, "n4": "0"},
+        "wrong_type": [],
+        "member_lists": {"groups": [{"answer": "1/2", "member_ids": ["n1", "n1"]}],
+                         "unanswered_ids": ["n2", "n3", "n4"]},
         "extra_field": {**valid, "count": 3},
     }
     checks = [{"name": "answer_group_counts_and_order", "votes": votes},
               {"name": "answer_group_tie", "votes": tied},
               {"name": "untruncated_terminal_answers", "answers": observed}]
-    merged = _count_answer_votes({
-        "groups": [{"answer": "1/3", "member_ids": ["n3"]},
-                   {"answer": "1/2", "member_ids": ["n2"]},
-                   {"answer": " 1/2 ", "member_ids": ["n1"]}],
-        "unanswered_ids": ["n4"],
-    }, raw)
+    merged = _count_answer_votes({**valid, "n1": " 1/2 "}, raw)
     if list(merged.items()) != [("1/2", 2), ("1/3", 1)]:
         raise RuntimeError(f"Merged labels lost counts or input order: {merged}")
     checks.append({"name": "merged_labels_counts_and_order", "votes": merged})
+    if _count_answer_votes(dict.fromkeys(raw), raw) != {}:
+        raise RuntimeError("Unanswered inputs contributed votes")
+    checks.append({"name": "required_ids_and_null_labels", "required": schema["required"]})
     for name, payload in cases.items():
         try:
             _count_answer_votes(payload, raw)

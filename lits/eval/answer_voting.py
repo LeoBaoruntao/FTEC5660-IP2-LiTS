@@ -11,36 +11,26 @@ if TYPE_CHECKING:
     from lits.lm.base import LanguageModel
 
 
-_ANSWER_GROUPS_TOOL = {
-    "name": "group_answers",
-    "description": "Group supplied answers by semantic equivalence, preserving every source ID exactly once.",
-    "strict": True,
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "groups": {"type": "array",
-                       "description": "Array of answer groups, not a JSON-encoded string.", "items": {
-                "type": "object",
-                "properties": {
-                    "answer": {"type": "string", "description": (
-                        "Only the final answer value; omit explanation and 'The answer is'."
-                    )},
-                    "member_ids": {"type": "array", "items": {"type": "string"},
-                                   "description": "IDs with the same answer meaning or value, regardless of wording or notation."},
-                },
-                "required": ["answer", "member_ids"],
-                "additionalProperties": False,
-            }},
-            "unanswered_ids": {"type": "array", "items": {"type": "string"},
-                               "description": (
-                                   "IDs with no stated final answer, including instructions or plans; "
-                                   "never repeat a grouped ID."
-                               )},
+def _answer_groups_tool(input_ids: Sequence[str]) -> dict:
+    """Require one answer label or null per input ID, without member-ID lists.
+
+    Equal labels form a group. Required properties make minority answers and
+    unanswered inputs explicit; local validation still checks backend output.
+    """
+    return {
+        "name": "group_answers",
+        "description": "Assign every input ID an answer label; equivalent answers share a label.",
+        "strict": True,
+        "input_schema": {
+            "type": "object",
+            "properties": {key: {
+                "type": ["string", "null"],
+                "description": "Shared final-answer label, or null if no final answer is stated.",
+            } for key in input_ids},
+            "required": list(input_ids),
+            "additionalProperties": False,
         },
-        "required": ["groups", "unanswered_ids"],
-        "additionalProperties": False,
-    },
-}
+    }
 
 
 def vote_answers(
@@ -56,16 +46,23 @@ def vote_answers(
 
         Raw terminal answers (no numeric-prefix extraction, no ground truth)
             -> LLM extracts and groups equivalent answers
-            -> Python validates that every input ID occurs exactly once
+            -> LLM assigns one shared answer label or null to each required input ID
+            -> Python validates the complete ID-to-label mapping
             -> invalid output receives one corrective retry with the validation error
-            -> Python counts group members, excluding unanswered IDs
+            -> Python counts equal labels, excluding null (unanswered) entries
             -> caller selects the largest group
             -> registered correctness checker, then optional LLM double-check
 
     Args:
         query: Task question, used only to interpret the supplied answers.
         raw_answers_by_id: Unique string IDs mapped to unmodified answer text.
-            Mapping order defines tie-breaking, independently of LLM group order.
+            Mapping order defines tie-breaking, independently of LLM group order, e.g.,
+             {
+                "n0": "The answer is x = 5.",
+                "n1": "Solving the equation gives x = 5.",
+                "n2": "The answer is 7.",
+                "n3": "Next, simplify the equation.",  # 尚未给出最终答案
+            }
         model: Caller-configured LiTS model supporting tools and ToolCallOutput.
             Does not mutate its system prompt; usage is logged as evaluator_voting.
         max_new_tokens: Output-token limit per grouping call (at most two calls).
@@ -74,9 +71,7 @@ def vote_answers(
         Answer -> member count, ordered by each group's first input member.
         For n1='1/2', n2='0.5', n3='1/3', a grouping response may be::
 
-            {"groups": [{"answer": "1/2", "member_ids": ["n1", "n2"]},
-                        {"answer": "1/3", "member_ids": ["n3"]}],
-             "unanswered_ids": []}
+            {"n1": "1/2", "n2": "1/2", "n3": "1/3"}
 
         Python produces {'1/2': 2, '1/3': 1}; the model never supplies counts.
         Empty/all-blank inputs return {} without inference. IDs with no identifiable
@@ -85,8 +80,8 @@ def vote_answers(
         A stated final mathematical expression can be an answer without decimal evaluation.
 
     Raises:
-        ValueError: Invalid inputs, missing/multiple/wrong tool calls, malformed groups,
-            duplicate/unknown/omitted IDs after one retry.
+        ValueError: Invalid inputs, missing/multiple/wrong tool calls, malformed labels,
+            unknown/omitted IDs after one retry.
             Invalid inputs fail before inference. Identical stripped labels merge;
             membership errors are never repaired. No numeric-extraction fallback
             is applied. Model/API errors propagate.
@@ -105,7 +100,7 @@ def vote_answers(
     prompt = [
         {"role": "system", "content": (
             "Call group_answers exactly once. Compare the SEMANTIC MEANING of the "
-            "supplied final answers, not their literal text or notation. Extract the "
+            "supplied final answers in the context of the supplied question, not their literal text or notation. Extract the "
             "answer already stated in each text. Answers expressing the same meaning "
             "or value MUST share a group even when their words or symbols differ. "
             "For example, '1/2', '0.5', and '5e-1' belong in ONE group when their units "
@@ -115,29 +110,40 @@ def vote_answers(
             "Group membership depends on equivalence; preserve original notation only "
             "in the chosen label, without truncating it. "
             "Use an answer extracted from the earliest input member as each group label. "
-            "Every supplied ID must appear exactly once: in one nonempty member_ids list "
-            "or in unanswered_ids if no answer is identifiable. Blank text is unanswered. "
+            "An assignment to the requested variable may be labeled by its stated value. "
+            "For example, if the question asks 'What is x?' and the inputs are "
+            "n0: 'x = 5', n1: '5', n2: 'x equals five', return "
+            "{\"n0\": \"5\", \"n1\": \"5\", \"n2\": \"5\"}. "
+            "If the question instead asks for y, 'x = 5' and '5' are not automatically "
+            "equivalent: they name different quantities. Preserve explicit variable "
+            "names when they do not match the requested quantity; do not infer y from x. "
+            "Return one object with every supplied ID as a required key. Its value is "
+            "the group's shared nonempty answer label, or null if no answer is identifiable. "
+            "For example, return {\"n0\": \"1/2\", \"n1\": \"1/2\", \"n2\": null}. "
+            "Keep minority or incorrect answers under their own labels; never omit their IDs. "
+            "Blank text is unanswered. "
             "Instructions, plans, or unfinished reasoning without a stated final answer "
-            "belong in unanswered_ids, even if prefixed with 'The answer is'. "
+            "receive null, even if prefixed with 'The answer is'. "
             "For example, 'The answer is calculate the profit by subtracting costs from "
             "revenue' states a procedure, not the profit. Do not execute that procedure "
             "or mistake its intermediate numbers for an answer. A final value or "
             "expression explicitly offered as the result is still an answer. "
-            "Use unique nonempty answer labels. Do not output vote counts."
+            "Repeat the same label for equivalent answers. Do not output vote counts or member-ID lists."
         )},
         {"role": "user", "content": json.dumps({
             "question": query, "answers": dict(raw_answers_by_id),
         })},
     ]
+    tool = _answer_groups_tool(list(raw_answers_by_id))
     for attempt in range(2):
         output = model(
-            prompt, tools=[_ANSWER_GROUPS_TOOL], role="evaluator_voting",
+            prompt, tools=[tool], role="evaluator_voting", parallel_tool_calls=False,
             temperature=1e-6, max_new_tokens=max_new_tokens,
         )
         logging.getLogger(__name__).debug("Answer voting output: %r", output)
         try:
             if (not isinstance(output, ToolCallOutput) or len(output.tool_calls) != 1
-                    or output.tool_calls[0].name != _ANSWER_GROUPS_TOOL["name"]):
+                    or output.tool_calls[0].name != tool["name"]):
                 raise ValueError("Answer voting requires exactly one group_answers tool call")
             return _count_answer_votes(output.tool_calls[0].input_args, raw_answers_by_id)
         except ValueError as error:
@@ -147,90 +153,54 @@ def vote_answers(
             prompt.append({"role": "user", "content": (
                 f"Your grouping failed validation: {error}. "
                 "Call group_answers again with the complete grouping of the original inputs. "
-                "Check that every original ID occurs exactly once, including IDs with long "
-                "explanations. Extract their stated final answers; do not omit them."
+                "Provide every original ID as a key, including minority answers and long "
+                "explanations. Use null for unfinished answers; do not omit any key."
             )})
 
 
 def _count_answer_votes(payload: dict, raw_answers_by_id: Mapping[str, str]) -> dict[str, int]:
-    """Validate a complete partition of input IDs and count groups in input order.
-
-    Blank inputs cannot belong to answer groups. Identical stripped labels merge
-    their counts, preserving the earliest member for tie-breaking. Every ID must
-    still occur exactly once; omitted, repeated, or unknown IDs are errors.
-    Semantic equivalence and answer-label fidelity remain the model's responsibility.
-    """
-    if (not isinstance(payload, dict) or set(payload) != {"groups", "unanswered_ids"}
-            or not isinstance(payload["groups"], list)
-            or not isinstance(payload["unanswered_ids"], list)):
-        raise ValueError("Voting output must contain groups and unanswered_ids lists")
-    seen = set()
-    positions = {key: index for index, key in enumerate(raw_answers_by_id)} # e.g., {"n0": 0, "n1": 1, "n2": 2, "n3": 3, "n4": 4, "n5": 5}
-
-    def record_ids(ids):
-        """Reject unknown or repeated IDs across both answered and unanswered groups."""
-        for key in ids:
-            if not isinstance(key, str) or key not in positions or key in seen:
-                raise ValueError(f"Unknown or repeated answer ID: {key!r}")
-            seen.add(key)
-
-    for group in payload["groups"]:
-        if (not isinstance(group, dict) or set(group) != {"answer", "member_ids"}
-                or not isinstance(group["answer"], str) or not group["answer"].strip()
-                or not isinstance(group["member_ids"], list) or not group["member_ids"]):
-            raise ValueError("Each answer group requires a nonempty answer and member_ids list")
-        ids = group["member_ids"]
-        record_ids(ids)
-        if any(not raw_answers_by_id[key].strip() for key in ids):
-            raise ValueError("Blank answers must be listed in unanswered_ids")
-    record_ids(payload["unanswered_ids"])
-    if seen != set(positions):
-        raise ValueError(f"Omitted answer IDs: {sorted(set(positions) - seen)}")
-    return _merge_answer_group_votes(payload["groups"], list(raw_answers_by_id))
-
-
-def _merge_answer_group_votes(groups: Sequence[dict], input_ids: Sequence[str]) -> dict[str, int]:
-    """Count validated group members, merging identical stripped answer labels.
+    """Validate required per-ID labels and count votes in original input order.
 
     Args:
-        groups: LLM groups already checked by _count_answer_votes. Each member ID
-            must occur at most once across groups; labels must be nonempty strings.
-        input_ids: All answer IDs in their original input order, including unanswered
-            IDs. IDs absent from groups are unanswered and contribute no vote.
+        payload: Every input ID mapped to a nonempty answer label or null.
+            Null means unanswered; blank inputs must have null labels.
+        raw_answers_by_id: Original input texts; order determines tie-breaking.
 
     Returns:
         Answer labels mapped to vote counts, inserted in original input order.
-        This makes majority-vote ties independent of the LLM's group ordering.
+        This makes majority-vote ties independent of the LLM's property ordering.
         Only identical stripped labels merge; semantic equivalence is not checked.
 
     Example::
 
-        groups = [
-            {"answer": "9901", "member_ids": ["n0", "n1", "n2", "n4", "n5"]},
-            {"answer": "9901", "member_ids": ["n3"]},
-        ]
-        input_ids = ["n0", "n1", "n2", "n3", "n4", "n5"]
+        payload = {"n0": "9901", "n1": "9901", "n2": "9901",
+                   "n3": "9901", "n4": "9901", "n5": "9901"}
 
-        # These are two distinct groups with the same label, not one group's
-        # member list changing. First map all six IDs to the label "9901".
-        # Then visit n0 through n5: its vote count becomes 1, 2, 3, 4, 5, 6.
+        # Visit n0 through n5: the count for "9901" becomes 1, 2, 3, 4, 5, 6.
         # Return {"9901": 6}.
 
-    Mapping IDs first also handles out-of-order groups: if n0 belongs to "A"
+    Input order also handles out-of-order properties: if n0 belongs to "A"
     and n1 to "B", the returned dictionary starts with "A" even when the LLM
-    lists the "B" group first. Inputs and group member lists are not modified.
+    lists n1 first. Inputs are not modified. Unknown or omitted IDs are errors,
+    never silently dropped or filled in. Label fidelity remains the model's responsibility.
     """
-    answer_by_id = {}
-    for group in groups:
-        answer = group["answer"].strip()
-        for member_id in group["member_ids"]:
-            answer_by_id[member_id] = answer
-
+    if not isinstance(payload, dict):
+        raise ValueError("Voting output must map every input ID to an answer label or null")
+    if set(payload) != set(raw_answers_by_id):
+        raise ValueError(
+            f"Answer IDs differ: missing={sorted(set(raw_answers_by_id) - set(payload))}, "
+            f"unknown={sorted(set(payload) - set(raw_answers_by_id))}"
+        )
     votes = {}
-    for member_id in input_ids:
-        if member_id not in answer_by_id:
+    for member_id, raw in raw_answers_by_id.items():
+        answer = payload[member_id]
+        if answer is None:
             continue
-        answer = answer_by_id[member_id]
+        if not isinstance(answer, str) or not answer.strip():
+            raise ValueError(f"Answer label for {member_id} must be nonempty text or null")
+        if not raw.strip():
+            raise ValueError(f"Blank input {member_id} must have a null label")
+        answer = answer.strip()
         if answer not in votes:
             votes[answer] = 0
         votes[answer] += 1

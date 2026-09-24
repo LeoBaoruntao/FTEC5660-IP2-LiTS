@@ -33,6 +33,7 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 
 ### Fixed
 - Search resume query/repetition mismatch detection (搜索恢复时的问题与重复编号不匹配检查) [T3.5.3]
+- Visible benchmark, method, and example identity in search traces (搜索 trace 显示 benchmark、方法与样本身份) [T4.8]
 - Corrective retry for invalid answer-voting groups (答案投票分组无效时的纠正重试) [T5.2]
 - Unanswered procedure handling in voting prompts (投票提示中未作答指令的处理) [T5.3]
 

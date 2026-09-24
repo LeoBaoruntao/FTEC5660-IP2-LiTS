@@ -77,8 +77,9 @@ def run_example(
         search_context: Optional zero-argument context-manager factory wrapping
             only search.run(). Entered after construction and exited before final
             serialization; exceptions propagate normally. Not entered on resume.
-            A nested benchmark.search tracing span records algorithm, query index,
-            and repetition index. It uses the active tracing configuration and
+            A nested benchmark.search tracing span records dataset, algorithm, query
+            index, and repetition index, also shown in its Logfire display message.
+            It uses the active tracing configuration and
             closes before measurement ends; it is a no-op when tracing is disabled.
         collect_search_facts: Optional callback receiving the newly saved result and
             returning JSON-serializable evidence (e.g. measured costs and selection
@@ -253,7 +254,9 @@ def run_example(
                 search = search_class(**constructor_kwargs)
                 with search_context() if search_context is not None else nullcontext():
                     with tracing.span(
-                        "benchmark.search", algorithm=experiment_config.search_algorithm,
+                        "{dataset} | {algorithm} | example {query_idx} | repeat {repetition_index}",
+                        _span_name="benchmark.search", dataset=experiment_config.dataset,
+                        algorithm=experiment_config.search_algorithm,
                         query_idx=query_idx, repetition_index=repetition_index,
                     ):
                         algo_output = search.run(query_or_goals, query_idx)

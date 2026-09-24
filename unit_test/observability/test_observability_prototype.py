@@ -300,6 +300,12 @@ def check_shared_search_spans():
                 identities = []
                 for span in spans:
                     attrs = {item["key"]: item["value"] for item in span["attributes"]}
+                    dataset = kwargs["experiment_config"].dataset
+                    repetition = int(attrs["repetition_index"]["intValue"])
+                    expected_message = f"{dataset} | mcts | example 7 | repeat {repetition}"
+                    if (attrs["dataset"]["stringValue"] != dataset
+                            or attrs["logfire.msg"]["stringValue"] != expected_message):
+                        raise RuntimeError(f"Missing visible search identity: {attrs}")
                     identities.append((attrs["algorithm"]["stringValue"],
                                        int(attrs["query_idx"]["intValue"]),
                                        int(attrs["repetition_index"]["intValue"])))

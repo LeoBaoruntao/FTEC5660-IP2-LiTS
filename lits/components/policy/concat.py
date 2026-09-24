@@ -1,5 +1,6 @@
 from ..base import Policy
 from ..registry import register_policy
+from json import JSONDecodeError
 import logging
 import math
 import re
@@ -564,7 +565,8 @@ class JointActionPolicy(ConcatPolicy):
 
         query/state provide the shared prefix, existing_siblings supply exclusions,
         and at_depth_limit requests completion. query_idx/from_phase are logging
-        context supplied by get_actions(). API exceptions propagate unchanged.
+        context supplied by get_actions(). Malformed tool-argument JSON and invalid
+        candidates share one retry. Other model/API exceptions propagate unchanged.
         """
         if type(n_actions) is not int or n_actions < 1:
             raise ValueError("n_actions must be a positive integer")
@@ -576,13 +578,24 @@ class JointActionPolicy(ConcatPolicy):
             )
         prompt = self.task_prompt_spec + "\n\n" + prompt
         for attempt in range(2):
-            response = self._call_model(
-                prompt, temperature=temperature, tools=[self._action_tool(n_actions)]
-            )
             try:
-                return self._read_action_call(response, n_actions)
-            except ValueError as error:
+                response = self._call_model(
+                    prompt, temperature=temperature, tools=[self._action_tool(n_actions)]
+                )
+            except JSONDecodeError as error:
                 if attempt == 1:
                     raise
-                logger.warning("Invalid joint action tool call: %s; retrying once", error)
-                prompt += f"\nThe previous response was invalid: {error}. Correct the tool call."
+                error_message = f"Invalid tool-argument JSON: {error}"
+            else:
+                try:
+                    return self._read_action_call(response, n_actions)
+                except ValueError as error:
+                    if attempt == 1:
+                        raise
+                    error_message = str(error)
+            logger.warning("Invalid joint action tool call: %s; retrying once", error_message)
+            prompt += (
+                f"\nThe previous response was invalid: {error_message}. "
+                f"Submit exactly {n_actions} concise alternative actions in one complete "
+                "submit_actions tool call. Do not repeat text or emit multiple tool calls."
+            )

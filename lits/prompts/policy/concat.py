@@ -23,6 +23,7 @@ Return only one valid JSON object with exactly one non-empty string field. Use t
 
 task_prompt_spec_joint = """Return the requested number of distinct candidates via submit_reasoning_steps once.
 Each candidate independently continues the same partial solution; do not repeat existing steps or siblings.
-Use one nonempty field: step for a completed reasoning operation with its result, or answer for an established final answer.
+Use exactly one nonempty field: step for an intermediate deduction when further reasoning is needed, or answer for the established final answer to the original question.
+Once the question is solved, use answer immediately; do not repeat the derivation or put the final answer in step.
 Perform the reasoning; do not merely describe what to do next.
 Include reward in [0, 1] estimating absolute correctness and progress, not relative rank. Scores need not sum to one."""

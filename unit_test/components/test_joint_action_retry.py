@@ -33,6 +33,10 @@ def check_reasoning_step_schema():
             or schema["properties"]["candidates"]["minItems"] != 2
             or schema["properties"]["candidates"]["maxItems"] != 2):
         raise RuntimeError("Unexpected reasoning-step tool schema")
+    for variant in schema["properties"]["candidates"]["items"]["anyOf"]:
+        field = variant["required"][0]
+        if not variant["properties"][field].get("description"):
+            raise RuntimeError(f"Missing completion guidance for {field}")
     candidates = [{"step": "17 + 25 = 42.", "reward": 0.8},
                   {"answer": "42", "reward": 0.9}]
     cases = [(tool["name"], {"candidates": candidates}, True),

@@ -486,13 +486,18 @@ class JointActionPolicy(ConcatPolicy):
             {
                 "type": "object",
                 "properties": {
-                    field: {"type": "string", "minLength": 1},
+                    field: {"type": "string", "minLength": 1, "description": description},
                     "reward": {"type": "number", "minimum": 0, "maximum": 1},
                 },
                 "required": [field, "reward"],
                 "additionalProperties": False,
             }
-            for field in ("step", "answer")
+            for field, description in (
+                ("step", "An intermediate deduction with its result when further reasoning "
+                 "is needed. Never put the final answer here."),
+                ("answer", "The established final answer to the original question. "
+                 "Use immediately once solved, without repeating the derivation."),
+            )
         ]
         return {
             "name": "submit_reasoning_steps",
@@ -577,7 +582,11 @@ class JointActionPolicy(ConcatPolicy):
         if type(n_actions) is not int or n_actions < 1:
             raise ValueError("n_actions must be a positive integer")
         prompt = self._build_messages(query, state, at_depth_limit=at_depth_limit)
-        prompt += f"\nSubmit exactly {n_actions} alternative reasoning steps in one tool call."
+        prompt += (
+            f"\nSubmit exactly {n_actions} candidates in one tool call. "
+            "Use answer for a final answer whenever the question is solved; "
+            "use step only when further reasoning is needed."
+        )
         if existing_siblings:
             prompt += "\nAlready chosen siblings; provide different reasoning steps:\n" + "\n".join(
                 step.verb_step() for step in existing_siblings
@@ -602,6 +611,7 @@ class JointActionPolicy(ConcatPolicy):
             logger.warning("Invalid joint action tool call: %s; retrying once", error_message)
             prompt += (
                 f"\nThe previous response was invalid: {error_message}. "
-                f"Submit exactly {n_actions} concise alternative reasoning steps in one complete "
-                "submit_reasoning_steps tool call. Do not repeat text or emit multiple tool calls."
+                f"Submit exactly {n_actions} concise candidates in one complete "
+                "submit_reasoning_steps tool call. Use answer when solved; otherwise use step. "
+                "Do not repeat text or emit multiple tool calls."
             )

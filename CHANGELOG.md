@@ -10,6 +10,7 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 
 ### Added
 - Standalone CoT generation CLI (独立 CoT 生成 CLI) [T7.1]
+- Shared-evaluator CoT CLI evaluation (复用共享 evaluator 的 CoT CLI 评估) [T7.3]
 
 ### Fixed
 - Joint-action JSON parsing errors bypassing corrective retry (联合动作 JSON 解析错误绕过纠正重试) [T6.6]

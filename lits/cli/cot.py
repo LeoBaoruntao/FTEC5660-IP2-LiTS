@@ -8,8 +8,10 @@ Only the question is sent to the model, never the reference or worked solution.
 
 The fresh output directory contains config.json, cohort.json, responses.jsonl,
 and inference logs. Responses preserve raw text, original IDs, time, and token
-usage; failures are recorded separately in the same stream. No answer extraction,
-correctness judging, policy objects, or search components are used.
+usage; failures are recorded separately in the same stream. Generation uses no
+answer extraction, correctness judging, policy objects, or search components.
+
+Evaluate separately with ``python -m lits.cli.eval_cot --result-dir DIRECTORY``.
 """
 
 import argparse

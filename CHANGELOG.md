@@ -13,6 +13,7 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 - Joint-policy final-answer field guidance (联合策略最终答案字段指引)
 
 ### Fixed
+- Parallel joint-policy tool calls causing search rejection (联合策略多工具调用导致搜索拒绝)
 - Duplicate joint-reasoning candidates aborting search (重复推导候选导致搜索中断)
 
 ## 2026-09-24 Unreleased (`0919-major-unified-search-execution2/tasks`)

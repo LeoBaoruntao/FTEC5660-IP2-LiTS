@@ -78,6 +78,7 @@ class OpenAIChatModel(LanguageModel):
         stop: Optional[str | List[str]] = None,
         return_embedding: bool = False,
         tools: Optional[List[dict]] = None,
+        parallel_tool_calls: Optional[bool] = None,
         new_line_stop: bool = False,
         **kwargs
     ):
@@ -87,6 +88,8 @@ class OpenAIChatModel(LanguageModel):
         strict. Strict schema enforcement depends on the server/model. Without
         tools, the request and Output return type remain unchanged. Tool calls
         are returned to the caller, not executed here; both paths log usage.
+        parallel_tool_calls=False requests at most one tool call per response.
+        None preserves the server default; applied only when tools are supplied.
 
         new_line_stop adds a newline to the server-side stop sequences. Existing
         stop strings/lists are preserved without mutating the caller's list;
@@ -127,6 +130,8 @@ class OpenAIChatModel(LanguageModel):
                 }}
                 for tool in tools
             ]
+            if parallel_tool_calls is not None:
+                tool_options["parallel_tool_calls"] = parallel_tool_calls
         
         with tracing.span("llm.call", lits_role=role, request_extra_body=extra_body):
             resp = self.client.chat.completions.create(

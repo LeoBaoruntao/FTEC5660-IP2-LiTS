@@ -595,7 +595,8 @@ class JointActionPolicy(ConcatPolicy):
         for attempt in range(2):
             try:
                 response = self._call_model(
-                    prompt, temperature=temperature, tools=[self._action_tool(n_actions)]
+                    prompt, temperature=temperature, tools=[self._action_tool(n_actions)],
+                    parallel_tool_calls=False,
                 )
             except JSONDecodeError as error:
                 if attempt == 1:

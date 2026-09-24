@@ -97,6 +97,7 @@ def check_joint_action_retry():
     """Exercise concat.py::JointActionPolicy through base.py::Policy.get_actions.
 
     Both requests and decoding are real. No model/transport substitution is used.
+    Inspect outgoing requests to verify parallel tool calls are disabled.
     Failure to reproduce JSON truncation is reported, not treated as a pass.
     """
     directory = Path(tempfile.mkdtemp(prefix="lits-joint-json-retry-"))
@@ -107,6 +108,10 @@ def check_joint_action_retry():
         api_key="no-key", enable_thinking=False,
     )
     model.client = model.client.with_options(timeout=120, max_retries=0)
+    requests = []
+    model.client._client.event_hooks["request"].append(
+        lambda request: requests.append(json.loads(request.content))
+    )
     setup_inference_logging(model, root_dir=str(directory))
     print(f"Artifacts: {directory}", flush=True)
     policy = JointActionPolicy(base_model=model, task_name="math500", n_actions=3,
@@ -127,6 +132,8 @@ def check_joint_action_retry():
                                query_idx=1, from_phase="expand")
     if not 1 <= len(steps) <= 3:
         raise RuntimeError(f"Expected one to three unique actions, got {steps}")
+    if not requests or any(request.get("parallel_tool_calls") is not False for request in requests):
+        raise RuntimeError("Joint-policy requests must disable parallel tool calls")
     result = {"malformed_attempts": calls, "valid_actions": [s.to_dict() for s in steps],
               "usage": model.inference_logger.get_metrics_by_role()}
     (directory / "results.json").write_text(json.dumps(result, indent=2))

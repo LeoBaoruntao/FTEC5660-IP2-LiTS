@@ -99,8 +99,8 @@ def check_answer_groups():
         "omitted_id": {"groups": valid["groups"], "unanswered_ids": []},
         "empty_group": {"groups": [{"answer": "1/2", "member_ids": []}], "unanswered_ids": list(raw)},
         "blank_answer": {"groups": [{"answer": " ", "member_ids": ["n1"]}], "unanswered_ids": []},
-        "duplicate_label": {"groups": [{"answer": "1/2", "member_ids": ["n1"]},
-                                        {"answer": " 1/2 ", "member_ids": ["n2"]}], "unanswered_ids": ["n3", "n4"]},
+        "duplicate_label_repeated_id": {"groups": [{"answer": "1/2", "member_ids": ["n1"]},
+                                        {"answer": " 1/2 ", "member_ids": ["n1"]}], "unanswered_ids": ["n2", "n3", "n4"]},
         "blank_member": {"groups": [{"answer": "0", "member_ids": ["n4"]}], "unanswered_ids": ["n1", "n2", "n3"]},
         "wrong_type": {"groups": {}, "unanswered_ids": []},
         "extra_field": {**valid, "count": 3},
@@ -108,6 +108,15 @@ def check_answer_groups():
     checks = [{"name": "answer_group_counts_and_order", "votes": votes},
               {"name": "answer_group_tie", "votes": tied},
               {"name": "untruncated_terminal_answers", "answers": observed}]
+    merged = _count_answer_votes({
+        "groups": [{"answer": "1/3", "member_ids": ["n3"]},
+                   {"answer": "1/2", "member_ids": ["n2"]},
+                   {"answer": " 1/2 ", "member_ids": ["n1"]}],
+        "unanswered_ids": ["n4"],
+    }, raw)
+    if list(merged.items()) != [("1/2", 2), ("1/3", 1)]:
+        raise RuntimeError(f"Merged labels lost counts or input order: {merged}")
+    checks.append({"name": "merged_labels_counts_and_order", "votes": merged})
     for name, payload in cases.items():
         try:
             _count_answer_votes(payload, raw)

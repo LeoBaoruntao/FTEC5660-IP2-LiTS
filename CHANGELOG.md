@@ -10,6 +10,7 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 
 ### Fixed
 - Joint-action JSON parsing errors bypassing corrective retry (联合动作 JSON 解析错误绕过纠正重试) [T6.6]
+- Duplicate voting-label rejection with valid membership (成员有效时重复投票标签导致的拒绝) [T5.4]
 
 ## 2026-09-23 Unreleased (`0923-major-joint-action-scoring/tasks`)
 

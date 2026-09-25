@@ -204,6 +204,7 @@ class GeneralEvaluator:
         max_new_tokens: Optional[int] = None,
         return_raw_output: bool = False,
         extra_template_values: Optional[Mapping[str, Any]] = None,
+        context: Optional[str] = None,
     ) -> Union[Dict[str, str], Tuple[Dict[str, str], str]]:
         """Execute the evaluation prompt and parse the model output.
 
@@ -212,7 +213,10 @@ class GeneralEvaluator:
         solution:
             The candidate solution or trace produced by the model under test.
         question:
-            The question being answered (optional).
+            The question being answered (optional); used as context when context is omitted.
+        context:
+            Optional task context, such as the question, units, or precision requirements.
+            Takes precedence over question for prompt rendering.
         truth:
             Reference answer, rubric, or policy description that the evaluator compares
             against. When ``None`` an explicit ``"N/A"`` placeholder is used.
@@ -276,6 +280,7 @@ class GeneralEvaluator:
             solution=solution,
             truth=truth,
             others=others,
+            context=context if context is not None else question,
             extra_template_values=extra_template_values,
         )
 
@@ -352,14 +357,20 @@ class GeneralEvaluator:
         truth: Optional[str]=None,
         others: Optional[str]=None,
         *,
+        context: Optional[str] = None,
         extra_template_values: Optional[Mapping[str, Any]] = None,
         eval_block_override: Optional[str] = None,
         example_json_override: Optional[str] = None,
     ) -> str:
-        """Render the evaluation prompt for ``solution``/``truth`` pairs."""
+        """Render solution/truth with optional task context.
+
+        Templates can use ``{context}``; omitted context renders as ``N/A``.
+        Existing custom templates without that placeholder remain supported.
+        """
 
         prompt_values: Dict[str, Any] = {
             "solution": solution or "",
+            "context": context if context is not None else "N/A",
             "truth": truth if truth is not None else "N/A",
             "others": others if others is not None else "N/A",
             "eval_block": eval_block_override or self.eval_block,
@@ -586,7 +597,8 @@ class GeneralEvaluator:
         
         return new_results
 
-    def check_correct(self, pred: str, truth: str, eval_id: str = "correct") -> bool:
+    def check_correct(self, pred: str, truth: str, eval_id: str = "correct",
+                      *, context: Optional[str] = None) -> bool:
         """Convenience method: evaluate and return bool for a single pred/truth pair.
 
         Calls :meth:`evaluate` and checks whether the specified ``eval_id``
@@ -596,14 +608,16 @@ class GeneralEvaluator:
             pred: Predicted answer (may be verbose).
             truth: Ground-truth answer.
             eval_id: The perspective key to check (default ``"correct"``).
+            context: Optional task context for interpreting the answer.
 
         Returns:
             ``True`` if the LLM judge says the answer is correct.
         """
-        result = self.evaluate(solution=pred, truth=str(truth), include_input=False)
+        result = self.evaluate(solution=pred, truth=str(truth), context=context, include_input=False)
         return result.get(eval_id) == "yes"
 
-    def check_score(self, pred: str, truth: str, eval_id: str = "score") -> float:
+    def check_score(self, pred: str, truth: str, eval_id: str = "score",
+                    *, context: Optional[str] = None) -> float:
         """Convenience method: evaluate and return float score for a single pred/truth pair.
 
         Requires the specified ``eval_id`` to have ``output_type="float"``.
@@ -612,12 +626,13 @@ class GeneralEvaluator:
             pred: Predicted answer.
             truth: Ground-truth answer.
             eval_id: The perspective key to read (default ``"score"``).
+            context: Optional task context for interpreting the answer.
 
         Returns:
             Float score in [0.0, 1.0]. Returns 0.0 on parse failure.
         """
         try:
-            result = self.evaluate(solution=pred, truth=str(truth), include_input=False)
+            result = self.evaluate(solution=pred, truth=str(truth), context=context, include_input=False)
         except RuntimeError as e:
             # Log the pred/truth that caused the failure for debugging
             logger.error(

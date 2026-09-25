@@ -424,6 +424,7 @@ def evaluate_from_checkpoints(
                 else:
                     correct, score = check_answer(
                         answer_pred, ground_truth,
+                        context=_query,
                         custom_evaluator=custom_evaluator,
                         llm_evaluator=llm_evaluator,
                         llm_eval_mode=llm_eval_mode,

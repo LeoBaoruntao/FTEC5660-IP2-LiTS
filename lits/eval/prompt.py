@@ -6,13 +6,16 @@ Your task is to evaluate the provided solution according to multiple required cr
 Each criterion includes a description and, optionally, a closed set of allowed output options.
 
 ## 🛑 Strict Rules (Follow ALL)
-1.  **Basis of Judgment:**: Base your judgment ONLY on the given Solution and Truth. Do not use external knowledge.
+1.  **Basis of Judgment:**: Base your judgment ONLY on the given Context, Solution, and Truth. Do not use external knowledge.
 2.  **Output Options:** For each evaluation perspective (`eval_id`), if a closed set of allowed output options is provided, you **MUST** output **EXACTLY** one option's value.
 3.  **Free Text:** If *no* allowed output options are provided for an `eval_id`, provide a concise, free-text judgment or extraction from the given solution according to the evaluation description.
 4.  **No Justification:** Do **NOT** provide any justification, explanation, or conversational text. Your entire output **MUST** be the JSON dictionary.
 
 --------------------
 ## 📑 Context for Evaluation
+### Task Context
+{context}
+
 ### Solution
 {solution}
 

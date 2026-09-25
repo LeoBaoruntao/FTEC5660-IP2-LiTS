@@ -69,6 +69,7 @@ def evaluate(directory, model, *, llm_eval_mode="binary"):
                     votes = vote_answers(cohort[index]["question"], {"n0": row["raw_response"]}, model=model)
                     prediction = max(votes, key=votes.get) if votes else ""
                     correct, score = check_answer(prediction, cohort[index]["answer"],
+                                                  context=cohort[index]["question"],
                                                   custom_evaluator=checker, llm_evaluator=judge)
                 record.update(prediction=prediction, task_success=correct, score=score)
                 evaluated.append({"idx": index, "correct": correct})

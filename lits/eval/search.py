@@ -127,6 +127,7 @@ def evaluate_search_result(
     else:
         correct, score = check_answer(
             prediction, ground_truth,
+            context=query,
             custom_evaluator=custom_evaluator,
             llm_evaluator=llm_evaluator,
             llm_eval_mode=llm_eval_mode,
@@ -271,7 +272,7 @@ def retrieve_answer_from_env_node(
 
 def check_answer(pred: Any, truth, custom_evaluator=None, llm_evaluator=None,
                  llm_eval_mode: str = "binary",
-                 eval_logger=None, label: str = "") -> tuple:
+                 eval_logger=None, label: str = "", *, context: str | None = None) -> tuple:
     """Evaluate a single predicted answer against ground truth.
 
     Use the dataset-specific custom_evaluator first, with an optional LLM
@@ -290,6 +291,8 @@ def check_answer(pred: Any, truth, custom_evaluator=None, llm_evaluator=None,
         llm_eval_mode: "binary" (yes/no) or "f1" (float score).
         eval_logger: Logger for debug messages (optional).
         label: Human-readable label for log lines (e.g. "[3_a2]").
+        context: Optional task context passed only to the LLM judge.
+            Registered task checkers retain their two-argument interface.
 
     Returns:
         (correct, score), where correct is bool and score is Optional[float].
@@ -322,21 +325,23 @@ def check_answer(pred: Any, truth, custom_evaluator=None, llm_evaluator=None,
         if pred is None or (isinstance(pred, str) and not pred.strip()):
             # Already rejected by the checker; skip judging without overriding its score.
             return False, score
-        correct, score = _llm_judge(llm_evaluator, llm_eval_mode, pred, truth, score)
+        correct, score = _llm_judge(llm_evaluator, llm_eval_mode, pred, truth, score, context=context)
         if eval_logger:
             eval_logger.debug(f"  {label} LLM fallback: correct={correct}, score={score}")
     return correct, score
 
 
-def _llm_judge(llm_evaluator, llm_eval_mode, pred, truth, prior_score=None):
+def _llm_judge(llm_evaluator, llm_eval_mode, pred, truth, prior_score=None, *, context=None):
     """Return (correct, score) from a caller-supplied LLM evaluator.
 
     F1 mode retains the higher of prior_score and the LLM score. Binary
     judging changes correctness without replacing prior_score.
+    Supplied task context is forwarded to the judge.
     """
+    judge_kwargs = {"context": context} if context is not None else {}
     if llm_eval_mode == "f1":
-        llm_score = llm_evaluator.check_score(pred, truth)
+        llm_score = llm_evaluator.check_score(pred, truth, **judge_kwargs)
         final = max(prior_score, llm_score) if prior_score is not None else llm_score
         return (final == 1.0), final
     else:
-        return llm_evaluator.check_correct(pred, truth), prior_score
+        return llm_evaluator.check_correct(pred, truth, **judge_kwargs), prior_score

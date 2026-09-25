@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-09-25 Unreleased (`demos/lits_benchmark/math_qa.py`)
+
+### Added
+- Registered SciBench calculus dataset (注册 SciBench 微积分数据集)
+
 ## 2026-09-25 Unreleased (`lits/eval/general_eval.py`)
 
 ### Added

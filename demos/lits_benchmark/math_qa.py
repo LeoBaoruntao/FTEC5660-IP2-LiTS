@@ -81,6 +81,34 @@ def load_spart_yn(**kwargs):
         List of examples from the SPART_YN test split.
     """
     return load_qa_dataset("spart_yn", **kwargs)
+
+
+@register_dataset("scibench_calculus", task_type="language_grounded")
+def load_scibench_calculus(path: str = None):
+    """Load the complete ReST-MCTS SciBench calculus JSONL dataset in source order.
+
+    Args:
+        path: Optional local copy of calculus_standardized.json. Otherwise read
+            https://github.com/THUDM/ReST-MCTS/blob/main/data/scibench/calculus_standardized.json.
+            Despite its suffix, the source contains one JSON object per line.
+
+    Returns:
+        Question/answer dictionaries for the shared language-reasoning pipeline.
+        Questions retain unit instructions; numeric references become strings.
+        No filtering, sampling, numeric rounding, or MATH checker registration occurs.
+    """
+    import json
+    from pathlib import Path
+    from urllib.request import urlopen
+
+    if path is None:
+        url = "https://raw.githubusercontent.com/THUDM/ReST-MCTS/main/data/scibench/calculus_standardized.json"
+        with urlopen(url, timeout=30) as response:
+            text = response.read().decode("utf-8")
+    else:
+        text = Path(path).read_text(encoding="utf-8")
+    rows = [json.loads(line) for line in text.splitlines() if line.strip()]
+    return [{"question": row["content"], "answer": str(row["answer"])} for row in rows]
           
 def get_accuracy(full_dataset, results_from_file, extract_method="dfs", verbose=False):
     correct_count = 0

@@ -10,6 +10,7 @@ Each criterion includes a description and, optionally, a closed set of allowed o
 2.  **Output Options:** For each evaluation perspective (`eval_id`), if a closed set of allowed output options is provided, you **MUST** output **EXACTLY** one option's value.
 3.  **Free Text:** If *no* allowed output options are provided for an `eval_id`, provide a concise, free-text judgment or extraction from the given solution according to the evaluation description.
 4.  **No Justification:** Do **NOT** provide any justification, explanation, or conversational text. Your entire output **MUST** be the JSON dictionary.
+5.  **Numerical Equivalence:** When checking numerical correctness, compare the final value, not its wording. Evaluate supplied expressions and convert equivalent units. Respect precision specified in Context. For approximate quantities without specified precision, allow reasonable rounding consistent with the stated digits and context; numerical closeness alone is insufficient. Counts and other exact quantities require exact agreement. Reject different signs, incompatible units, and materially different values.
 
 --------------------
 ## 📑 Context for Evaluation

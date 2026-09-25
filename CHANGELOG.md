@@ -11,6 +11,9 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 ### Changed
 - Context-aware numerical tolerance in voting and judging (投票与评判中基于上下文的数值容差)
 
+### Added
+- CoT binary evaluation without a registered checker (无注册检查器时的 CoT 二元评判)
+
 ## 2026-09-25 Unreleased (`demos/lits_benchmark/math_qa.py`)
 
 ### Added

@@ -26,6 +26,8 @@ def evaluate(directory, model, *, llm_eval_mode="binary"):
     Returns aggregate_results' summary. Printed accuracy excludes missing/errors,
     with coverage shown explicitly. Repeated evaluations keep separate artifacts.
     The supplied model gets a new evaluation-only inference logger.
+    Without a registered checker, exact matches pass directly and other answers
+    use the context-aware binary judge; disabling that judge requires a checker.
     """
     from datetime import datetime, timezone
     from tqdm import tqdm
@@ -39,8 +41,10 @@ def evaluate(directory, model, *, llm_eval_mode="binary"):
     config = json.loads((directory / "config.json").read_text())
     import_custom_modules(config.get("import_modules"))
     checker = get_evaluator(config["dataset"])
-    if checker is None or llm_eval_mode not in ("binary", "none"):
-        raise ValueError("CoT evaluation requires a registered checker and binary/none judge mode")
+    if llm_eval_mode not in ("binary", "none"):
+        raise ValueError("CoT evaluation requires binary/none judge mode")
+    if checker is None and llm_eval_mode == "none":
+        raise ValueError(f"Dataset {config['dataset']!r} has no registered checker; use --llm-eval-mode binary")
     cohort = {row["query_idx"]: row["example"]
               for row in json.loads((directory / "cohort.json").read_text())}
     responses = [json.loads(line) for line in (directory / "responses.jsonl").read_text().splitlines()]

@@ -46,6 +46,21 @@ def check_saved_cot_evaluation():
             if any(r["evaluation_costs"]["num_calls"] != 0 for r in records):
                 raise RuntimeError("Evaluation costs contain generation calls")
         breakpoint()  # inspect: summary, records_files, records, original
+        config_path = directory / "config.json"
+        config = json.loads(config_path.read_text())
+        config["dataset"] = "scibench_calculus"
+        config_path.write_text(json.dumps(config))
+        summary = evaluate(directory, model)
+        if summary["total"] != 1 or summary["correct_count"] != 0:
+            raise RuntimeError("Checker-free binary evaluation changed missing-answer handling")
+        try:
+            evaluate(directory, model, llm_eval_mode="none")
+        except ValueError as error:
+            if "has no registered checker" not in str(error):
+                raise
+        else:
+            raise RuntimeError("Checker-free evaluation accepted disabled judging")
+        breakpoint()  # inspect: summary; SciBench supports binary judging, not checker-free none mode
     print("CoT evaluation checks passed; no inference")
 
 

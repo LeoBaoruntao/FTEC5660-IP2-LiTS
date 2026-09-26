@@ -24,6 +24,7 @@ from ..lm.base import HfChatModel
 # Import core components to trigger @register_* decorators
 from .transition.concat import ConcatTransition  # noqa: F401
 from .policy.concat import ConcatPolicy, JointActionPolicy  # noqa: F401
+from .policy.concat_json import ConcatJSONPolicy  # noqa: F401
 from .reward.generative import GenerativePRM, PolicyScoreRM  # noqa: F401
 from .reward.thinkprm import ThinkPRM  # noqa: F401
 

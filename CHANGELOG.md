@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-09-26 Unreleased (`lits/prompts/reward/generative.py`)
+
+### Changed
+- Progress-based usefulness scoring instructions (基于实际推理进展的有用性评分指令)
+
+## 2026-09-26 Unreleased (`lits/components/policy/concat_json.py`)
+
+### Added
+- Native-tool ConcatJSONPolicy with independent reward scoring (原生工具调用生成与独立奖励评分)
+
 ## 2026-09-26 Unreleased (`lits/components/policy/concat.py`)
 
 ### Fixed

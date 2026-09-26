@@ -347,27 +347,27 @@ class ConcatPolicy(Policy):
         n_retry_structured = 0
         
         while True:
-            # Generate output (uses _call_model which auto-constructs role)
-            output_text, embedding = self._generate_single_output(prompt, temperature)
+            output_text = ""
             structured_payload = None
-
-            if self.output_format == 'structured':
-                try:
+            try:
+                # Include native tool-argument decoding in structured retries.
+                output_text, embedding = self._generate_single_output(prompt, temperature)
+                if self.output_format == 'structured':
                     structured_payload = self._parse_structured_output(output_text)
-                except ValueError as error:
-                    self._log_validation_failure(
-                        str(error), output_text, temperature, prompt
-                    )
-                    n_retry_structured += 1
-                    if n_retry_structured > 1:
-                        raise
-                    from ...prompts.policy.concat import structured_reasoning_json_instruction
-                    prompt += (
-                        f"\nYour previous response was invalid: {error}. "
-                        'Return exactly one JSON object with one nonempty string field, '
-                        '"step" or "answer". ' + structured_reasoning_json_instruction
-                    )
-                    continue
+            except ValueError as error:
+                if self.output_format != 'structured':
+                    raise
+                self._log_validation_failure(str(error), output_text, temperature, prompt)
+                n_retry_structured += 1
+                if n_retry_structured > 1:
+                    raise
+                from ...prompts.policy.concat import structured_reasoning_json_instruction
+                prompt += (
+                    f"\nYour previous response was invalid: {error}. "
+                    "Follow the required response format and provide one nonempty step or answer. "
+                    + structured_reasoning_json_instruction
+                )
+                continue
 
             candidate_text = (
                 next(iter(structured_payload.values()))

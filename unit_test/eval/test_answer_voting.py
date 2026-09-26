@@ -239,17 +239,19 @@ def check_live_answer_voting(output_dir, model_name):
     return checks
 
 
-def check_saved_answer_voting(terminal_file, output_dir, model_name):
+def check_saved_answer_voting(terminal_file, output_dir, model_name, terminal_limit=None):
     """Evaluate saved terminals with answer_voting.py::vote_answers, without search.
 
     Retain responses and votes separately; never rewrite the source terminal file.
+    terminal_limit selects the first N terminals in saved order, or all when None.
+    This compares voting prefixes, not counterfactual search executions.
     This checks real grouping, but only exercises retry when the model is invalid.
     """
     from lits.cli.eval_search import load_terminal_nodes_from_file
 
     original = terminal_file.read_bytes()
     data = load_terminal_nodes_from_file(terminal_file)
-    raw = _raw_terminal_answers(data["terminal_nodes"])
+    raw = _raw_terminal_answers(data["terminal_nodes"][:terminal_limit])
     model = get_lm(model_name, enable_thinking=False)
     model.client = model.client.with_options(timeout=120, max_retries=0)
     setup_inference_logging(model, root_dir=str(output_dir))
@@ -266,7 +268,8 @@ def check_saved_answer_voting(terminal_file, output_dir, model_name):
         handler.close()
     if terminal_file.read_bytes() != original:
         raise RuntimeError("Source terminal file changed")
-    result = {"source": str(terminal_file), "raw_answers": raw, "votes": votes,
+    result = {"source": str(terminal_file), "terminal_limit": terminal_limit,
+              "raw_answers": raw, "votes": votes,
               "prediction": max(votes, key=votes.get) if votes else "",
               "usage": model.inference_logger.get_metrics_by_role("evaluator_voting")}
     print(json.dumps(result, indent=2), flush=True)
@@ -280,7 +283,10 @@ def main():
     parser.add_argument("--voting-model", help="Real model for thinking-enabled semantic voting checks")
     parser.add_argument("--terminal-file", type=Path,
                         help="Evaluate saved terminals only, using the pilot's non-thinking voter")
+    parser.add_argument("--terminal-limit", type=int, help="Vote on the first N saved terminals")
     args = parser.parse_args()
+    if args.terminal_limit is not None and (args.terminal_limit < 1 or not args.terminal_file):
+        parser.error("--terminal-limit requires --terminal-file and a positive count")
     os.environ.setdefault("OPENAI_API_KEY", "no-key")
     os.environ.setdefault("OPENAI_API_BASE", "http://localhost:8000/v1")
     output_dir = Path(tempfile.mkdtemp(prefix="lits-answer-voting-"))
@@ -289,7 +295,7 @@ def main():
     checks.extend(check_answer_groups())
     if args.terminal_file:
         checks.append(check_saved_answer_voting(
-            args.terminal_file, output_dir, args.voting_model or MODEL_NAME,
+            args.terminal_file, output_dir, args.voting_model or MODEL_NAME, args.terminal_limit,
         ))
     elif args.voting_model:
         checks.extend(check_live_answer_voting(output_dir, args.voting_model))

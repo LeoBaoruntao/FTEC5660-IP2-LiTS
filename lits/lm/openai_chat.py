@@ -79,6 +79,7 @@ class OpenAIChatModel(LanguageModel):
         return_embedding: bool = False,
         tools: Optional[List[dict]] = None,
         parallel_tool_calls: Optional[bool] = None,
+        tool_choice: Optional[str | dict] = None,
         new_line_stop: bool = False,
         **kwargs
     ):
@@ -90,6 +91,8 @@ class OpenAIChatModel(LanguageModel):
         are returned to the caller, not executed here; both paths log usage.
         parallel_tool_calls=False requests at most one tool call per response.
         None preserves the server default; applied only when tools are supplied.
+        tool_choice forwards auto/required/none or a named-function selection
+        when tools are supplied. None preserves the server default.
 
         new_line_stop adds a newline to the server-side stop sequences. Existing
         stop strings/lists are preserved without mutating the caller's list;
@@ -132,6 +135,8 @@ class OpenAIChatModel(LanguageModel):
             ]
             if parallel_tool_calls is not None:
                 tool_options["parallel_tool_calls"] = parallel_tool_calls
+            if tool_choice is not None:
+                tool_options["tool_choice"] = tool_choice
         
         with tracing.span("llm.call", lits_role=role, request_extra_body=extra_body):
             resp = self.client.chat.completions.create(

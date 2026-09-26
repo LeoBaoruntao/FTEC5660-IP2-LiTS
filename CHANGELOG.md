@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-09-26 Unreleased (`lits/lm/openai_chat.py`)
+
+### Added
+- Explicit tool-choice forwarding (显式工具选择参数转发)
+
 ## 2026-09-26 Unreleased (`lits/prompts/reward/generative.py`)
 
 ### Changed
@@ -15,6 +20,9 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 
 ### Changed
 - ConcatJSONPolicy reasoning-progress and completion instructions (ConcatJSONPolicy 推理进展与完成信号指令)
+
+### Fixed
+- ConcatJSONPolicy optional tool calls and mismatched retry fields (ConcatJSONPolicy 可选工具调用与重试字段不一致)
 
 ### Added
 - Native-tool ConcatJSONPolicy with independent reward scoring (原生工具调用生成与独立奖励评分)

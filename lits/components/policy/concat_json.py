@@ -77,6 +77,17 @@ class ConcatJSONPolicy(ConcatPolicy):
         content = {"answer" if payload["is_final"] else "step": payload["content"]}
         return cls._parse_structured_output(json.dumps(content))
 
+    def _structured_retry_instruction(self, error: ValueError) -> str:
+        """Require a corrected native call using this policy's actual fields."""
+        return (
+            f"\nThe previous response was invalid: {error}. "
+            "Submit one complete submit_reasoning_step tool call with exactly "
+            "content (a nonempty string) and is_final (a boolean). "
+            "Set is_final=true for the established answer; otherwise false. "
+            "Use plain-text math without backslashes or control characters. "
+            "Do not repeat text, emit multiple tool calls, or return ordinary prose."
+        )
+
     def _generate_single_output(self, prompt: str, temperature: float):
         """Request one native call; the inherited validation loop handles retries.
 
@@ -86,5 +97,6 @@ class ConcatJSONPolicy(ConcatPolicy):
         response = self._call_model(
             prompt, temperature=temperature, tools=[self._action_tool()],
             parallel_tool_calls=False, enable_thinking=False,
+            tool_choice={"type": "function", "function": {"name": "submit_reasoning_step"}},
         )
         return json.dumps(self._read_action_call(response)), None

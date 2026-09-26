@@ -361,12 +361,7 @@ class ConcatPolicy(Policy):
                 n_retry_structured += 1
                 if n_retry_structured > 1:
                     raise
-                from ...prompts.policy.concat import structured_reasoning_json_instruction
-                prompt += (
-                    f"\nYour previous response was invalid: {error}. "
-                    "Follow the required response format and provide one nonempty step or answer. "
-                    + structured_reasoning_json_instruction
-                )
+                prompt += self._structured_retry_instruction(error)
                 continue
 
             candidate_text = (
@@ -406,6 +401,15 @@ class ConcatPolicy(Policy):
                 n_retry_repeat += 1
                 if n_retry_repeat > self.MAX_RETRY_REPEAT:
                     return ThoughtStep(action="ALWAY REPEAT. TERMINATE"), embedding
+
+    def _structured_retry_instruction(self, error: ValueError) -> str:
+        """Describe the validation error and required structured response format."""
+        from ...prompts.policy.concat import structured_reasoning_json_instruction
+        return (
+            f"\nYour previous response was invalid: {error}. "
+            "Follow the required response format and provide one nonempty step or answer. "
+            + structured_reasoning_json_instruction
+        )
 
     def _get_actions(
         self,

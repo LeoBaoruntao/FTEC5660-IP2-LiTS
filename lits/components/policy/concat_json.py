@@ -27,11 +27,14 @@ class ConcatJSONPolicy(ConcatPolicy):
         kwargs["output_format"] = "structured"
         if kwargs.get("task_prompt_spec") is None:
             kwargs["task_prompt_spec"] = (
-                "Continue the supplied partial solution with one actual deduction "
-                "or calculation. Call submit_reasoning_step exactly once. "
-                "Put the deduction or established final answer in content. "
-                "Set is_final=true only when content answers the original question; "
-                "otherwise set is_final=false. Do not assign a score. "
+                "Return one candidate via submit_reasoning_step exactly once. "
+                "Continue the supplied partial solution; do not repeat existing steps or siblings. "
+                "Put an intermediate deduction in content with is_final=false when further "
+                "reasoning is needed, or the established final answer to the original "
+                "question with is_final=true. Once the question is solved, return the "
+                "answer immediately; do not repeat the derivation or mark it as intermediate. "
+                "Perform the reasoning; do not merely describe what to do next. "
+                "Do not assign a score. "
                 "Use plain-text math or correctly JSON-escaped backslashes."
             )
         super().__init__(**kwargs)

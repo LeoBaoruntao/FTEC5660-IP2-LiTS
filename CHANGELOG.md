@@ -13,6 +13,9 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 
 ## 2026-09-26 Unreleased (`lits/components/policy/concat_json.py`)
 
+### Changed
+- ConcatJSONPolicy reasoning-progress and completion instructions (ConcatJSONPolicy 推理进展与完成信号指令)
+
 ### Added
 - Native-tool ConcatJSONPolicy with independent reward scoring (原生工具调用生成与独立奖励评分)
 

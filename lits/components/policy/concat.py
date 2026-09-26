@@ -268,7 +268,11 @@ class ConcatPolicy(Policy):
 
     @classmethod
     def _parse_structured_output(cls, output_text: str) -> dict[str, str]:
-        """Parse and validate one exclusive ``step`` or ``answer`` field."""
+        """Validate one exclusive step/answer string without repairing mathematical text.
+
+        Reject control characters from accidentally decoded LaTeX escapes, such
+        as a single-backslash frac becoming a form-feed. Newlines remain allowed.
+        """
         payload, feedback = parse_json_string(output_text)
         if feedback or not isinstance(payload, dict):
             raise ValueError("Structured output must be a JSON object")
@@ -280,6 +284,8 @@ class ConcatPolicy(Policy):
             raise ValueError("Structured output field must be 'step' or 'answer'")
         if not isinstance(content, str) or not content.strip():
             raise ValueError("Structured output content must be a non-empty string")
+        if any(ord(char) < 32 and char != "\n" for char in content):
+            raise ValueError("Structured output contains control characters; use plain-text math or escaped backslashes")
 
         content = content.strip()
         if content.lower() in cls.STRUCTURED_PLACEHOLDERS:
@@ -321,6 +327,9 @@ class ConcatPolicy(Policy):
     ) -> tuple[ThoughtStep, any]:
         """
         Generate a single action with retry logic for validation failures.
+
+        Invalid structured output gets one retry with explicit format feedback;
+        a second invalid response propagates rather than inventing a reasoning step.
         
         Uses stored context (_query_idx, _from_phase) from get_actions() for LLM calls.
         
@@ -352,6 +361,12 @@ class ConcatPolicy(Policy):
                     n_retry_structured += 1
                     if n_retry_structured > 1:
                         raise
+                    from ...prompts.policy.concat import structured_reasoning_json_instruction
+                    prompt += (
+                        f"\nYour previous response was invalid: {error}. "
+                        'Return exactly one JSON object with one nonempty string field, '
+                        '"step" or "answer". ' + structured_reasoning_json_instruction
+                    )
                     continue
 
             candidate_text = (

@@ -20,6 +20,14 @@ task_prompt_spec_structured_math_qa = """Your task is to give the correct next s
 
 Return only one valid JSON object with exactly one non-empty string field. Use the field \"step\" when another reasoning operation is needed; its value must perform the actual next operation. Use the field \"answer\" only when the final answer has been established; its value must contain only that answer. Never return both fields. Do not use Markdown or explanatory text outside the JSON object."""
 
+structured_reasoning_json_instruction = (
+    'Use plain-text mathematical notation such as cos(theta), x^2, and pi. '
+    'Avoid LaTeX commands and backslashes. If a backslash is necessary, JSON '
+    'requires it to be doubled: ' + r'{"step": "Use \\cos(x)."}' + '. '
+    'Escape quotes inside strings; never include raw control characters.'
+)
+task_prompt_spec_structured_math_qa += "\n" + structured_reasoning_json_instruction
+
 
 task_prompt_spec_joint = """Return the requested number of distinct candidates via submit_reasoning_steps once.
 Each candidate independently continues the same partial solution; do not repeat existing steps or siblings.

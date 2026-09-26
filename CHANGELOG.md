@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-09-26 Unreleased (`lits/components/policy/concat.py`)
+
+### Fixed
+- ConcatPolicy mathematical JSON escaping guidance and corrective retries (ConcatPolicy 数学 JSON 转义指引与纠错重试)
+- Structured reasoning control-character validation (结构化推导控制字符校验)
+
 ## 2026-09-25 Unreleased (`lits/eval`)
 
 ### Changed

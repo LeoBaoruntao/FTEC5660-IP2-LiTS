@@ -5,6 +5,9 @@ import json
 from .concat import ConcatPolicy
 from ..registry import register_policy
 from ...lm.base import ToolCallOutput
+from ...prompts.policy.concat import (
+    task_prompt_spec_single, reasoning_tool_retry_template, single_completion_instruction,
+)
 
 
 @register_policy("concat_json", task_type="language_grounded")
@@ -26,17 +29,7 @@ class ConcatJSONPolicy(ConcatPolicy):
         """Use tool output while retaining caller-supplied reasoning instructions."""
         kwargs["output_format"] = "structured"
         if kwargs.get("task_prompt_spec") is None:
-            kwargs["task_prompt_spec"] = (
-                "Return one candidate via submit_reasoning_step exactly once. "
-                "Continue the supplied partial solution; do not repeat existing steps or siblings. "
-                "Put an intermediate deduction in content with is_final=false when further "
-                "reasoning is needed, or the established final answer to the original "
-                "question with is_final=true. Once the question is solved, return the "
-                "answer immediately; do not repeat the derivation or mark it as intermediate. "
-                "Perform the reasoning; do not merely describe what to do next. "
-                "Do not assign a score. "
-                "Use plain-text math or correctly JSON-escaped backslashes."
-            )
+            kwargs["task_prompt_spec"] = task_prompt_spec_single
         super().__init__(**kwargs)
 
     @staticmethod
@@ -79,13 +72,9 @@ class ConcatJSONPolicy(ConcatPolicy):
 
     def _structured_retry_instruction(self, error: ValueError) -> str:
         """Require a corrected native call using this policy's actual fields."""
-        return (
-            f"\nThe previous response was invalid: {error}. "
-            "Submit one complete submit_reasoning_step tool call with exactly "
-            "content (a nonempty string) and is_final (a boolean). "
-            "Set is_final=true for the established answer; otherwise false. "
-            "Use plain-text math without backslashes or control characters. "
-            "Do not repeat text, emit multiple tool calls, or return ordinary prose."
+        return reasoning_tool_retry_template.format(
+            error=error, candidates="one candidate", tool_name="submit_reasoning_step",
+            completion_instruction=single_completion_instruction,
         )
 
     def _generate_single_output(self, prompt: str, temperature: float):

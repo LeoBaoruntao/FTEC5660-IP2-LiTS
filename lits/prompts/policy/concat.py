@@ -29,9 +29,29 @@ structured_reasoning_json_instruction = (
 task_prompt_spec_structured_math_qa += "\n" + structured_reasoning_json_instruction
 
 
-task_prompt_spec_joint = """Return the requested number of distinct candidates via submit_reasoning_steps once.
-Each candidate independently continues the same partial solution; do not repeat existing steps or siblings.
-Use exactly one nonempty field: step for an intermediate deduction when further reasoning is needed, or answer for the established final answer to the original question.
-Once the question is solved, use answer immediately; do not repeat the derivation or put the final answer in step.
+reasoning_progress_instruction = """Each candidate independently continues the same partial solution; do not repeat existing steps or siblings.
 Perform the reasoning; do not merely describe what to do next.
-Include reward in [0, 1] estimating absolute correctness and progress, not relative rank. Scores need not sum to one."""
+Once the question is solved, return the established final answer immediately; do not repeat the derivation or mark it as intermediate."""
+
+joint_completion_instruction = """Use exactly one nonempty field: step for an intermediate deduction when further reasoning is needed, or answer for the established final answer to the original question."""
+
+single_completion_instruction = """Use exactly content (a nonempty string) and is_final (a boolean). Put an intermediate deduction in content with is_final=false when further reasoning is needed, or the established final answer with is_final=true."""
+
+reasoning_tool_retry_template = """\nThe previous response was invalid: {error}.
+Submit {candidates} in one complete {tool_name} tool call. {completion_instruction}
+Use plain-text math without backslashes or control characters.
+Do not repeat text, emit multiple tool calls, or return ordinary prose."""
+
+task_prompt_spec_joint = "\n".join((
+    "Return the requested number of distinct candidates via submit_reasoning_steps once.",
+    reasoning_progress_instruction,
+    joint_completion_instruction,
+    "Include reward in [0, 1] estimating absolute correctness and progress, not relative rank. Scores need not sum to one.",
+))
+
+task_prompt_spec_single = "\n".join((
+    "Return one candidate via submit_reasoning_step exactly once.",
+    reasoning_progress_instruction,
+    single_completion_instruction,
+    "Do not assign a score. Use plain-text math or correctly JSON-escaped backslashes.",
+))

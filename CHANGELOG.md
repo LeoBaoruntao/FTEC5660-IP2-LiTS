@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-09-26 Unreleased (`lits/prompts/policy/concat.py`)
+
+### Changed
+- Shared reasoning and tool-retry instructions for concat policies (Concat 策略共享推理与工具重试指令)
+
 ## 2026-09-26 Unreleased (`lits/lm/openai_chat.py`)
 
 ### Added

@@ -629,9 +629,9 @@ class JointActionPolicy(ConcatPolicy):
                         raise
                     error_message = str(error)
             logger.warning("Invalid joint action tool call: %s; retrying once", error_message)
-            prompt += (
-                f"\nThe previous response was invalid: {error_message}. "
-                f"Submit exactly {n_actions} concise candidates in one complete "
-                "submit_reasoning_steps tool call. Use answer when solved; otherwise use step. "
-                "Do not repeat text or emit multiple tool calls."
+            from ...prompts.policy.concat import reasoning_tool_retry_template, joint_completion_instruction
+            prompt += reasoning_tool_retry_template.format(
+                error=error_message, candidates=f"exactly {n_actions} concise candidates",
+                tool_name="submit_reasoning_steps",
+                completion_instruction=joint_completion_instruction,
             )

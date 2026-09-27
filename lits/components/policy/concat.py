@@ -8,6 +8,7 @@ from ...lm.base import HfChatModel, ToolCallOutput
 from ...structures import State, Action, ThoughtStep
 from ..utils import verbalize_concat_state, extract_existing_steps
 from ...log import log_event
+from ...constants import DEFAULT_REASONING_TEMPERATURE
 from ...utils.formatted_text_parser import parse_json_string
 
 logger = logging.getLogger(__name__)
@@ -108,7 +109,7 @@ class ConcatPolicy(Policy):
             task_prompt_spec=kwargs.get('task_prompt_spec'),
             task_name=kwargs.get('task_name'),
             n_actions=search_args.get('n_actions', 3),
-            temperature=0.7,
+            temperature=DEFAULT_REASONING_TEMPERATURE,
             force_terminating_on_depth_limit=search_args.get('force_terminating_on_depth_limit', False),
             max_steps=search_args.get('max_steps', 10),
             max_length=component_args.get('max_length', 32768),

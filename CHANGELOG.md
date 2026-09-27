@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-09-27 Unreleased (`lits/cli/cot.py`)
+
+### Added
+- Multi-sample CoT generation with uniform or per-example counts and shared answer voting
+
+### Changed
+- Shared CoT and concat-policy generation temperature default
+- Thinking-enabled CoT answer voting
+
+## 2026-09-26 Unreleased (`lits/components/reward/generative_json.py`)
+
+### Added
+- Native-tool GenerativeJSONPRM reward scoring (原生工具调用过程奖励评分)
+
 ## 2026-09-26 Unreleased (`lits/prompts/policy/concat.py`)
 
 ### Changed

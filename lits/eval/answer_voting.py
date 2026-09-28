@@ -170,6 +170,8 @@ def _count_answer_votes(payload: dict, raw_answers_by_id: Mapping[str, str]) -> 
     Args:
         payload: Every input ID mapped to a nonempty answer label or null.
             Null means unanswered; blank inputs must have null labels.
+            A standalone string "null" (case-insensitive, whitespace stripped)
+            is also reserved for unanswered, never counted as an answer.
         raw_answers_by_id: Original input texts; order determines tie-breaking.
 
     Returns:
@@ -204,9 +206,12 @@ def _count_answer_votes(payload: dict, raw_answers_by_id: Mapping[str, str]) -> 
             continue
         if not isinstance(answer, str) or not answer.strip():
             raise ValueError(f"Answer label for {member_id} must be nonempty text or null")
+        answer = answer.strip()
+        # Models sometimes encode the unanswered sentinel as text, not JSON null.
+        if answer.casefold() == "null":
+            continue
         if not raw.strip():
             raise ValueError(f"Blank input {member_id} must have a null label")
-        answer = answer.strip()
         if answer not in votes:
             votes[answer] = 0
         votes[answer] += 1

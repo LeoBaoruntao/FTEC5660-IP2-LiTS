@@ -171,12 +171,13 @@ def check_live_cot_sampling():
     breakpoint()  # inspect: rows, records; separate generations and one joint vote
 
 
-def check_saved_cot_voting(source, indices):
+def check_saved_cot_voting(source, indices, trace_enabled=False):
     """Replay selected saved samples through eval_cot.py::evaluate with thinking.
 
     Copy generation inputs into a fresh temporary directory; preserve source
     evaluations and retain replay artifacts for inspecting votes and costs.
     No new solutions are generated. The judge remains non-thinking.
+    trace_enabled captures SDK requests and responses in a local trace archive.
     """
     from tempfile import mkdtemp
 
@@ -193,7 +194,16 @@ def check_saved_cot_voting(source, indices):
     (directory / "responses.jsonl").write_text("\n".join(map(json.dumps, responses)))
     model = get_lm(config["model"], base_url=config.get("base_url"), enable_thinking=False)
     voter = get_lm(config["model"], base_url=config.get("base_url"), enable_thinking=True)
-    evaluate(directory, model, voting_model=voter)
+    from lits import observability as tracing
+    if trace_enabled:
+        tracing.configure(enabled=True, send_to_logfire=False, console=False,
+                          archive_dir=directory / "telemetry", run_id="saved-cot-voting",
+                          clients=(model.client, voter.client))
+    try:
+        evaluate(directory, model, voting_model=voter)
+    finally:
+        if trace_enabled and not tracing.close():
+            raise RuntimeError(f"Trace export incomplete: {directory / 'telemetry'}")
     records = next((directory / "evaluation").glob("*/records.jsonl")).read_text()
     print(records)
     breakpoint()  # inspect: records, directory; semantic groups and retained replay evidence
@@ -206,6 +216,7 @@ if __name__ == "__main__":
     parser.add_argument("--live", action="store_true")
     parser.add_argument("--saved-run", type=Path)
     parser.add_argument("--indices", nargs="+", type=int)
+    parser.add_argument("--trace-enabled", action="store_true")
     args = parser.parse_args()
     if args.saved_run and not args.indices:
         parser.error("--saved-run requires --indices")
@@ -214,4 +225,4 @@ if __name__ == "__main__":
     if args.live:
         check_live_cot_sampling()
     if args.saved_run:
-        check_saved_cot_voting(args.saved_run, args.indices)
+        check_saved_cot_voting(args.saved_run, args.indices, args.trace_enabled)

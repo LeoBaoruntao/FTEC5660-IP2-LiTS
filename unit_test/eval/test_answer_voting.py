@@ -114,6 +114,17 @@ def check_answer_groups():
     if _count_answer_votes(dict.fromkeys(raw), raw) != {}:
         raise RuntimeError("Unanswered inputs contributed votes")
     checks.append({"name": "required_ids_and_null_labels", "required": schema["required"]})
+    for label in ("null", " NULL ", "Null"):
+        normalized = _count_answer_votes({**valid, "n1": label, "n4": label}, raw)
+        if list(normalized.items()) != [("1/2", 1), ("1/3", 1)]:
+            raise RuntimeError(f"Textual null contributed votes: {normalized}")
+    if _count_answer_votes(dict.fromkeys(raw, "null"), raw) != {}:
+        raise RuntimeError("All-unanswered textual labels contributed votes")
+    if _count_answer_votes({"n0": "null space"}, {"n0": "The null space."}) != {"null space": 1}:
+        raise RuntimeError("Null normalization changed an ordinary answer")
+    cases["omitted_id_with_text_null"] = {"n1": "null"}
+    cases["unknown_id_with_text_null"] = {**valid, "unknown": "null"}
+    checks.append({"name": "textual_null_excluded"})
     for name, payload in cases.items():
         try:
             _count_answer_votes(payload, raw)

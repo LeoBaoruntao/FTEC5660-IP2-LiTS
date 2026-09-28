@@ -97,12 +97,29 @@ def load_scibench_calculus(path: str = None):
         Questions retain unit instructions; numeric references become strings.
         No filtering, sampling, numeric rounding, or MATH checker registration occurs.
     """
+    return _load_scibench("calculus", path)
+
+
+@register_dataset("scibench_chemmc", task_type="language_grounded")
+def load_scibench_chemmc(path: str = None):
+    """Load all ReST-MCTS SciBench chemistry examples in source order.
+
+    path optionally supplies a local chemmc_standardized.json JSONL file.
+    Otherwise download the public source. Return question/answer dictionaries,
+    preserving unit instructions and converting numeric references to strings.
+    Use the shared context-aware evaluator, not the MATH-specific checker.
+    """
+    return _load_scibench("chemmc", path)
+
+
+def _load_scibench(subject: str, path: str = None):
+    """Read a local or upstream SciBench JSONL file without filtering or rounding."""
     import json
     from pathlib import Path
     from urllib.request import urlopen
 
     if path is None:
-        url = "https://raw.githubusercontent.com/THUDM/ReST-MCTS/main/data/scibench/calculus_standardized.json"
+        url = f"https://raw.githubusercontent.com/THUDM/ReST-MCTS/main/data/scibench/{subject}_standardized.json"
         with urlopen(url, timeout=30) as response:
             text = response.read().decode("utf-8")
     else:

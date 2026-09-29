@@ -29,6 +29,15 @@ def check_scibench_dataset(name, expected_count):
         reloaded = load_dataset(name, path=str(path))
         if rows != reloaded:
             raise RuntimeError("Local loading changed content or order")
+        if name == "scibench_chemmc":
+            if rows[3]["answer"] != "1/3":
+                raise RuntimeError("Alternating-series reference was not corrected")
+            source = [{"content": rows[3]["question"], "answer": 1.0},
+                      {"content": "A different series", "answer": 1.0}]
+            path.write_text("\n".join(map(json.dumps, reversed(source))), encoding="utf-8")
+            corrected = load_dataset(name, path=str(path))
+            if [row["answer"] for row in corrected] != ["1.0", "1/3"]:
+                raise RuntimeError("Reference correction depends on position or changes unrelated answers")
     print(f"PASS: {name}, {len(rows)} examples; string answers; local/remote loading agree")
     breakpoint()  # inspect: rows; source order and unit instructions are retained
 

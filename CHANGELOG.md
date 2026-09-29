@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-09-29 Unreleased (`demos/lits_benchmark/math_qa.py`)
+
+### Fixed
+- SciBench chemistry alternating-series reference answer
+
 ## 2026-09-28 Unreleased (`demos/lits_benchmark/math_qa.py`)
 
 ### Added

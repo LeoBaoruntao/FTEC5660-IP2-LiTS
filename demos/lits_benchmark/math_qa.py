@@ -108,8 +108,21 @@ def load_scibench_chemmc(path: str = None):
     Otherwise download the public source. Return question/answer dictionaries,
     preserving unit instructions and converting numeric references to strings.
     Use the shared context-aware evaluator, not the MATH-specific checker.
+
+    Correct the alternating geometric series reference from 1 to 1/3:
+    its first term is 1/2 and ratio is -1/2. Match the exact question, not
+    its dataset position; leave other questions and already corrected values alone.
     """
-    return _load_scibench("chemmc", path)
+    rows = _load_scibench("chemmc", path)
+    corrected_question = (
+        "Evaluate the series\r\n$$\r\n"
+        r"S=\sum_{n=1}^{\infty} \frac{(-1)^{n+1}}{2^n}"
+        "\r\n$$ The unit of the answer should be  ."
+    )
+    for row in rows:
+        if row["question"] == corrected_question and row["answer"] in ("1", "1.0"):
+            row["answer"] = "1/3"
+    return rows
 
 
 def _load_scibench(subject: str, path: str = None):

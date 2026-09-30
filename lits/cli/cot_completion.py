@@ -12,6 +12,25 @@ Responses retain raw text, rendered prompt, seed, finish reason and token counts
 Config retains resolved settings, tokenizer revision and server model metadata.
 Evaluate with ``python -m lits.cli.eval_cot --result-dir DIRECTORY``; no separate
 completion evaluator is needed. Chat and multi-sample generation stay in cli.cot.
+
+MATH-100 commands, from the repository root with OPENAI_API_KEY and
+OPENAI_API_BASE set to the serving endpoint. The tokenizer must already be cached;
+the registered numeric-answer dataset uses its first 100 examples, indices 0-99::
+
+    export PYTHONPATH=.:demos
+    OUT="results/math100-cot-$(date +%Y%m%d-%H%M%S)"
+    python -m lits.cli.cot_completion \
+      --dataset math500 --include lits_benchmark.math_qa --offset 0 --limit 100 \
+      --model openai/local-instruct --base-url "$OPENAI_API_BASE" \
+      --tokenizer Qwen/Qwen3-8B \
+      --tokenizer-revision a80f5e57cce20e57b65145f4213844dec1a80834 \
+      --temperature 0.6 --top-p 0.8 --top-k 20 --min-p 0 --seed 0 \
+      --max-new-tokens 8192 --output-dir "$OUT"
+    python -m lits.cli.eval_cot --result-dir "$OUT"
+
+The second command evaluates saved outputs without rerunning generation. Both
+commands show progress. Keep OUT unchanged between them; generation requires a
+fresh directory, while each evaluation creates its own timestamped subdirectory.
 """
 
 import argparse

@@ -4,6 +4,8 @@ Run: PYTHONBREAKPOINT=0 python -m unit_test.eval.test_cot_evaluation
 Blank/malformed responses exercise existing extraction/checking without API calls.
 Add --live for cot.py::run generating two independent samples of one MATH example,
 then evaluating their joint vote. Live artifacts remain in a fresh temporary directory.
+Use --saved-run RAW_RUN --indices 14 --output-dir NEW_DIRECTORY to check saved
+cot_completion outputs, including cutoffs, through the unchanged evaluator.
 """
 
 import json
@@ -171,17 +173,25 @@ def check_live_cot_sampling():
     breakpoint()  # inspect: rows, records; separate generations and one joint vote
 
 
-def check_saved_cot_voting(source, indices, trace_enabled=False):
+def check_saved_cot_voting(source, indices, trace_enabled=False, output_dir=None):
     """Replay selected saved samples through eval_cot.py::evaluate with thinking.
 
     Copy generation inputs into a fresh temporary directory; preserve source
     evaluations and retain replay artifacts for inspecting votes and costs.
     No new solutions are generated. The judge remains non-thinking.
     trace_enabled captures SDK requests and responses in a local trace archive.
+    output_dir optionally retains evidence outside temporary storage and must be
+    new. Verify coverage, vote population and byte-preservation of generation
+    files, including raw-completion prompts, seeds and cutoff metadata.
     """
     from tempfile import mkdtemp
 
-    directory = Path(mkdtemp(prefix="lits-cot-voting-"))
+    if output_dir is None:
+        directory = Path(mkdtemp(prefix="lits-cot-voting-"))
+    else:
+        directory = Path(output_dir)
+        directory.mkdir(parents=True, exist_ok=False)
+    original = {path: path.read_bytes() for path in source.iterdir() if path.is_file()}
     config = json.loads((source / "config.json").read_text())
     cohort = [row for row in json.loads((source / "cohort.json").read_text())
               if row["query_idx"] in indices]
@@ -192,6 +202,7 @@ def check_saved_cot_voting(source, indices, trace_enabled=False):
     (directory / "config.json").write_text(json.dumps(config))
     (directory / "cohort.json").write_text(json.dumps(cohort))
     (directory / "responses.jsonl").write_text("\n".join(map(json.dumps, responses)))
+    copied = {path: path.read_bytes() for path in directory.iterdir() if path.is_file()}
     model = get_lm(config["model"], base_url=config.get("base_url"), enable_thinking=False)
     voter = get_lm(config["model"], base_url=config.get("base_url"), enable_thinking=True)
     from lits import observability as tracing
@@ -200,12 +211,23 @@ def check_saved_cot_voting(source, indices, trace_enabled=False):
                           archive_dir=directory / "telemetry", run_id="saved-cot-voting",
                           clients=(model.client, voter.client))
     try:
-        evaluate(directory, model, voting_model=voter)
+        summary = evaluate(directory, model, voting_model=voter)
     finally:
         if trace_enabled and not tracing.close():
             raise RuntimeError(f"Trace export incomplete: {directory / 'telemetry'}")
-    records = next((directory / "evaluation").glob("*/records.jsonl")).read_text()
+    records = [json.loads(line) for line in next(
+        (directory / "evaluation").glob("*/records.jsonl")).read_text().splitlines()]
+    if any(path.read_bytes() != content for path, content in {**original, **copied}.items()):
+        raise RuntimeError("Evaluation modified saved generation files")
+    if summary["total"] != len(cohort) or {r["query_idx"] for r in records} != set(indices):
+        raise RuntimeError(f"Incomplete evaluation; inspect {directory}")
+    for record in records:
+        count = sum(row["query_idx"] == record["query_idx"] for row in responses)
+        if (record.get("sample_count") != count or sum(record["votes"].values()) > count
+                or not isinstance(record["task_success"], bool)):
+            raise RuntimeError("Saved samples did not retain their voting population or judgment")
     print(records)
+    print(f"Passed saved-output evaluation and generation preservation: {directory}")
     breakpoint()  # inspect: records, directory; semantic groups and retained replay evidence
 
 
@@ -217,6 +239,7 @@ if __name__ == "__main__":
     parser.add_argument("--saved-run", type=Path)
     parser.add_argument("--indices", nargs="+", type=int)
     parser.add_argument("--trace-enabled", action="store_true")
+    parser.add_argument("--output-dir", type=Path)
     args = parser.parse_args()
     if args.saved_run and not args.indices:
         parser.error("--saved-run requires --indices")
@@ -225,4 +248,4 @@ if __name__ == "__main__":
     if args.live:
         check_live_cot_sampling()
     if args.saved_run:
-        check_saved_cot_voting(args.saved_run, args.indices, args.trace_enabled)
+        check_saved_cot_voting(args.saved_run, args.indices, args.trace_enabled, args.output_dir)

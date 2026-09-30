@@ -18,6 +18,8 @@ This tests protocol behavior, not benchmark accuracy or full-context quality.
 Add --existing-lits to compare openai_chat.py::OpenAIChatModel.__call__ with
 its SDK client's raw completion on the same prefix, without changing production
 code. This mode requests at most 1584 output tokens and captures real HTTP traffic.
+Use --wrapper to check openai_completion.py::OpenAICompletionModel.__call__,
+including usage accounting and local-only tracing (at most 1584 output tokens).
 """
 
 import argparse
@@ -258,17 +260,116 @@ def check_existing_lits(base_url, model_name, output_dir):
             print(f"Evidence: {output_dir}", flush=True)
 
 
+def check_wrapper(base_url, model_name, output_dir):
+    """Compare the production raw wrapper against real wire data and saved traces."""
+    from lits import observability as tracing
+    from lits.lm.base import InferenceLogger
+    from lits.lm.openai_chat import OpenAIChatModel
+    from lits.lm.openai_completion import OpenAICompletionModel
+
+    output_dir.mkdir(parents=True, exist_ok=False)
+    tokenizer = AutoTokenizer.from_pretrained(
+        "Qwen/Qwen3-8B", revision=TOKENIZER_REVISION, local_files_only=True,
+    )
+    captured, results = [], []
+
+    def capture(response):
+        """Retain actual request/response bodies, excluding authentication headers."""
+        response.read()
+        captured.append({"request": json.loads(response.request.content),
+                         "url": str(response.request.url), "response": response.json()})
+        save(output_dir / f"http_{len(captured)}.json", captured[-1])
+
+    logger = InferenceLogger(root_dir=str(output_dir))
+    with httpx.Client(event_hooks={"response": [capture]}, timeout=120) as http_client:
+        model = OpenAICompletionModel(model_name, base_url=base_url, inference_logger=logger)
+        model.client = model.client.with_options(http_client=http_client, timeout=120, max_retries=0)
+        chat = OpenAIChatModel(model_name, base_url=base_url, inference_logger=logger)
+        chat.client = chat.client.with_options(http_client=http_client, timeout=120, max_retries=0)
+        tracing.configure(enabled=True, send_to_logfire=False, console=False,
+                          archive_dir=output_dir / "telemetry", run_id="raw-wrapper",
+                          clients=(model.client, chat.client))
+        try:
+            messages = [{"role": "user", "content": "List integers 1 through 100 separated by commas only."}]
+            prompt = tokenizer.apply_chat_template(messages, tokenize=False,
+                                                  add_generation_prompt=True, enable_thinking=False)
+            expected_prompt = (
+                "<|im_start|>user\n"
+                "List integers 1 through 100 separated by commas only.<|im_end|>\n"
+                "<|im_start|>assistant\n<think>\n\n</think>\n\n"
+            )
+            assert prompt == expected_prompt, repr(prompt)
+            for index in range(3):
+                if index == 2:
+                    messages = [{"role": "user", "content": "What is the sum of 15 and 27?"},
+                                {"role": "assistant", "content": "15 + 27 = 42"},
+                                {"role": "user", "content": VERIFIER_INSTRUCTION}]
+                    prompt = tokenizer.apply_chat_template(messages, tokenize=False,
+                                                          add_generation_prompt=True, enable_thinking=True)
+                limit = 1536 if index == 2 else 16
+                result = model(prompt, role="evaluator" if index == 2 else "policy",
+                               seed=111 + index, temperature=0.7, top_p=0.8, top_k=20,
+                               min_p=0.0, logprobs=1, max_new_tokens=limit)
+                results.append(vars(result))
+                sent, wire = captured[-1]["request"], captured[-1]["response"]
+                if index == 1:
+                    assert results[0]["finish_reason"] == "length", "First chunk must be unfinished"
+                    assert sent["prompt"] == expected_prompt + results[0]["text"]
+                choice = wire["choices"][0]
+                expected = {"prompt": prompt, "seed": 111 + index, "top_k": 20,
+                            "min_p": 0.0, "logprobs": 1, "n": 1, "max_tokens": limit,
+                            "temperature": 0.7, "top_p": 0.8}
+                if any(sent.get(k) != v for k, v in expected.items()) or "messages" in sent:
+                    raise RuntimeError("Wrapper changed the raw prompt or requested parameters")
+                if (result.text != choice["text"] or result.finish_reason != choice["finish_reason"]
+                        or result.logprobs != choice["logprobs"]
+                        or result.input_tokens != wire["usage"]["prompt_tokens"]
+                        or result.output_tokens != wire["usage"]["completion_tokens"]):
+                    raise RuntimeError("Wrapper discarded response data")
+                if index == 2 and not ("<think>" in result.text and "</think>" in result.text):
+                    raise RuntimeError("Thinking evidence missing; inspect the saved response")
+                prompt += result.text
+            chat_result = chat("Reply with OK only.", role="default", max_new_tokens=16)
+            if ("messages" not in captured[-1]["request"] or "prompt" in captured[-1]["request"]
+                    or chat_result.text != (captured[-1]["response"]["choices"][0]["message"]["content"] or "").strip()):
+                raise RuntimeError("Existing chat behavior changed")
+            for invalid in ([{"role": "user", "content": "invalid raw input"}],):
+                try:
+                    model(invalid)
+                except TypeError:
+                    pass
+                else:
+                    raise RuntimeError("Chat messages were accepted as a raw prompt")
+        finally:
+            save(output_dir / "wrapper_outputs.json", results)
+            closed = tracing.close()
+        usage = [json.loads(line) for line in Path(logger.filepath).read_text().splitlines()]
+        spans = [span for line in (output_dir / "telemetry/traces.jsonl").read_text().splitlines()
+                 for resource in json.loads(line)["resourceSpans"]
+                 for scope in resource["scopeSpans"] for span in scope["spans"]]
+        if not closed or len(captured) != 4 or len(usage) != 4 or sum(s["name"] == "llm.call" for s in spans) != 4:
+            raise RuntimeError("Expected exactly four requests, usage records and completed llm.call spans")
+        for record, exchange in zip(usage, captured):
+            wire_usage = exchange["response"]["usage"]
+            if record["input_tokens"] != wire_usage["prompt_tokens"] or record["output_tokens"] != wire_usage["completion_tokens"]:
+                raise RuntimeError("Usage differs from server counts")
+        print(f"Passed raw-wrapper, chat-regression, usage and tracing checks: {output_dir}")
+        breakpoint()  # inspect: results, captured, usage, spans
+
+
 def main():
     """Require an explicit persistent evidence directory before live requests."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base-url", default=os.environ.get("OPENAI_API_BASE"))
     parser.add_argument("--model", default="local-instruct")
     parser.add_argument("--output-dir", type=Path, required=True)
-    parser.add_argument("--existing-lits", action="store_true")
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument("--existing-lits", action="store_true")
+    modes.add_argument("--wrapper", action="store_true")
     args = parser.parse_args()
     if not args.base_url or not args.base_url.rstrip("/").endswith("/v1"):
         parser.error("Set OPENAI_API_BASE or --base-url to a URL ending in /v1")
-    check = check_existing_lits if args.existing_lits else check_server
+    check = check_wrapper if args.wrapper else check_existing_lits if args.existing_lits else check_server
     check(args.base_url.rstrip("/"), args.model, args.output_dir)
 
 

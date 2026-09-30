@@ -125,8 +125,61 @@ def load_scibench_chemmc(path: str = None):
     return rows
 
 
+@register_dataset("scibench_atkins", task_type="language_grounded")
+def load_scibench_atkins(path: str = None):
+    """Load Atkins question/answer rows; path optionally overrides the upstream JSONL file."""
+    return _load_scibench("atkins", path)
+
+
+@register_dataset("scibench_class", task_type="language_grounded")
+def load_scibench_class(path: str = None):
+    """Load class question/answer rows; path optionally overrides the upstream JSONL file."""
+    return _load_scibench("class", path)
+
+
+@register_dataset("scibench_diff", task_type="language_grounded")
+def load_scibench_diff(path: str = None):
+    """Load diff question/answer rows; path optionally overrides the upstream JSONL file."""
+    return _load_scibench("diff", path)
+
+
+@register_dataset("scibench_fund", task_type="language_grounded")
+def load_scibench_fund(path: str = None):
+    """Load fund question/answer rows; path optionally overrides the upstream JSONL file."""
+    return _load_scibench("fund", path)
+
+
+@register_dataset("scibench_matter", task_type="language_grounded")
+def load_scibench_matter(path: str = None):
+    """Load matter question/answer rows; path optionally overrides the upstream JSONL file."""
+    return _load_scibench("matter", path)
+
+
+@register_dataset("scibench_quan", task_type="language_grounded")
+def load_scibench_quan(path: str = None):
+    """Load quan question/answer rows; path optionally overrides the upstream JSONL file."""
+    return _load_scibench("quan", path)
+
+
+@register_dataset("scibench_stat", task_type="language_grounded")
+def load_scibench_stat(path: str = None):
+    """Load stat question/answer rows; path optionally overrides the upstream JSONL file."""
+    return _load_scibench("stat", path)
+
+
+@register_dataset("scibench_thermo", task_type="language_grounded")
+def load_scibench_thermo(path: str = None):
+    """Load thermo question/answer rows; path optionally overrides the upstream JSONL file."""
+    return _load_scibench("thermo", path)
+
+
 def _load_scibench(subject: str, path: str = None):
-    """Read a local or upstream SciBench JSONL file without filtering or rounding."""
+    """Read a local or upstream SciBench JSONL file without filtering or rounding.
+
+    Return question/answer dictionaries in source order, retaining the full
+    content (including unit instructions) and converting references to strings.
+    path optionally supplies a local <subject>_standardized.json file.
+    """
     import json
     from pathlib import Path
     from urllib.request import urlopen

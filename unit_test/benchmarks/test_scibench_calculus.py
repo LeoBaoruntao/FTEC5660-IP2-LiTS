@@ -1,4 +1,4 @@
-"""Verify registered calculus and chemistry datasets without model inference.
+"""Verify all ten registered SciBench datasets without model inference.
 
 Run with PYTHONPATH=.:demos python -m unit_test.benchmarks.test_scibench_calculus.
 The check downloads the public source and verifies a local-copy round trip.
@@ -13,7 +13,7 @@ import lits_benchmark.math_qa  # noqa: F401 -- registers the dataset
 
 
 def check_scibench_dataset(name, expected_count):
-    """Check math_qa.py::_load_scibench through both public dataset registrations."""
+    """Check math_qa.py::_load_scibench through each public dataset registration."""
     rows = load_dataset(name)
     if len(rows) != expected_count:
         raise RuntimeError(f"Expected {expected_count} examples for {name}, found {len(rows)}")
@@ -43,5 +43,9 @@ def check_scibench_dataset(name, expected_count):
 
 
 if __name__ == "__main__":
-    check_scibench_dataset("scibench_calculus", 42)
-    check_scibench_dataset("scibench_chemmc", 39)
+    for subject, count in (
+        ("atkins", 107), ("calculus", 42), ("chemmc", 39), ("class", 47),
+        ("diff", 50), ("fund", 72), ("matter", 49), ("quan", 34),
+        ("stat", 75), ("thermo", 67),
+    ):
+        check_scibench_dataset(f"scibench_{subject}", count)

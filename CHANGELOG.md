@@ -14,6 +14,7 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 - Raw-prefix continuation policy and serializable chunks [T2.1]
 - Whole-prefix token-probability verifier and component registration [T2.2]
 - Registered language-reasoning continuation prompt and MATH-100 cohort checks [T7.1]
+- Raw single-pass CoT CLI with shared generation persistence [T7.2]
 
 ## 2026-09-30 Unreleased (`docs/lm/LLAMA_CPP_TAILSCALE_SETUP.md`)
 

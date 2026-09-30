@@ -3,10 +3,12 @@
 from itertools import count
 
 from ..base import Policy
+from ..registry import register_policy
 from ...lm.openai_completion import OpenAICompletionModel
 from ...structures.qa import ContinuationStep
 
 
+@register_policy("continuation", task_type="language_grounded")
 class ContinuationPolicy(Policy):
     """Continue a rendered task prompt without inserting new turns or step labels.
 
@@ -28,12 +30,30 @@ class ContinuationPolicy(Policy):
 
     TASK_TYPE = "language_grounded"
 
+    @classmethod
+    def from_config(cls, base_model, search_args: dict, component_args: dict, **kwargs):
+        """Build from existing config dictionaries and base_model.tokenizer.
+
+        The caller loads the server-matching tokenizer on the raw model before
+        create_components(). n_actions comes from search_args; seed, chunk size
+        and sampling settings come from component_args. No tokenizer is downloaded.
+        """
+        return cls(base_model, base_model.tokenizer, n_actions=search_args["n_actions"],
+                   seed=component_args.get("seed", 0),
+                   max_new_tokens=component_args.get("max_new_tokens") or 512,
+                   temperature=component_args.get("temperature", 0.7),
+                   top_p=component_args.get("top_p", 0.8),
+                   top_k=component_args.get("top_k", 20),
+                   min_p=component_args.get("min_p", 0.0))
+
     def __init__(self, base_model, tokenizer, *, n_actions: int, seed: int = 0,
                  max_new_tokens: int = 512, temperature: float = 0.7,
                  top_p: float = 0.8, top_k: int = 20, min_p: float = 0.0):
         """Set fixed sampling parameters and the starting per-request seed."""
         if not isinstance(base_model, OpenAICompletionModel):
             raise TypeError("ContinuationPolicy requires OpenAICompletionModel")
+        if tokenizer is None:
+            raise ValueError("Attach the server-matching tokenizer to the raw model before construction")
         if n_actions < 1 or max_new_tokens < 1:
             raise ValueError("n_actions and max_new_tokens must be positive")
         super().__init__(base_model=base_model, task_prompt_spec="", usr_prompt_spec="",

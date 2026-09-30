@@ -25,8 +25,10 @@ from ..lm.base import HfChatModel
 from .transition.concat import ConcatTransition  # noqa: F401
 from .policy.concat import ConcatPolicy, JointActionPolicy  # noqa: F401
 from .policy.concat_json import ConcatJSONPolicy  # noqa: F401
+from .policy.continuation import ContinuationPolicy  # noqa: F401
 from .reward.generative import GenerativePRM, PolicyScoreRM  # noqa: F401
 from .reward.generative_json import GenerativeJSONPRM  # noqa: F401
+from .reward.prefix_verifier import PrefixVerifier  # noqa: F401
 from .reward.thinkprm import ThinkPRM  # noqa: F401
 
 

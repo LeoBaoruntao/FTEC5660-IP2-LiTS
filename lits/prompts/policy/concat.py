@@ -1,3 +1,6 @@
+task_prompt_spec_continuation = "Please reason step by step, and put your final answer within \\boxed{}."
+
+
 task_prompt_spec_math_qa = """Your task is to give the correct next step, given a science problem and an existing partial solution (not a complete answer). 
 Assuming the input is n-steps, then the format of the input is:
 "Problem: ...

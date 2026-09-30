@@ -332,6 +332,8 @@ def load_default_prompts():
         from .reward import env_grounded as env_grounded_reward  # Fallback prompts
         
         # Register policy prompts
+        PromptRegistry.register('policy', 'continuation', 'language_grounded',
+                                concat_policy.task_prompt_spec_continuation)
         # Concat policy for language_grounded tasks
         if hasattr(concat_policy, 'task_prompt_spec_math_qa'):
             PromptRegistry.register('policy', 'concat', 'language_grounded', concat_policy.task_prompt_spec_math_qa)

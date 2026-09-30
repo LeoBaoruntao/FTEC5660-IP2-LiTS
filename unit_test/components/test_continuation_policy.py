@@ -48,7 +48,8 @@ def check_policy(base_url: str, output_dir: Path):
         policy.max_steps = 0  # Depth must not reduce candidate count or temperature.
         query = "List integers 1 through 100, one integer per line, with no other text."
         initial_prompt = tokenizer.apply_chat_template(
-            [{"role": "user", "content": query}], tokenize=False,
+            [{"role": "system", "content": policy.task_prompt_spec},
+             {"role": "user", "content": query}], tokenize=False,
             add_generation_prompt=True, enable_thinking=False,
         )
         roots = policy.get_actions([], query=query, query_idx=0)

@@ -5,6 +5,7 @@ import numpy as np
 import os
 from lits import observability as tracing
 from .base import LanguageModel, Output, InferenceLogger, ToolCall, ToolCallOutput
+from .transport import request_with_network_retry
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +140,7 @@ class OpenAIChatModel(LanguageModel):
                 tool_options["tool_choice"] = tool_choice
         
         with tracing.span("llm.call", lits_role=role, request_extra_body=extra_body):
-            resp = self.client.chat.completions.create(
+            resp = request_with_network_retry(self.client.chat.completions.create,
                 model=self.model_name,
                 messages=messages,
                 temperature=temperature,

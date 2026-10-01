@@ -5,6 +5,7 @@ import time
 from lits import observability as tracing
 from .base import Output
 from .openai_chat import OpenAIChatModel
+from .transport import request_with_network_retry
 
 
 class CompletionOutput(Output):
@@ -60,7 +61,7 @@ class OpenAICompletionModel(OpenAIChatModel):
         limit = max_new_tokens if max_new_tokens is not None else self.max_new_tokens
         started = time.monotonic()
         with tracing.span("llm.call", lits_role=role, request_extra_body=extra_body):
-            response = self.client.completions.create(
+            response = request_with_network_retry(self.client.completions.create,
                 model=self.model_name, prompt=prompt, n=1, temperature=temperature,
                 top_p=top_p, max_tokens=512 if limit is None else limit,
                 stop=stop, seed=seed, logprobs=logprobs, extra_body=extra_body,

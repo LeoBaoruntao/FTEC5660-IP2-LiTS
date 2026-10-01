@@ -9,6 +9,7 @@ import httpx
 from ..base import RewardModel
 from ..registry import register_reward_model
 from ...structures.base import Step
+from ...lm.transport import request_with_network_retry
 
 
 @register_reward_model("jev", task_type="language_grounded")
@@ -23,7 +24,8 @@ class JevPRM(RewardModel):
     fast_reward returns reward and diagnostics: raw correctness_score, binary
     correctness, usefulness in [0, 1], threshold, model, usage, latency, request and
     response. The five-level usefulness Score is divided by four. No reference
-    answer is accepted. API failures propagate; invalid scores never become zero.
+    answer is accepted. Network failures wait for recovery; other API failures
+    propagate, and invalid scores never become zero.
     Requires TYPESAFE_API_KEY; credentials are never included in diagnostics.
 
     Example: JevPRM().fast_reward([], "2 + 2 = 4", "Compute 2 + 2", 0).
@@ -82,7 +84,7 @@ class JevPRM(RewardModel):
             },
         })
         started = perf_counter()
-        response = httpx.post("https://api.typesafe.ai/v1/systemone", json=request,
+        response = request_with_network_retry(httpx.post, "https://api.typesafe.ai/v1/systemone", json=request,
                               headers={"Authorization": f"Bearer {key}"}, timeout=60)
         if response.is_error:
             raise RuntimeError(f"TypeSafe HTTP {response.status_code}; response body omitted")

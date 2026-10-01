@@ -10,6 +10,7 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 
 ### Added
 - Jev PRM demonstration and saved-candidate scoring evidence
+- Registered Jev correctness-gated usefulness reward
 
 ## 2026-10-01 Unreleased (`0930-major-qwen3-8b-plain-beam-reproduction`)
 

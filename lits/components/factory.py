@@ -29,6 +29,7 @@ from .policy.continuation import ContinuationPolicy  # noqa: F401
 from .reward.generative import GenerativePRM, PolicyScoreRM  # noqa: F401
 from .reward.generative_json import GenerativeJSONPRM  # noqa: F401
 from .reward.prefix_verifier import PrefixVerifier  # noqa: F401
+from .reward.jev import JevPRM  # noqa: F401
 from .reward.thinkprm import ThinkPRM  # noqa: F401
 
 

@@ -1,5 +1,47 @@
 # Jev for Process Reward Scoring
 
+## Registered PRM
+
+`lits.components.reward.jev.JevPRM` is registered as `reward="jev"` for
+language-grounded tasks. One API request obtains correctness and usefulness;
+no reference answer is sent. The existing component factory accepts
+`component_args["jev_correctness_threshold"]` (default `0.7`).
+
+```python
+from lits.components.reward.jev import JevPRM
+
+prm = JevPRM()
+reward, details = prm.fast_reward([], "2 + 2 = 4", "Compute 2 + 2", 0)
+print(details["correctness_score"], details["usefulness"], reward)
+```
+
+Set `TYPESAFE_API_KEY` in the environment. Correctness is a Noul score in
+0–1; usefulness is a five-level Score divided by four. Final reward is
+`float(correctness_score > 0.7) * usefulness`; exactly `0.7` fails the gate.
+Usefulness measures added progress independently of correctness. Diagnostics
+retain both scores, the binary gate, request/response bodies, usage and latency.
+When supplied, `base_model` contributes its inference logger, not generation.
+The standalone reference-beam launcher accepts `--reward jev`; omit
+`--verifier-max-tokens`. It saves the threshold in configuration and both scores
+in beam evidence, with Jev usage reported separately as verifier costs.
+
+Bounded two-score replay on the same five saved candidates:
+
+| Example / candidate | Correctness | Usefulness | Final reward |
+|---|---:|---:|---:|
+| 3 / 55 | 0.39 | 0.8775 | 0 |
+| 8 / 26 | 0.15 | 0.9650 | 0 |
+| 8 / 64 | 0.13 | 0.8425 | 0 |
+| 13 / 27 | 0.84 | 0.9975 | 0.9975 |
+| 13 / 41 | 0.66 | 0.9925 | 0 |
+
+Evidence: `results/qwen3/8B/jev-prm-two-scores-20261001-check1/records.jsonl`
+under the paper experiment directory. Test:
+`python -m unit_test.components.test_jev_prm --saved-replay <earlier-records.jsonl> --output-dir <new-directory>`.
+Without those options, the test checks registration, strict threshold boundaries,
+invalid scores and reward reuse without inference. This is not held-out threshold
+validation: the same selected cases motivated the default threshold.
+
 ## Scope and Result
 
 Live replay on 2026-10-01 using `jev-1.13.0`, not a LiTS PRM integration.

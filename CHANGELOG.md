@@ -11,6 +11,11 @@ Starting from v0.2.11, version numbers in this changelog are kept in sync with `
 ### Added
 - One-hour network recovery, CRITICAL logging, and experiment exit on exhaustion
 
+## 2026-10-01 Unreleased (AIME25 dataset)
+
+### Added
+- Registered AIME25 benchmark dataset
+
 ## 2026-10-01 Unreleased (`docs/jev/jev_for_prm.md`)
 
 ### Added

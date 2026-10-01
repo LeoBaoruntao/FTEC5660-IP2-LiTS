@@ -83,6 +83,23 @@ def load_spart_yn(**kwargs):
     return load_qa_dataset("spart_yn", **kwargs)
 
 
+@register_dataset("aime25", task_type="language_grounded")
+def load_aime25():
+    """Load all 30 AIME 2025 questions from the pinned math-ai/aime25 test split.
+
+    Return question/answer/id dictionaries in source order, without sampling or
+    changing reference strings. Use --dataset aime25 --include lits_benchmark.math_qa
+    with the shared CoT or search launcher. The Hugging Face cache supports later
+    offline runs. Source: https://huggingface.co/datasets/math-ai/aime25.
+    """
+    rows = datasets.load_dataset(
+        "math-ai/aime25", split="test",
+        revision="563bb8404243c5f09de6ec262f2db674fe5bce9b",
+    )
+    return [{"question": row["problem"], "answer": row["answer"], "id": row["id"]}
+            for row in rows]
+
+
 @register_dataset("scibench_calculus", task_type="language_grounded")
 def load_scibench_calculus(path: str = None):
     """Load the complete ReST-MCTS SciBench calculus JSONL dataset in source order.

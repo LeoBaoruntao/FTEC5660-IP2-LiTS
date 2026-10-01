@@ -21,7 +21,8 @@ class BFSConfig(BaseSearchConfig):
     
     Config Args (via --search-arg):
         beam_size: Number of top candidates to keep at each depth level (default: 5)
-        max_leaves_to_terminate: Maximum terminal leaves before stopping search (default: 5)
+        max_leaves_to_terminate: Stop when counted terminal endpoints reach this threshold
+            (default: 5). Checks follow expansion batches, so the count can overshoot.
     """
     beam_size: int = 5
     max_leaves_to_terminate: int = 5
@@ -336,7 +337,7 @@ class BFSSearch(BaseTreeSearch):
                             continue
                         if len(node.children) > 0:  # branching is done in the previous continuation or expand
                             continue
-                        if len(terminal_nodes) > config.max_leaves_to_terminate:
+                        if len(terminal_nodes) >= config.max_leaves_to_terminate:
                             log_event(logger, "BFS", f"Terminal nodes: {len(terminal_nodes)}, breaking", level="debug")
                             break
 
@@ -389,7 +390,7 @@ class BFSSearch(BaseTreeSearch):
                                 if node not in terminal_nodes:
                                     terminal_nodes.append(node)
                                 continue
-                            if len(terminal_nodes) > config.max_leaves_to_terminate:
+                            if len(terminal_nodes) >= config.max_leaves_to_terminate:
                                 log_event(logger, "BFS", f"Terminal nodes: {len(terminal_nodes)}, breaking (after continuation)", level="debug")
                                 break
                         # Continuation + PostProcessing (End)
@@ -414,11 +415,11 @@ class BFSSearch(BaseTreeSearch):
                                 frontier_buckets[child.depth].append(child)
                             buckets_with_terminal[child.depth].append(child)
 
-                        if len(terminal_nodes) > config.max_leaves_to_terminate:
+                        if len(terminal_nodes) >= config.max_leaves_to_terminate:
                             log_event(logger, "BFS", f"Terminal nodes: {len(terminal_nodes)}, breaking (after expand)", level="debug")
                             break
                     # 2) Loop each node in the frontier at this depth (End)
-                    if len(terminal_nodes) > config.max_leaves_to_terminate:
+                    if len(terminal_nodes) >= config.max_leaves_to_terminate:
                         log_event(logger, "BFS", f"Terminal nodes: {len(terminal_nodes)}, breaking (end of depth)", level="debug")
                         break
                     log_phase(logger, "BFS", f"Depth {depth} End")

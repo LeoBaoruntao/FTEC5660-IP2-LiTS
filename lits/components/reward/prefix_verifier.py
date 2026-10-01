@@ -37,6 +37,10 @@ class PrefixVerifier(RewardModel):
 
     TASK_TYPE = "language_grounded"
 
+    def _get_llm_role(self) -> str:
+        """Use the supported PRM role for verifier inference accounting."""
+        return "prm_language"
+
     @classmethod
     def from_config(cls, base_model, search_args: dict, component_args: dict, **kwargs):
         """Use the raw model's tokenizer and explicitly configured verifier limit.

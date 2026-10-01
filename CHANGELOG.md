@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-10-01 Unreleased (`0930-major-qwen3-8b-plain-beam-reproduction`)
+
+### Fixed
+- Prefix-verifier inference accounting role [T8.1]
+
 ## 2026-09-30 Unreleased (`0930-major-qwen3-8b-plain-beam-reproduction`)
 
 ### Added

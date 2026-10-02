@@ -83,6 +83,23 @@ def load_spart_yn(**kwargs):
     return load_qa_dataset("spart_yn", **kwargs)
 
 
+@register_dataset("aime24", task_type="language_grounded")
+def load_aime24():
+    """Return all 30 AIME 2024 question/answer/id records in source order.
+
+    Use --dataset aime24 --include lits_benchmark.math_qa with CoT or search.
+    The pinned HuggingFaceH4/aime_2024 train split contains AIME I and II;
+    references are preserved verbatim. The first load populates the offline cache.
+    Source: https://huggingface.co/datasets/HuggingFaceH4/aime_2024.
+    """
+    rows = datasets.load_dataset(
+        "HuggingFaceH4/aime_2024", split="train",
+        revision="2fe88a2f1091d5048c0f36abc874fb997b3dd99a",
+    )
+    return [{"question": row["problem"], "answer": row["answer"], "id": row["id"]}
+            for row in rows]
+
+
 @register_dataset("aime25", task_type="language_grounded")
 def load_aime25():
     """Load all 30 AIME 2025 questions from the pinned math-ai/aime25 test split.

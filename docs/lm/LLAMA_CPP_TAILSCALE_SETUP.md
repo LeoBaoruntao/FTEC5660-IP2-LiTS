@@ -143,36 +143,29 @@ The verified tailnet-only endpoint is:
 https://xinzhes-macbook-pro-2.tailde6fe4.ts.net
 ```
 
-The current deployment uses the original `Qwen/Qwen3-8B` model from the official
-`Qwen/Qwen3-8B-GGUF` repository. The official repository does not publish BF16/F16 GGUF, so
-the highest-precision published artifact, `Qwen3-8B-Q8_0.gguf`, is used. Q8_0 has a small
-quality tradeoff relative to BF16 while leaving substantially more unified-memory headroom
-for the KV cache than a local BF16 conversion.
+The current deployment uses `Qwen/Qwen3.6-35B-A3B`, served from the llama.cpp conversion in
+`ggml-org/Qwen3.6-35B-A3B-GGUF`. The selected `Q4_K_M` artifact is approximately 20.4 GB and
+activates about 3B parameters per token, making it faster than a similarly sized dense model
+while retaining the 35B-parameter MoE capacity.
 
-The server provides one 65,536-token slot. Qwen3-8B is native at 32,768 tokens and supports
-YaRN extension to 131,072; a factor of 2 is used here to cover the input, an 8,192-token
-reasoning prefix, approximately 32,768 output tokens, and template overhead. The backend
-remains bound to localhost and keeps the stable `local-instruct` alias used by LiTS clients:
+The server provides one native 262,144-token slot with an F16 KV cache. The backend remains
+bound to localhost and keeps the stable `local-instruct` alias used by LiTS clients:
 
 ```bash
 launchctl submit \
   -l com.xinzheli.llama-server \
-  -o /tmp/llama-server-qwen3-8b.log \
-  -e /tmp/llama-server-qwen3-8b.err \
+  -o /tmp/llama-server-qwen36-262k.log \
+  -e /tmp/llama-server-qwen36-262k.err \
   -- /opt/homebrew/bin/llama-server \
-  -m /Users/xinzheli/models/llama.cpp/Qwen3-8B-Q8_0.gguf \
+  -m /Users/xinzheli/models/llama.cpp/Qwen3.6-35B-A3B-Q4_K_M.gguf \
   --alias local-instruct \
   --host 127.0.0.1 \
   --port 8080 \
-  --ctx-size 65536 \
+  --ctx-size 262144 \
   --parallel 1 \
   --flash-attn on \
   --cache-type-k f16 \
   --cache-type-v f16 \
-  --override-kv qwen3.context_length=int:65536 \
-  --rope-scaling yarn \
-  --rope-scale 2 \
-  --yarn-orig-ctx 32768 \
   --no-context-shift \
   --jinja
 ```
@@ -180,17 +173,16 @@ launchctl submit \
 The active job is a submitted per-user launchd job rather than an installed persistent plist,
 so submit it again after a reboot or login if necessary.
 
-Model provenance:
+Model provenance and template behavior:
 
-- GGUF repository revision: `7c41481f57cb95916b40956ab2f0b139b296d974`
-- Source URL: `https://huggingface.co/Qwen/Qwen3-8B-GGUF/resolve/7c41481f57cb95916b40956ab2f0b139b296d974/Qwen3-8B-Q8_0.gguf`
-- SHA-256: `408b955510e196121c1c375201744783b5c9a43c7956d73fc78df54c66e883d6`
-- File size: `8,709,518,112` bytes; quantization: `Q8_0`
-- Tokenizer: Qwen2 tokenizer family, 151,936 tokens; BOS `<|endoftext|>`, EOS `<|im_end|>`
-- The embedded Qwen3 Jinja template is the official GGUF's Minja-compatible equivalent of
-  the release-era `Qwen/Qwen3-8B` template. Use
-  `chat_template_kwargs: {"enable_thinking": false}` for non-thinking chat and `true` (or
-  `/think`) for thinking-enabled chat.
+- Base model: `https://huggingface.co/Qwen/Qwen3.6-35B-A3B`
+- GGUF repository: `https://huggingface.co/ggml-org/Qwen3.6-35B-A3B-GGUF`
+- Source URL: `https://huggingface.co/ggml-org/Qwen3.6-35B-A3B-GGUF/resolve/main/Qwen3.6-35B-A3B-Q4_K_M.gguf`
+- Local file size: `20,419,565,568` bytes; quantization: `Q4_K_M`
+- Runtime vocabulary: 248,320 tokens; observed natural EOS token ID: `248046`
+- Use `chat_template_kwargs: {"enable_thinking": false}` for non-thinking chat. Qwen3.6 does
+  not support Qwen3's `/think` and `/nothink` soft switches; thinking mode must be controlled
+  through template arguments.
 
 The client Mac must be connected to the same Tailscale tailnet. The server Mac must keep
 `llama-server` and Tailscale running. Tailscale Serve proxies HTTPS to

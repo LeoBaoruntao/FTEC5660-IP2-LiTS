@@ -4,7 +4,7 @@ import logging
 import time
 
 import httpx
-from openai import APIConnectionError
+from openai import APIConnectionError, APIStatusError
 
 
 logger = logging.getLogger(__name__)
@@ -13,12 +13,13 @@ logger = logging.getLogger(__name__)
 def request_with_network_retry(request, *args, recovery_timeout=3600, **kwargs):
     """Recover connectivity for up to an hour, retrying identical request arguments.
 
-    Retry connection failures, timeouts and interrupted remote responses after
+    Retry connection failures, timeouts, interrupted remote responses and HTTP
+    502/503/504 gateway or service-unavailable responses after
     5, 10, 20, 40, then 60 seconds (capped). Log once per retry. recovery_timeout
     is seconds measured from the initial request;
     no further attempt starts after this deadline. An in-flight request may run
     until its own timeout before the deadline is checked. Existing SDK retries
-    run first. HTTP status errors and response
+    run first. Other HTTP status errors and response
     parsing errors propagate; KeyboardInterrupt/SystemExit always propagate.
     CRITICAL retry/recovery messages reach LiTS's configured console and file
     handlers. Never log request arguments, credentials, or exception messages.
@@ -39,8 +40,10 @@ def request_with_network_retry(request, *args, recovery_timeout=3600, **kwargs):
             raise SystemExit("Network recovery deadline exceeded; experiment stopped.")
         try:
             response = request(*args, **kwargs)
-        except (APIConnectionError, httpx.NetworkError, httpx.TimeoutException,
+        except (APIConnectionError, APIStatusError, httpx.NetworkError, httpx.TimeoutException,
                 httpx.RemoteProtocolError) as error:
+            if isinstance(error, APIStatusError) and error.status_code not in (502, 503, 504):
+                raise
             if isinstance(error.__cause__, (httpx.UnsupportedProtocol, httpx.LocalProtocolError,
                                            httpx.InvalidURL)):
                 raise

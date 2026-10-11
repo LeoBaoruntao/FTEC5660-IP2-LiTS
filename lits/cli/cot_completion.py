@@ -43,6 +43,7 @@ from lits.benchmarks.cot import run_cot
 from lits.cli.args import parse_dataset_kwargs
 from lits.components.utils import create_role
 from lits.lm.openai_completion import OpenAICompletionModel
+from lits.lm.transport import request_with_network_retry
 from lits.prompts.registry import PromptRegistry
 from lits.registry import import_custom_modules
 
@@ -52,6 +53,7 @@ def run(args):
 
     Args comes from main(). Authentication and endpoint also accept the standard
     OPENAI_API_KEY and OPENAI_API_BASE environment variables. No search or scoring.
+    Startup metadata requests use the same connection recovery as generation.
     """
     import_custom_modules(args.import_modules)
     tokenizer = AutoTokenizer.from_pretrained(
@@ -65,7 +67,7 @@ def run(args):
               "system_prompt": system_prompt, "model_id": model.model_name,
               "base_url": str(model.client.base_url),
               "tokenizer_revision": tokenizer.init_kwargs.get("_commit_hash") or args.tokenizer_revision,
-              "model_metadata": model.client.models.list().model_dump()}
+              "model_metadata": request_with_network_retry(model.client.models.list).model_dump()}
 
     def generate(question, index, repeat):
         """Render once and return untrimmed completion text with generation evidence."""

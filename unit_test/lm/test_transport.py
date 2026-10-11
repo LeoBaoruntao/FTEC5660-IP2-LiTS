@@ -15,7 +15,7 @@ from tempfile import TemporaryDirectory
 from threading import Thread, Timer
 
 import httpx
-from openai import AuthenticationError, OpenAI
+from openai import APIStatusError, AuthenticationError, OpenAI
 
 from lits.lm.transport import request_with_network_retry
 from lits.log import setup_logging
@@ -36,6 +36,57 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, *args):
         """Keep HTTP access chatter out of the recovery log checks."""
         return
+
+
+class GatewayHandler(Handler):
+    """Serve configured HTTP failures followed by a successful metadata response."""
+
+    def do_GET(self):
+        """Count real requests and consume the server's configured status sequence."""
+        self.server.calls += 1
+        status = self.server.statuses.pop(0) if self.server.statuses else 200
+        payload = b'{"object":"list","data":[]}'
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
+
+def check_gateway_recovery():
+    """Check SDK gateway retries, status filtering and bounded recovery without inference."""
+    server = HTTPServer(("127.0.0.1", 0), GatewayHandler)
+    worker = Thread(target=server.serve_forever, daemon=True)
+    worker.start()
+    try:
+        with OpenAI(api_key="local-test", base_url=f"http://127.0.0.1:{server.server_port}",
+                    http_client=httpx.Client(trust_env=False, timeout=2), max_retries=0) as api:
+            for status in (502, 503, 504):
+                server.statuses, server.calls = [status, 200], 0
+                response = request_with_network_retry(api.models.list)
+                if response.data != [] or server.calls != 2:
+                    raise RuntimeError(f"HTTP {status} recovery failed")
+            for status in (400, 401, 429, 500):
+                server.statuses, server.calls = [status], 0
+                try:
+                    request_with_network_retry(api.models.list)
+                except APIStatusError as error:
+                    if error.status_code != status or server.calls != 1:
+                        raise RuntimeError(f"HTTP {status} handling changed") from error
+                else:
+                    raise RuntimeError(f"HTTP {status} did not propagate")
+            server.statuses, server.calls = [502], 0
+            try:
+                request_with_network_retry(api.models.list, recovery_timeout=0.05)
+            except SystemExit:
+                if server.calls != 1:
+                    raise RuntimeError("A gateway retry started after the recovery deadline")
+            else:
+                raise RuntimeError("Gateway recovery exhaustion did not stop execution")
+    finally:
+        server.shutdown()
+        worker.join()
+        server.server_close()
 
 
 def check_recovery(use_sdk):
@@ -116,7 +167,9 @@ def main():
                     or "local-test" in text):
                 raise RuntimeError(f"Unexpected recovery log: {text.replace('local-test', '<redacted>')}")
         breakpoint()  # inspect: console.getvalue(), directory
+        check_gateway_recovery()
     print("Passed HTTPX/SDK recovery, authentication failure, CRITICAL logs, and cancellation checks")
+    print("Passed HTTP 502/503/504 recovery, other-status propagation, and gateway deadline checks")
 
 
 if __name__ == "__main__":

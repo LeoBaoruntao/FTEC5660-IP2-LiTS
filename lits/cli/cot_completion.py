@@ -14,6 +14,9 @@ Responses retain raw text, rendered prompt, seed, finish reason and token counts
 Config retains resolved settings, tokenizer revision and server model metadata.
 Evaluate with ``python -m lits.cli.eval_cot --result-dir DIRECTORY``; no separate
 completion evaluator is needed. Chat generation stays in cli.cot.
+To repair an interrupted run, repeat its generation command with --resume and
+the same output directory/settings. Successful samples are skipped; failed or
+missing samples retain their original seeds. Keep the served model unchanged.
 
 MATH-100 commands, from the repository root with OPENAI_API_KEY and
 OPENAI_API_BASE set to the serving endpoint. The tokenizer must already be cached;
@@ -32,7 +35,8 @@ the registered numeric-answer dataset uses its first 100 examples, indices 0-99:
 
 The second command evaluates saved outputs without rerunning generation. Both
 commands show progress. Keep OUT unchanged between them; generation requires a
-fresh directory, while each evaluation creates its own timestamped subdirectory.
+fresh directory unless --resume is specified, while each evaluation creates its
+own timestamped subdirectory.
 """
 
 import argparse
@@ -98,6 +102,8 @@ def main():
     parser.add_argument("--model", required=True)
     parser.add_argument("--base-url")
     parser.add_argument("--output-dir", required=True)
+    parser.add_argument("--resume", action="store_true",
+                        help="Repair failed/missing samples in an existing matching run.")
     parser.add_argument("--tokenizer", required=True)
     parser.add_argument("--tokenizer-revision", required=True, help="Pinned tokenizer commit.")
     parser.add_argument("--max-new-tokens", type=int, default=8192)

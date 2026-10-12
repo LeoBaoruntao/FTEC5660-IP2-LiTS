@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-10-12 Unreleased (`lits/benchmarks/cot.py`)
+
+### Added
+- CoT generation resume
+
 ## 2026-10-12 Unreleased (`lits/lm/transport.py`)
 
 ### Fixed

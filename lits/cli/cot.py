@@ -21,6 +21,8 @@ examples. Counts must be positive integers; offset/limit still refer to original
 dataset positions. Resolved counts are saved in config.json for later evaluation.
 
 For raw-completion generation, use ``python -m lits.cli.cot_completion``.
+Repeat the original command with --resume to repair failed/missing samples in
+the same directory, preserving successful outputs and backing up prior records.
 """
 
 import argparse
@@ -43,7 +45,7 @@ PROMPT = (
 
 
 def run(args):
-    """Generate from a registered dataset; refuse existing directories and continue on errors.
+    """Generate from a registered dataset; resume existing directories only when requested.
 
     Args is the namespace from main(). Model endpoint/authentication also accept
     the standard OPENAI_API_BASE and OPENAI_API_KEY environment variables.
@@ -71,6 +73,8 @@ def main():
     parser.add_argument("--limit", type=int)
     parser.add_argument("--model", required=True)
     parser.add_argument("--output-dir", required=True)
+    parser.add_argument("--resume", action="store_true",
+                        help="Repair failed/missing samples in an existing matching run.")
     parser.add_argument("--base-url")
     parser.add_argument("--max-new-tokens", type=int, default=4096)
     sampling = parser.add_mutually_exclusive_group()

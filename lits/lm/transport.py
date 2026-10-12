@@ -14,7 +14,7 @@ def request_with_network_retry(request, *args, recovery_timeout=3600, **kwargs):
     """Recover connectivity for up to an hour, retrying identical request arguments.
 
     Retry connection failures, timeouts, interrupted remote responses and HTTP
-    502/503/504 gateway or service-unavailable responses after
+    500/502/503/504 server or gateway failure responses after
     5, 10, 20, 40, then 60 seconds (capped). Log once per retry. recovery_timeout
     is seconds measured from the initial request;
     no further attempt starts after this deadline. An in-flight request may run
@@ -42,7 +42,7 @@ def request_with_network_retry(request, *args, recovery_timeout=3600, **kwargs):
             response = request(*args, **kwargs)
         except (APIConnectionError, APIStatusError, httpx.NetworkError, httpx.TimeoutException,
                 httpx.RemoteProtocolError) as error:
-            if isinstance(error, APIStatusError) and error.status_code not in (502, 503, 504):
+            if isinstance(error, APIStatusError) and error.status_code not in (500, 502, 503, 504):
                 raise
             if isinstance(error.__cause__, (httpx.UnsupportedProtocol, httpx.LocalProtocolError,
                                            httpx.InvalidURL)):

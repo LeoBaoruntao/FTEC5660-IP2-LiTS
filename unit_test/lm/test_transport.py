@@ -54,19 +54,19 @@ class GatewayHandler(Handler):
 
 
 def check_gateway_recovery():
-    """Check SDK gateway retries, status filtering and bounded recovery without inference."""
+    """Check SDK server/gateway retries, status filtering and bounded recovery without inference."""
     server = HTTPServer(("127.0.0.1", 0), GatewayHandler)
     worker = Thread(target=server.serve_forever, daemon=True)
     worker.start()
     try:
         with OpenAI(api_key="local-test", base_url=f"http://127.0.0.1:{server.server_port}",
                     http_client=httpx.Client(trust_env=False, timeout=2), max_retries=0) as api:
-            for status in (502, 503, 504):
+            for status in (500, 502, 503, 504):
                 server.statuses, server.calls = [status, 200], 0
                 response = request_with_network_retry(api.models.list)
                 if response.data != [] or server.calls != 2:
                     raise RuntimeError(f"HTTP {status} recovery failed")
-            for status in (400, 401, 429, 500):
+            for status in (400, 401, 429, 501):
                 server.statuses, server.calls = [status], 0
                 try:
                     request_with_network_retry(api.models.list)
@@ -75,7 +75,7 @@ def check_gateway_recovery():
                         raise RuntimeError(f"HTTP {status} handling changed") from error
                 else:
                     raise RuntimeError(f"HTTP {status} did not propagate")
-            server.statuses, server.calls = [502], 0
+            server.statuses, server.calls = [500], 0
             try:
                 request_with_network_retry(api.models.list, recovery_timeout=0.05)
             except SystemExit:
@@ -169,7 +169,7 @@ def main():
         breakpoint()  # inspect: console.getvalue(), directory
         check_gateway_recovery()
     print("Passed HTTPX/SDK recovery, authentication failure, CRITICAL logs, and cancellation checks")
-    print("Passed HTTP 502/503/504 recovery, other-status propagation, and gateway deadline checks")
+    print("Passed HTTP 500/502/503/504 recovery, other-status propagation, and server deadline checks")
 
 
 if __name__ == "__main__":

@@ -8,6 +8,7 @@ Check CRITICAL messages in both console and file, HTTP rejection, and cancellati
 from contextlib import redirect_stderr
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from io import StringIO
+import json
 import os
 from pathlib import Path
 import signal
@@ -18,6 +19,8 @@ import httpx
 from openai import APIStatusError, AuthenticationError, OpenAI
 
 from lits.lm.transport import request_with_network_retry
+from lits.lm.openai_chat import OpenAIChatModel
+from lits.lm.openai_completion import OpenAICompletionModel
 from lits.log import setup_logging
 
 
@@ -51,6 +54,91 @@ class GatewayHandler(Handler):
         self.send_header("Content-Length", str(len(payload)))
         self.end_headers()
         self.wfile.write(payload)
+
+    def do_POST(self):
+        """Record actual SDK payloads and reject generation without running a model."""
+        self.server.calls += 1
+        self.server.payload = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+        payload = b'{"error":{"message":"Temporary local test failure","type":"server_error"}}'
+        self.send_response(503)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
+
+def check_configurable_deadline():
+    """Check environment/model precedence, unlimited recovery and cancellation over local HTTP."""
+    variable = "LITS_NETWORK_RECOVERY_TIMEOUT"
+    original = os.environ.get(variable)
+    server = HTTPServer(("127.0.0.1", 0), GatewayHandler)
+    worker = Thread(target=server.serve_forever, daemon=True)
+    worker.start()
+    try:
+        with OpenAI(api_key="local-test", base_url=f"http://127.0.0.1:{server.server_port}",
+                    http_client=httpx.Client(trust_env=False, timeout=2), max_retries=0) as api:
+            for invalid in ("-1", "nan", "-inf", "invalid"):
+                os.environ[variable] = invalid
+                server.calls = 0
+                try:
+                    request_with_network_retry(api.models.list)
+                except ValueError:
+                    if server.calls:
+                        raise RuntimeError("Invalid recovery timeout reached the server")
+                else:
+                    raise RuntimeError("Invalid recovery timeout was accepted")
+            os.environ[variable] = "inf"
+            server.statuses, server.calls = [503, 200], 0
+            response = request_with_network_retry(api.models.list)
+            if response.data != [] or server.calls != 2:
+                raise RuntimeError("Unlimited metadata recovery failed")
+
+        for model_type in (OpenAIChatModel, OpenAICompletionModel):
+            # Explicit finite budgets override unlimited defaults; None reads the environment.
+            for environment, timeout in (("inf", 0.05), ("0.05", None)):
+                os.environ[variable] = environment
+                model = model_type("local-test", api_key="local-test",
+                                   base_url=f"http://127.0.0.1:{server.server_port}/v1",
+                                   recovery_timeout=timeout)
+                model.client.max_retries = 0
+                server.calls = 0
+                try:
+                    model("Local transport test", max_new_tokens=1)
+                except SystemExit:
+                    if server.calls != 1 or "recovery_timeout" in server.payload:
+                        raise RuntimeError("Model timeout was ignored or sent to the API")
+                else:
+                    raise RuntimeError("Model recovery did not exhaust its finite budget")
+                finally:
+                    model.client.close()
+
+            # An explicit unlimited model budget overrides a zero environment budget.
+            os.environ[variable] = "0"
+            model = model_type("local-test", api_key="local-test",
+                               base_url=f"http://127.0.0.1:{server.server_port}/v1",
+                               recovery_timeout=float("inf"))
+            model.client.max_retries = 0
+            timer = Timer(0.5, os.kill, args=(os.getpid(), signal.SIGINT))
+            timer.start()
+            try:
+                model("Local transport test", max_new_tokens=1)
+            except KeyboardInterrupt:
+                pass
+            else:
+                raise RuntimeError("Unlimited recovery did not remain cancellable")
+            finally:
+                timer.cancel()
+                timer.join()
+                model.client.close()
+        breakpoint()  # inspect: server.calls, server.payload (no recovery option sent to API)
+    finally:
+        if original is None:
+            os.environ.pop(variable, None)
+        else:
+            os.environ[variable] = original
+        server.shutdown()
+        worker.join()
+        server.server_close()
 
 
 def check_gateway_recovery():
@@ -168,8 +256,12 @@ def main():
                 raise RuntimeError(f"Unexpected recovery log: {text.replace('local-test', '<redacted>')}")
         breakpoint()  # inspect: console.getvalue(), directory
         check_gateway_recovery()
+        check_configurable_deadline()
+        if "Recovery budget: unlimited" not in console.getvalue():
+            raise RuntimeError("Unlimited recovery was not identified in the log")
     print("Passed HTTPX/SDK recovery, authentication failure, CRITICAL logs, and cancellation checks")
     print("Passed HTTP 500/502/503/504 recovery, other-status propagation, and server deadline checks")
+    print("Passed configurable deadlines, unlimited recovery and chat/completion parameter checks")
 
 
 if __name__ == "__main__":

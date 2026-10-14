@@ -62,6 +62,7 @@ class OpenAICompletionModel(OpenAIChatModel):
         started = time.monotonic()
         with tracing.span("llm.call", lits_role=role, request_extra_body=extra_body):
             response = request_with_network_retry(self.client.completions.create,
+                recovery_timeout=self.recovery_timeout,
                 model=self.model_name, prompt=prompt, n=1, temperature=temperature,
                 top_p=top_p, max_tokens=512 if limit is None else limit,
                 stop=stop, seed=seed, logprobs=logprobs, extra_body=extra_body,

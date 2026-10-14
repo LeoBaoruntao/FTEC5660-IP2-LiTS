@@ -1,6 +1,8 @@
 """Shared connection recovery for synchronous model API requests."""
 
 import logging
+import math
+import os
 import time
 
 import httpx
@@ -10,8 +12,12 @@ from openai import APIConnectionError, APIStatusError
 logger = logging.getLogger(__name__)
 
 
-def request_with_network_retry(request, *args, recovery_timeout=3600, **kwargs):
-    """Recover connectivity for up to an hour, retrying identical request arguments.
+def request_with_network_retry(request, *args, recovery_timeout=None, **kwargs):
+    """Recover connectivity within a configurable deadline, retrying identical arguments.
+
+    recovery_timeout is nonnegative seconds; float("inf") retries indefinitely.
+    None reads LITS_NETWORK_RECOVERY_TIMEOUT (default 3600; "inf" is unlimited).
+    Explicit values override the environment. Zero allows only the initial attempt.
 
     Retry connection failures, timeouts, interrupted remote responses and HTTP
     500/502/503/504 server or gateway failure responses after
@@ -30,6 +36,10 @@ def request_with_network_retry(request, *args, recovery_timeout=3600, **kwargs):
     The caller records only the successfully received response's token usage;
     its elapsed request time includes reconnect waits.
     """
+    recovery_timeout = float(os.getenv("LITS_NETWORK_RECOVERY_TIMEOUT", "3600")
+                             if recovery_timeout is None else recovery_timeout)
+    if math.isnan(recovery_timeout) or recovery_timeout < 0:
+        raise ValueError("recovery_timeout must be nonnegative seconds or inf")
     failures = 0
     retry_delay = 5
     deadline = time.monotonic() + recovery_timeout
@@ -48,12 +58,14 @@ def request_with_network_retry(request, *args, recovery_timeout=3600, **kwargs):
                                            httpx.InvalidURL)):
                 raise
             failures += 1
-            delay = min(retry_delay, max(0, deadline - time.monotonic()))
+            remaining = max(0, deadline - time.monotonic())
+            delay = min(retry_delay, remaining)
+            budget = "unlimited" if math.isinf(remaining) else f"{remaining:.0f} seconds remaining"
             logger.critical(
                 "Model connection interrupted (%s); retry %d in %.1f seconds. "
-                "Recovery budget: %.0f seconds remaining; Ctrl-C cancels. "
+                "Recovery budget: %s; Ctrl-C cancels. "
                 "No response or score substituted.",
-                type(error).__name__, failures, delay, max(0, deadline - time.monotonic()),
+                type(error).__name__, failures, delay, budget,
             )
             time.sleep(delay)
             retry_delay = min(retry_delay * 2, 60)

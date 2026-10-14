@@ -23,9 +23,16 @@ class OpenAIChatModel(LanguageModel):
         max_new_tokens: int = None,
         verbose: bool = False,
         enable_thinking: bool = False,
+        recovery_timeout: Optional[float] = None,
         **kwargs
     ):
-        """Create a client; tracing must be configured first to capture its requests."""
+        """Create a client; tracing must be configured first to capture its requests.
+
+        recovery_timeout sets the network-recovery budget in seconds; float("inf")
+        is unlimited. None uses LITS_NETWORK_RECOVERY_TIMEOUT (default 3600).
+        This client-side setting applies to chat and inherited raw completions,
+        not the duration of an individual HTTP request.
+        """
         # Log unsupported kwargs at debug level (expected in multi-backend frameworks
         # where HF-specific params like device, top_k leak through the unified interface)
         unsupported_kwargs = set(kwargs.keys())
@@ -49,6 +56,7 @@ class OpenAIChatModel(LanguageModel):
         tracing.instrument_openai(self.client)
         self.model_name = model_name
         self.sys_prompt = sys_prompt
+        self.recovery_timeout = recovery_timeout
 
     def _format_messages(self, prompt):
         """Convert prompt to OpenAI chat message format, including optional system prompt."""
@@ -141,6 +149,7 @@ class OpenAIChatModel(LanguageModel):
         
         with tracing.span("llm.call", lits_role=role, request_extra_body=extra_body):
             resp = request_with_network_retry(self.client.chat.completions.create,
+                recovery_timeout=self.recovery_timeout,
                 model=self.model_name,
                 messages=messages,
                 temperature=temperature,

@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-10-17 Unreleased (`lits/components/reward/jev.py`)
+
+### Changed
+- JevPRM model pin: jev-1.14.0
+
 ## 2026-10-14 Unreleased (`lits/lm/transport.py`)
 
 ### Added

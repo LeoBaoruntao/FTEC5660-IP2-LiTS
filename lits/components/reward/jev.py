@@ -29,10 +29,13 @@ class JevPRM(RewardModel):
     Requires TYPESAFE_API_KEY; credentials are never included in diagnostics.
 
     Example: JevPRM().fast_reward([], "2 + 2 = 4", "Compute 2 + 2", 0).
+    Requests pin MODEL_ID rather than a moving alias; diagnostics retain the
+    version returned by the API.
     The default 0.7 threshold is an experimental choice, not validated calibration.
     """
 
     TASK_TYPE = "language_grounded"
+    MODEL_ID = "jev-1.14.0"
 
     def __init__(self, base_model=None, *, correctness_threshold=0.7):
         """Use base_model only for its existing inference logger, never for generation."""
@@ -59,7 +62,7 @@ class JevPRM(RewardModel):
         if not key:
             raise ValueError("Set TYPESAFE_API_KEY in the environment")
         candidate = action_or_step.get_action() if isinstance(action_or_step, Step) else action_or_step
-        request = dict(model="jev-1.13.0", state={
+        request = dict(model=self.MODEL_ID, state={
             "context": query, "prefix": "".join(step.get_action() for step in state),
             "candidate": candidate,
         }, questions={

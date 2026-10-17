@@ -22,6 +22,8 @@ def main():
     prm = JevPRM.from_config(None, {}, {})
     if ComponentRegistry.get_reward_model("jev") is not JevPRM:
         raise RuntimeError("Reward registration failed")
+    if prm.MODEL_ID != "jev-1.14.0":
+        raise RuntimeError("JEV requests are not pinned to version 1.14.0")
     for correctness, usefulness, expected in ((0.7, 0.8, 0), (0.71, 0.8, 0.8), (1, 0, 0)):
         reward = prm.aggregate_scores(correctness, usefulness)
         if reward != expected or prm.reward([], "candidate", reward) != expected:
@@ -32,7 +34,7 @@ def main():
         except ValueError:
             continue
         raise RuntimeError("Invalid score accepted")
-    print("Passed registry, strict-threshold, reward-reuse, and score-validation checks")
+    print("Passed pinned-version, registry, strict-threshold, reward-reuse, and score-validation checks")
     if args.saved_replay is None:
         return
     if args.output_dir is None:

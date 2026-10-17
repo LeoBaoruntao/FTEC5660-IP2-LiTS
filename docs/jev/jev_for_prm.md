@@ -6,6 +6,8 @@
 language-grounded tasks. One API request obtains correctness and usefulness;
 no reference answer is sent. The existing component factory accepts
 `component_args["jev_correctness_threshold"]` (default `0.7`).
+Current requests pin `JevPRM.MODEL_ID = "jev-1.14.0"`; responses retain the served version.
+The saved demonstrations below used `jev-1.13.0` and have not been regenerated.
 
 ```python
 from lits.components.reward.jev import JevPRM

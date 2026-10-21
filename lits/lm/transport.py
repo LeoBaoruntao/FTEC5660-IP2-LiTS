@@ -10,6 +10,7 @@ from openai import APIConnectionError, APIStatusError
 
 
 logger = logging.getLogger(__name__)
+RETRYABLE_HTTP_STATUSES = (500, 502, 503, 504, 529)
 
 
 def request_with_network_retry(request, *args, recovery_timeout=None, **kwargs):
@@ -20,12 +21,13 @@ def request_with_network_retry(request, *args, recovery_timeout=None, **kwargs):
     Explicit values override the environment. Zero allows only the initial attempt.
 
     Retry connection failures, timeouts, interrupted remote responses and HTTP
-    500/502/503/504 server or gateway failure responses after
+    500/502/503/504/529 server or gateway failure responses after
     5, 10, 20, 40, then 60 seconds (capped). Log once per retry. recovery_timeout
     is seconds measured from the initial request;
     no further attempt starts after this deadline. An in-flight request may run
     until its own timeout before the deadline is checked. Existing SDK retries
-    run first. Other HTTP status errors and response
+    run first. Raw HTTPX responses with retryable statuses enter the same recovery
+    loop; other raw responses are returned unchanged. Other HTTP status errors and response
     parsing errors propagate; KeyboardInterrupt/SystemExit always propagate.
     CRITICAL retry/recovery messages reach LiTS's configured console and file
     handlers. Never log request arguments, credentials, or exception messages.
@@ -50,9 +52,13 @@ def request_with_network_retry(request, *args, recovery_timeout=None, **kwargs):
             raise SystemExit("Network recovery deadline exceeded; experiment stopped.")
         try:
             response = request(*args, **kwargs)
+            if isinstance(response, httpx.Response) and response.status_code in RETRYABLE_HTTP_STATUSES:
+                response.raise_for_status()
         except (APIConnectionError, APIStatusError, httpx.NetworkError, httpx.TimeoutException,
-                httpx.RemoteProtocolError) as error:
-            if isinstance(error, APIStatusError) and error.status_code not in (500, 502, 503, 504):
+                httpx.RemoteProtocolError, httpx.HTTPStatusError) as error:
+            status = (error.status_code if isinstance(error, APIStatusError) else
+                      error.response.status_code if isinstance(error, httpx.HTTPStatusError) else None)
+            if status is not None and status not in RETRYABLE_HTTP_STATUSES:
                 raise
             if isinstance(error.__cause__, (httpx.UnsupportedProtocol, httpx.LocalProtocolError,
                                            httpx.InvalidURL)):

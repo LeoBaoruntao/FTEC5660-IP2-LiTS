@@ -24,8 +24,8 @@ class JevPRM(RewardModel):
     fast_reward returns reward and diagnostics: raw correctness_score, binary
     correctness, usefulness in [0, 1], threshold, model, usage, latency, request and
     response. The five-level usefulness Score is divided by four. No reference
-    answer is accepted. Network failures wait for recovery; other API failures
-    propagate, and invalid scores never become zero.
+    answer is accepted. Network failures and HTTP 500/502/503/504/529 wait for
+    recovery; other API failures propagate, and invalid scores never become zero.
     Requires TYPESAFE_API_KEY; credentials are never included in diagnostics.
 
     Example: JevPRM().fast_reward([], "2 + 2 = 4", "Compute 2 + 2", 0).

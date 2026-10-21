@@ -56,11 +56,13 @@ class GatewayHandler(Handler):
         self.wfile.write(payload)
 
     def do_POST(self):
-        """Record actual SDK payloads and reject generation without running a model."""
+        """Record HTTPX/SDK payloads; return configured statuses or 503 without inference."""
         self.server.calls += 1
         self.server.payload = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+        self.server.payloads = getattr(self.server, "payloads", []) + [self.server.payload]
+        statuses = getattr(self.server, "post_statuses", [])
         payload = b'{"error":{"message":"Temporary local test failure","type":"server_error"}}'
-        self.send_response(503)
+        self.send_response(statuses.pop(0) if statuses else 503)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(payload)))
         self.end_headers()
@@ -142,14 +144,14 @@ def check_configurable_deadline():
 
 
 def check_gateway_recovery():
-    """Check SDK server/gateway retries, status filtering and bounded recovery without inference."""
+    """Check HTTPX/SDK server retries, status filtering and bounded recovery without inference."""
     server = HTTPServer(("127.0.0.1", 0), GatewayHandler)
     worker = Thread(target=server.serve_forever, daemon=True)
     worker.start()
     try:
         with OpenAI(api_key="local-test", base_url=f"http://127.0.0.1:{server.server_port}",
                     http_client=httpx.Client(trust_env=False, timeout=2), max_retries=0) as api:
-            for status in (500, 502, 503, 504):
+            for status in (500, 502, 503, 504, 529):
                 server.statuses, server.calls = [status, 200], 0
                 response = request_with_network_retry(api.models.list)
                 if response.data != [] or server.calls != 2:
@@ -171,6 +173,33 @@ def check_gateway_recovery():
                     raise RuntimeError("A gateway retry started after the recovery deadline")
             else:
                 raise RuntimeError("Gateway recovery exhaustion did not stop execution")
+        with httpx.Client(trust_env=False, timeout=2) as client:
+            url = f"http://127.0.0.1:{server.server_port}/score"
+            for status in (500, 502, 503, 504, 529):
+                server.statuses, server.calls = [status, 200], 0
+                response = request_with_network_retry(client.get, url)
+                if response.status_code != 200 or server.calls != 2:
+                    raise RuntimeError(f"Raw HTTPX {status} recovery failed")
+            for status in (400, 401, 429, 501):
+                server.statuses, server.calls = [status], 0
+                response = request_with_network_retry(client.get, url)
+                if response.status_code != status or server.calls != 1:
+                    raise RuntimeError(f"Non-retryable HTTPX {status} response changed")
+            server.statuses, server.calls = [529], 0
+            try:
+                request_with_network_retry(client.get, url, recovery_timeout=0.05)
+            except SystemExit:
+                if server.calls != 1:
+                    raise RuntimeError("An HTTPX retry started after the recovery deadline")
+            else:
+                raise RuntimeError("HTTPX recovery exhaustion did not stop execution")
+            server.post_statuses, server.calls, server.payloads = [529, 200], 0, []
+            payload = {"state": {"candidate": "2 + 2 = 4"}}
+            response = request_with_network_retry(httpx.post, url, json=payload,
+                                                  trust_env=False, timeout=2)
+            if response.status_code != 200 or server.calls != 2 or server.payloads != [payload, payload]:
+                raise RuntimeError("HTTPX POST recovery did not preserve the scoring request")
+            breakpoint()  # inspect: server.calls, server.payloads (identical retried scoring input)
     finally:
         server.shutdown()
         worker.join()
@@ -260,7 +289,7 @@ def main():
         if "Recovery budget: unlimited" not in console.getvalue():
             raise RuntimeError("Unlimited recovery was not identified in the log")
     print("Passed HTTPX/SDK recovery, authentication failure, CRITICAL logs, and cancellation checks")
-    print("Passed HTTP 500/502/503/504 recovery, other-status propagation, and server deadline checks")
+    print("Passed HTTPX/SDK 500/502/503/504/529 recovery, other-status handling, and deadline checks")
     print("Passed configurable deadlines, unlimited recovery and chat/completion parameter checks")
 
 

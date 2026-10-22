@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Starting from v0.2.11, version numbers in this changelog are kept in sync with `pyproject.toml`.
 
+## 2026-10-22 Unreleased (`lits/benchmarks/persistence.py`)
+
+### Changed
+- Persistent benchmark runner: `benchmarks.persistence.run_benchmark_with_persistence`
+
 ## 2026-10-21 Unreleased (`lits/lm/transport.py`)
 
 ### Fixed

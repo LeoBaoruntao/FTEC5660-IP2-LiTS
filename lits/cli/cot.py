@@ -28,7 +28,7 @@ the same directory, preserving successful outputs and backing up prior records.
 import argparse
 
 from lits import get_lm
-from lits.benchmarks.cot import load_sample_counts, run_cot
+from lits.benchmarks.persistence import load_sample_counts, run_benchmark_with_persistence
 from lits.cli.args import parse_dataset_kwargs
 from lits.components.utils import create_role
 from lits.constants import DEFAULT_REASONING_TEMPERATURE
@@ -59,8 +59,8 @@ def run(args):
                          temperature=args.temperature, max_new_tokens=args.max_new_tokens)
         return {"raw_response": response.text}
 
-    run_cot({**vars(args), "prompt": PROMPT}, model, generate,
-            dataset_kwargs=parse_dataset_kwargs(args))
+    run_benchmark_with_persistence({**vars(args), "prompt": PROMPT}, model, generate,
+                                   dataset_kwargs=parse_dataset_kwargs(args))
 
 
 def main():

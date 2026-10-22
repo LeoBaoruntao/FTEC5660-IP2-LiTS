@@ -1,4 +1,4 @@
-"""Exercise cot.py::run_cot resume persistence without models or inference.
+"""Exercise persistence.py::run_benchmark_with_persistence without models or inference.
 
 Run PYTHONBREAKPOINT=0 python -m unit_test.benchmarks.test_cot_resume.
 Deterministic callbacks exercise storage and dispatch through the real registry;
@@ -10,7 +10,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from lits.benchmarks import register_dataset
-from lits.benchmarks.cot import load_resume_records, run_cot
+from lits.benchmarks.persistence import load_resume_records, run_benchmark_with_persistence
 
 
 @register_dataset("cot_resume_check")
@@ -32,7 +32,7 @@ def main():
             attempted.append((index, repeat))
             return dict(raw_response=question, seed=7 + index + repeat)
 
-        run_cot(config, None, generate)
+        run_benchmark_with_persistence(config, None, generate)
         path = directory / "responses.jsonl"
         original = [json.loads(line) for line in path.read_text().splitlines()]
         broken = [original[0], dict(query_idx=0, sample_index=1, error="HTTP 500"), original[2]]
@@ -44,7 +44,7 @@ def main():
                 stream.write('{"role": "resume-log-sentinel"}\n')
         attempted.clear()
         resumed = {**config, "resume": True}
-        run_cot(resumed, None, generate)
+        run_benchmark_with_persistence(resumed, None, generate)
         result = [json.loads(line) for line in path.read_text().splitlines()]
         if attempted != [(0, 1), (1, 1)] or len(result) != 4:
             raise RuntimeError("Resume did not generate exactly the failed and missing samples")
@@ -62,17 +62,17 @@ def main():
                 raise RuntimeError(f"Resume overwrote {name}")
         attempted.clear()
         completed = path.read_bytes()
-        run_cot(resumed, None, generate)
+        run_benchmark_with_persistence(resumed, None, generate)
         if attempted or path.read_bytes() != completed:
             raise RuntimeError("Completed run was regenerated or rewritten")
         try:
-            run_cot({**resumed, "temperature": 0.6}, None, generate)
+            run_benchmark_with_persistence({**resumed, "temperature": 0.6}, None, generate)
         except ValueError:
             pass
         else:
             raise RuntimeError("Changed generation settings were accepted")
         try:
-            run_cot(config, None, generate)
+            run_benchmark_with_persistence(config, None, generate)
         except FileExistsError:
             pass
         else:
@@ -103,7 +103,7 @@ def main():
 
         path.write_text("".join(json.dumps(row) + "\n" for row in broken))
         try:
-            run_cot(resumed, None, interrupt)
+            run_benchmark_with_persistence(resumed, None, interrupt)
         except SystemExit:
             pass
         else:
@@ -112,7 +112,7 @@ def main():
         if len(partial) != 3 or "error" in partial[1] or list(directory.glob(".responses-*")):
             raise RuntimeError("Interrupted resume lost its last atomic checkpoint")
         attempted.clear()
-        run_cot(resumed, None, generate)
+        run_benchmark_with_persistence(resumed, None, generate)
         if attempted != [(1, 1)]:
             raise RuntimeError("Repeated resume did not skip its previous successful repair")
         print("Passed resume identity, backup, logs, settings, validation and interruption checks")

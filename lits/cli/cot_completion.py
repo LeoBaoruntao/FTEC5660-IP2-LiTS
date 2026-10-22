@@ -9,7 +9,8 @@ Use --samples 16 for a reusable candidate pool. Each sample starts from the
 original prompt and uses seed + dataset index + sample index (zero-based).
 The default --samples 1 preserves single-response generation.
 
-benchmarks.cot.run_cot owns dataset selection, progress, costs and immediate saving.
+benchmarks.persistence.run_benchmark_with_persistence owns dataset selection,
+progress, costs and immediate saving.
 Responses retain raw text, rendered prompt, seed, finish reason and token counts.
 Config retains resolved settings, tokenizer revision and server model metadata.
 Evaluate with ``python -m lits.cli.eval_cot --result-dir DIRECTORY``; no separate
@@ -43,7 +44,7 @@ import argparse
 
 from transformers import AutoTokenizer
 
-from lits.benchmarks.cot import run_cot
+from lits.benchmarks.persistence import run_benchmark_with_persistence
 from lits.cli.args import parse_dataset_kwargs
 from lits.components.utils import create_role
 from lits.lm.openai_completion import OpenAICompletionModel
@@ -53,7 +54,7 @@ from lits.registry import import_custom_modules
 
 
 def run(args):
-    """Configure raw generation and delegate execution/saving to run_cot.
+    """Configure raw generation and delegate to run_benchmark_with_persistence.
 
     Args comes from main(). Authentication and endpoint also accept the standard
     OPENAI_API_KEY and OPENAI_API_BASE environment variables. No search or scoring.
@@ -88,7 +89,7 @@ def run(args):
                     finish_reason=response.finish_reason, input_tokens=response.input_tokens,
                     output_tokens=response.output_tokens)
 
-    run_cot(config, model, generate, dataset_kwargs=parse_dataset_kwargs(args))
+    run_benchmark_with_persistence(config, model, generate, dataset_kwargs=parse_dataset_kwargs(args))
 
 
 def main():

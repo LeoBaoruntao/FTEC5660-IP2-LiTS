@@ -1,4 +1,30 @@
-"""Shared dataset execution and persistence for independent CoT generation."""
+"""Run benchmarks with configuration/cohort saving, incremental results and resume.
+
+run_benchmark_with_persistence() wraps runner.py::run_benchmark. The callback
+generate(question, index, repeat) returns a dict containing raw_response and
+optional metadata; it can execute one CoT sample or an entire search.
+
+Example with an already registered dataset and configured model/callback::
+
+    config = dict(dataset="math500", output_dir="results/math500-run", samples=2)
+    run_benchmark_with_persistence(config, model, generate)  # Returns None.
+
+    # Saved under results/math500-run/:
+    # config.json      Resolved settings, including per-example sample counts.
+    # cohort.json      Selected dataset examples and their original indices.
+    # responses.jsonl  One record per sample, flushed immediately after each callback.
+    # execution.log and inferencelogger.log retain execution and inference evidence.
+
+    run_benchmark_with_persistence({**config, "resume": True}, model, generate)
+    # Validate settings/cohort and back up responses.jsonl before retrying.
+    # Skip successful samples; regenerate only missing/failed IDs.
+    # Atomically replace resumed records; preserve successful records and metadata.
+
+Fresh runs require a new directory. Caught callback errors are saved as error
+records and remaining samples continue. Resume appends logs; only one process
+may write a run directory at a time. Prompt construction, search-specific
+artifacts and final correctness evaluation remain the callers' responsibility.
+"""
 
 import json
 import os
@@ -87,8 +113,8 @@ def save_resumed_records(path, records):
             temporary.unlink(missing_ok=True)
 
 
-def run_cot(config: dict, model, generate, *, dataset_kwargs: dict | None = None):
-    """Select examples, execute independent generations and save each result immediately.
+def run_benchmark_with_persistence(config: dict, model, generate, *, dataset_kwargs: dict | None = None):
+    """Select examples, execute response callbacks and save each result immediately.
 
     config supplies dataset, output_dir, offset/limit and optional samples or
     sample_counts path; remaining settings are saved verbatim. Dataset modules

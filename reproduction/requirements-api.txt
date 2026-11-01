@@ -1,0 +1,16 @@
+# Minimal dependencies for this hosted-API crossword reproduction.
+# Install this file, then install the parent repository with --no-deps.
+openai
+python-dotenv
+numpy
+pandas
+regex
+httpx
+filelock
+pydantic
+diskcache
+huggingface-hub
+boto3
+rich
+tqdm
+pyyaml

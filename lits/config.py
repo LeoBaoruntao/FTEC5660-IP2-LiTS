@@ -11,7 +11,7 @@ Design:
 """
 
 import os
-import torch
+# Hosted API runs do not use torch; local models load it lazily in lm/base.py.
 from dataclasses import dataclass, field
 from inspect import Parameter, signature
 from typing import List, Optional, Dict, Any, Set

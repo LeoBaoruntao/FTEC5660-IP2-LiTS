@@ -42,7 +42,9 @@ def main():
             '--search-arg', f'n_iters={args.iterations}', 'n_actions=3',
             'max_steps=10', 'roll_out_steps=10', 'n_action_for_simulate=3',
             'n_confidence=3', 'force_terminating_on_depth_limit=false',
-            'terminate_on_terminal_node=true', 'terminate_on_first_solution=false',
+            'terminate_on_first_solution=false',
+            'enable_think_policy=false', 'enable_think_eval=false',
+            'enable_think_terminal_gen=false',
             'add_continuation=false', '--component-arg', 'max_new_tokens=1024',
             '--dataset-arg', f'data_file={dataset}',
             '--var', 'offset=0', 'limit=1', '-o', str(out)]

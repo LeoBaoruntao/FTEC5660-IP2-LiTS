@@ -1,4 +1,8 @@
-from IPython import get_ipython
+try:
+    from IPython import get_ipython
+except ImportError:
+    def get_ipython():
+        return None
 def is_running_in_jupyter():
     try:
         shell = get_ipython().__class__.__name__

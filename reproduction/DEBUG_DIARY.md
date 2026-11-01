@@ -12,6 +12,12 @@ backtracking over incompatible AWS SDK versions. That install was interrupted,
 and aioboto3 was omitted because the synchronous OpenAI-compatible experiment
 does not import the asynchronous Bedrock provider.
 
+The command-line path also imported IPython unconditionally just to detect a
+notebook. A fallback now returns no active shell when IPython is absent.
+Requests was added to the minimal dependency list because tool utilities import
+it. Pip's full-project dependency warnings are expected with the explicitly
+documented API-only install; this is not a full local-model installation.
+
 ## Hosted model adaptation
 
 `lits/config.py` imported torch but never referenced it. Removing that import
@@ -32,3 +38,10 @@ The policy and reward-model prompts omit the answer key, but the environment's
 contributes to the search reward in `EnvGroundedPRM.calculate_reward`. This
 privileged environment feedback is retained for reproduction and limits any
 claim about deployment on puzzles without an answer key.
+
+## Archived configuration drift
+
+The archived `terminate_on_terminal_node` argument is rejected by LiTS 0.4.0.
+The runner omits this removed flag and explicitly keeps
+`terminate_on_first_solution=false` in both conditions. This is another reason
+the archived 0.3.1 result is a contextual reference, not an exact replication.

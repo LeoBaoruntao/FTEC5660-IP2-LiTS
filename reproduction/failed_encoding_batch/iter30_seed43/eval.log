@@ -1,0 +1,4 @@
+[2026-11-01 23:03:07.722] [INFO] [root] Command: D:\codex写5660作业\IndividualProject2\lits\cli\eval_search.py --result_dir D:\codex写5660作业\IndividualProject2\reproduction\runs\iter30_seed43
+[2026-11-01 23:03:07.722] [INFO] [root] Working directory: D:\codex写5660作业\IndividualProject2
+[2026-11-01 23:03:07.722] [INFO] [root] Evaluating crosswords results (goal checking via registry)
+[2026-11-01 23:03:07.724] [ERROR] [root] No checkpoint files found in D:\codex写5660作业\IndividualProject2\reproduction\runs\iter30_seed43\checkpoints

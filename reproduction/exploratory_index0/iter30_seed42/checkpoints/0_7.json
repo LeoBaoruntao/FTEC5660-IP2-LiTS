@@ -1,0 +1,382 @@
+[
+  {
+    "id": 0,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh3. Pretentious; flowery: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: _____\nv2. An Indian antelope: _____\nv3. To intend; to plan; to devise; a nettle; to guess: _____\nv4. A nozzle: _____\nv5. Desiccator; more dry: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": "AGEND\nMOTOR\nARTSY\nSALLE\nSLEER\nAMASS\nGORAL\nETTLE\nNOSLE\nDRYER",
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": -1.0,
+    "trajectory_key": {
+      "search_id": "0_1793587379",
+      "indices": [],
+      "root_token": "q"
+    },
+    "from_simulate": false,
+    "is_simulated": false,
+    "from_expand": false,
+    "cum_rewards": [
+      0.07,
+      -0.008333333333333338,
+      0.1611111111111111,
+      0.0,
+      0.06874999999999998,
+      0.09374999999999999,
+      -0.04999999999999998,
+      -0.0607142857142857
+    ],
+    "visit_count": 8,
+    "from_continuation": false
+  },
+  {
+    "id": 1,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "v3. think",
+          "next_state": "Current Board:\n__T__\n__H__\n__I__\n__N__\n__K__\n\nUnfilled:\nh1. An agendum; something to be done: __T__\nh2. An engine: __H__\nh3. Pretentious; flowery: __I__\nh4. A salon; a hall: __N__\nh5. To mock; to sneer: __K__\nv1. To heap: _____\nv2. An Indian antelope: _____\nv4. A nozzle: _____\nv5. Desiccator; more dry: _____\n\nFilled:\nv3. To intend; to plan; to devise; a nettle; to guess: THINK\n\nChanged:\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh3. Pretentious; flowery: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: _____\nv2. An Indian antelope: _____\nv3. To intend; to plan; to devise; a nettle; to guess: _____\nv4. A nozzle: _____\nv5. Desiccator; more dry: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "v3. think",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.5,
+    "trajectory_key": {
+      "search_id": "0_1793587379",
+      "indices": [
+        0
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "action": "v3. think"
+    },
+    "from_simulate": false,
+    "is_simulated": true,
+    "from_expand": true,
+    "cum_rewards": [
+      0.18888888888888888,
+      0.25,
+      0.09583333333333333
+    ],
+    "visit_count": 3,
+    "from_continuation": false
+  },
+  {
+    "id": 5,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "v3. think",
+          "next_state": "Current Board:\n__T__\n__H__\n__I__\n__N__\n__K__\n\nUnfilled:\nh1. An agendum; something to be done: __T__\nh2. An engine: __H__\nh3. Pretentious; flowery: __I__\nh4. A salon; a hall: __N__\nh5. To mock; to sneer: __K__\nv1. To heap: _____\nv2. An Indian antelope: _____\nv4. A nozzle: _____\nv5. Desiccator; more dry: _____\n\nFilled:\nv3. To intend; to plan; to devise; a nettle; to guess: THINK\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h1. THINK",
+          "next_state": "Current Board:\nTHINK\n__H__\n__I__\n__N__\n__K__\n\nUnfilled:\nh2. An engine: __H__\nh3. Pretentious; flowery: __I__\nh4. A salon; a hall: __N__\nh5. To mock; to sneer: __K__\nv1. To heap: T____\nv2. An Indian antelope: H____\nv4. A nozzle: N____\nv5. Desiccator; more dry: K____\n\nFilled:\nh1. An agendum; something to be done: THINK\n\nChanged:\nv3. To intend; to plan; to devise; a nettle; to guess: IHINK\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh3. Pretentious; flowery: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: _____\nv2. An Indian antelope: _____\nv3. To intend; to plan; to devise; a nettle; to guess: _____\nv4. A nozzle: _____\nv5. Desiccator; more dry: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "h1. THINK",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.0,
+    "trajectory_key": {
+      "search_id": "0_1793587379",
+      "indices": [
+        0,
+        1
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "action": "h1. THINK"
+    },
+    "from_simulate": true,
+    "is_simulated": false,
+    "from_expand": false,
+    "cum_rewards": [
+      0.065
+    ],
+    "visit_count": 1,
+    "from_continuation": false
+  },
+  {
+    "id": 106,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "v3. think",
+          "next_state": "Current Board:\n__T__\n__H__\n__I__\n__N__\n__K__\n\nUnfilled:\nh1. An agendum; something to be done: __T__\nh2. An engine: __H__\nh3. Pretentious; flowery: __I__\nh4. A salon; a hall: __N__\nh5. To mock; to sneer: __K__\nv1. To heap: _____\nv2. An Indian antelope: _____\nv4. A nozzle: _____\nv5. Desiccator; more dry: _____\n\nFilled:\nv3. To intend; to plan; to devise; a nettle; to guess: THINK\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h1. THINK",
+          "next_state": "Current Board:\nTHINK\n__H__\n__I__\n__N__\n__K__\n\nUnfilled:\nh2. An engine: __H__\nh3. Pretentious; flowery: __I__\nh4. A salon; a hall: __N__\nh5. To mock; to sneer: __K__\nv1. To heap: T____\nv2. An Indian antelope: H____\nv4. A nozzle: N____\nv5. Desiccator; more dry: K____\n\nFilled:\nh1. An agendum; something to be done: THINK\n\nChanged:\nv3. To intend; to plan; to devise; a nettle; to guess: IHINK\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h2. motor",
+          "next_state": "Current Board:\nTHINK\nMOTOR\n__I__\n__N__\n__K__\n\nUnfilled:\nh3. Pretentious; flowery: __I__\nh4. A salon; a hall: __N__\nh5. To mock; to sneer: __K__\nv1. To heap: TM___\nv2. An Indian antelope: HO___\nv4. A nozzle: NO___\nv5. Desiccator; more dry: KR___\n\nFilled:\nh1. An agendum; something to be done: THINK\nh2. An engine: MOTOR\n\nChanged:\nv3. To intend; to plan; to devise; a nettle; to guess: ITINK\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh3. Pretentious; flowery: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: _____\nv2. An Indian antelope: _____\nv3. To intend; to plan; to devise; a nettle; to guess: _____\nv4. A nozzle: _____\nv5. Desiccator; more dry: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "h2. motor",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.0,
+    "trajectory_key": {
+      "search_id": "0_1793587379",
+      "indices": [
+        0,
+        1,
+        0
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "action": "h2. motor"
+    },
+    "from_simulate": false,
+    "is_simulated": true,
+    "from_expand": true,
+    "cum_rewards": [
+      0.08125
+    ],
+    "visit_count": 1,
+    "from_continuation": false
+  },
+  {
+    "id": 109,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "v3. think",
+          "next_state": "Current Board:\n__T__\n__H__\n__I__\n__N__\n__K__\n\nUnfilled:\nh1. An agendum; something to be done: __T__\nh2. An engine: __H__\nh3. Pretentious; flowery: __I__\nh4. A salon; a hall: __N__\nh5. To mock; to sneer: __K__\nv1. To heap: _____\nv2. An Indian antelope: _____\nv4. A nozzle: _____\nv5. Desiccator; more dry: _____\n\nFilled:\nv3. To intend; to plan; to devise; a nettle; to guess: THINK\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h1. THINK",
+          "next_state": "Current Board:\nTHINK\n__H__\n__I__\n__N__\n__K__\n\nUnfilled:\nh2. An engine: __H__\nh3. Pretentious; flowery: __I__\nh4. A salon; a hall: __N__\nh5. To mock; to sneer: __K__\nv1. To heap: T____\nv2. An Indian antelope: H____\nv4. A nozzle: N____\nv5. Desiccator; more dry: K____\n\nFilled:\nh1. An agendum; something to be done: THINK\n\nChanged:\nv3. To intend; to plan; to devise; a nettle; to guess: IHINK\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h2. motor",
+          "next_state": "Current Board:\nTHINK\nMOTOR\n__I__\n__N__\n__K__\n\nUnfilled:\nh3. Pretentious; flowery: __I__\nh4. A salon; a hall: __N__\nh5. To mock; to sneer: __K__\nv1. To heap: TM___\nv2. An Indian antelope: HO___\nv4. A nozzle: NO___\nv5. Desiccator; more dry: KR___\n\nFilled:\nh1. An agendum; something to be done: THINK\nh2. An engine: MOTOR\n\nChanged:\nv3. To intend; to plan; to devise; a nettle; to guess: ITINK\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h3. primp",
+          "next_state": "Current Board:\nTHINK\nMOTOR\nPRIMP\n__N__\n__K__\n\nUnfilled:\nh4. A salon; a hall: __N__\nh5. To mock; to sneer: __K__\nv1. To heap: TMP__\nv2. An Indian antelope: HOR__\nv4. A nozzle: NOM__\nv5. Desiccator; more dry: KRP__\n\nFilled:\nh1. An agendum; something to be done: THINK\nh2. An engine: MOTOR\nh3. Pretentious; flowery: PRIMP\n\nChanged:\nv3. To intend; to plan; to devise; a nettle; to guess: ITINK\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh3. Pretentious; flowery: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: _____\nv2. An Indian antelope: _____\nv3. To intend; to plan; to devise; a nettle; to guess: _____\nv4. A nozzle: _____\nv5. Desiccator; more dry: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "h3. primp",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.0,
+    "trajectory_key": {
+      "search_id": "0_1793587379",
+      "indices": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "action": "h3. primp"
+    },
+    "from_simulate": true,
+    "is_simulated": true,
+    "from_expand": false,
+    "cum_rewards": [
+      0.09166666666666667
+    ],
+    "visit_count": 1,
+    "from_continuation": false
+  },
+  {
+    "id": 112,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "v3. think",
+          "next_state": "Current Board:\n__T__\n__H__\n__I__\n__N__\n__K__\n\nUnfilled:\nh1. An agendum; something to be done: __T__\nh2. An engine: __H__\nh3. Pretentious; flowery: __I__\nh4. A salon; a hall: __N__\nh5. To mock; to sneer: __K__\nv1. To heap: _____\nv2. An Indian antelope: _____\nv4. A nozzle: _____\nv5. Desiccator; more dry: _____\n\nFilled:\nv3. To intend; to plan; to devise; a nettle; to guess: THINK\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h1. THINK",
+          "next_state": "Current Board:\nTHINK\n__H__\n__I__\n__N__\n__K__\n\nUnfilled:\nh2. An engine: __H__\nh3. Pretentious; flowery: __I__\nh4. A salon; a hall: __N__\nh5. To mock; to sneer: __K__\nv1. To heap: T____\nv2. An Indian antelope: H____\nv4. A nozzle: N____\nv5. Desiccator; more dry: K____\n\nFilled:\nh1. An agendum; something to be done: THINK\n\nChanged:\nv3. To intend; to plan; to devise; a nettle; to guess: IHINK\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h2. motor",
+          "next_state": "Current Board:\nTHINK\nMOTOR\n__I__\n__N__\n__K__\n\nUnfilled:\nh3. Pretentious; flowery: __I__\nh4. A salon; a hall: __N__\nh5. To mock; to sneer: __K__\nv1. To heap: TM___\nv2. An Indian antelope: HO___\nv4. A nozzle: NO___\nv5. Desiccator; more dry: KR___\n\nFilled:\nh1. An agendum; something to be done: THINK\nh2. An engine: MOTOR\n\nChanged:\nv3. To intend; to plan; to devise; a nettle; to guess: ITINK\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h3. primp",
+          "next_state": "Current Board:\nTHINK\nMOTOR\nPRIMP\n__N__\n__K__\n\nUnfilled:\nh4. A salon; a hall: __N__\nh5. To mock; to sneer: __K__\nv1. To heap: TMP__\nv2. An Indian antelope: HOR__\nv4. A nozzle: NOM__\nv5. Desiccator; more dry: KRP__\n\nFilled:\nh1. An agendum; something to be done: THINK\nh2. An engine: MOTOR\nh3. Pretentious; flowery: PRIMP\n\nChanged:\nv3. To intend; to plan; to devise; a nettle; to guess: ITINK\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "v1. AMPLE",
+          "next_state": "Current Board:\nAHINK\nMOTOR\nPRIMP\nL_N__\nE_K__\n\nUnfilled:\nh4. A salon; a hall: L_N__\nh5. To mock; to sneer: E_K__\nv2. An Indian antelope: HOR__\nv4. A nozzle: NOM__\nv5. Desiccator; more dry: KRP__\n\nFilled:\nh2. An engine: MOTOR\nh3. Pretentious; flowery: PRIMP\nv1. To heap: AMPLE\n\nChanged:\nh1. An agendum; something to be done: AHINK\nv3. To intend; to plan; to devise; a nettle; to guess: ITINK\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh3. Pretentious; flowery: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: _____\nv2. An Indian antelope: _____\nv3. To intend; to plan; to devise; a nettle; to guess: _____\nv4. A nozzle: _____\nv5. Desiccator; more dry: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "v1. AMPLE",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.0,
+    "trajectory_key": {
+      "search_id": "0_1793587379",
+      "indices": [
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "action": "v1. AMPLE"
+    },
+    "from_simulate": true,
+    "is_simulated": true,
+    "from_expand": false,
+    "cum_rewards": [
+      0.11249999999999999
+    ],
+    "visit_count": 1,
+    "from_continuation": false
+  },
+  {
+    "id": 117,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "v3. think",
+          "next_state": "Current Board:\n__T__\n__H__\n__I__\n__N__\n__K__\n\nUnfilled:\nh1. An agendum; something to be done: __T__\nh2. An engine: __H__\nh3. Pretentious; flowery: __I__\nh4. A salon; a hall: __N__\nh5. To mock; to sneer: __K__\nv1. To heap: _____\nv2. An Indian antelope: _____\nv4. A nozzle: _____\nv5. Desiccator; more dry: _____\n\nFilled:\nv3. To intend; to plan; to devise; a nettle; to guess: THINK\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h1. THINK",
+          "next_state": "Current Board:\nTHINK\n__H__\n__I__\n__N__\n__K__\n\nUnfilled:\nh2. An engine: __H__\nh3. Pretentious; flowery: __I__\nh4. A salon; a hall: __N__\nh5. To mock; to sneer: __K__\nv1. To heap: T____\nv2. An Indian antelope: H____\nv4. A nozzle: N____\nv5. Desiccator; more dry: K____\n\nFilled:\nh1. An agendum; something to be done: THINK\n\nChanged:\nv3. To intend; to plan; to devise; a nettle; to guess: IHINK\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h2. motor",
+          "next_state": "Current Board:\nTHINK\nMOTOR\n__I__\n__N__\n__K__\n\nUnfilled:\nh3. Pretentious; flowery: __I__\nh4. A salon; a hall: __N__\nh5. To mock; to sneer: __K__\nv1. To heap: TM___\nv2. An Indian antelope: HO___\nv4. A nozzle: NO___\nv5. Desiccator; more dry: KR___\n\nFilled:\nh1. An agendum; something to be done: THINK\nh2. An engine: MOTOR\n\nChanged:\nv3. To intend; to plan; to devise; a nettle; to guess: ITINK\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h3. primp",
+          "next_state": "Current Board:\nTHINK\nMOTOR\nPRIMP\n__N__\n__K__\n\nUnfilled:\nh4. A salon; a hall: __N__\nh5. To mock; to sneer: __K__\nv1. To heap: TMP__\nv2. An Indian antelope: HOR__\nv4. A nozzle: NOM__\nv5. Desiccator; more dry: KRP__\n\nFilled:\nh1. An agendum; something to be done: THINK\nh2. An engine: MOTOR\nh3. Pretentious; flowery: PRIMP\n\nChanged:\nv3. To intend; to plan; to devise; a nettle; to guess: ITINK\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "v1. AMPLE",
+          "next_state": "Current Board:\nAHINK\nMOTOR\nPRIMP\nL_N__\nE_K__\n\nUnfilled:\nh4. A salon; a hall: L_N__\nh5. To mock; to sneer: E_K__\nv2. An Indian antelope: HOR__\nv4. A nozzle: NOM__\nv5. Desiccator; more dry: KRP__\n\nFilled:\nh2. An engine: MOTOR\nh3. Pretentious; flowery: PRIMP\nv1. To heap: AMPLE\n\nChanged:\nh1. An agendum; something to be done: AHINK\nv3. To intend; to plan; to devise; a nettle; to guess: ITINK\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "Let’s break it down logically.  \n\nThe current board is:\n\n```\nA H I N K\nM O T O R\nP R I M P\nL _ N _ _\nE _ K _ _\n```\n\nYou have some letters filled per crosspoints.\n\n---\n\n### Clue h4: \"A salon; a hall\" = L_N__ pattern\nPositions:  \nRow 4: L, ?, N, ?, ?  \n\nFrom columns:  \n- v1 = A M P L E → 4th letter is L (matches L at h4 start)  \n- v2 = H O R _ _ → row 4 col 2 is R (4th letter of v2). So h4 = L R N ? ?  \n- v3 = I T I N K → row 4 col 3 is N (already known)  \n- v4 = N O M _ _ → row 4 col 4: 4th letter unknown yet.  \n- v5 = K R P _ _ → row 4 col 5: 4th letter unknown yet.\n\nSo h4 is \"LRN??\" — that doesn't look like a word \"salon; a hall\". Could be 'lrn' isn't correct? Wait, check v2: clue \"An Indian antelope\": HOR?? ... possibly HORSE? No, “Indian antelope” = \"nilgai\"? Not 5 letters. \"Blackbuck\" is longer. \"Chinkara\"? No. Maybe “HORNS”? But antelope? Actually “HORSE” not antelope… but \"HORNE\"? No. Maybe v2 = \"HORDE\"? no. Could \"HORAL\"? No. Let me check again: common 5-letter Indian antelope is \"Nilgai\" not HOR__. Possibly \"HORNS\"? No. Maybe “HORAL” is a Himalayan goat antelope? yes \"HORAL\" is a type of wild goat (not antelope but close). So v2 = HORAL. That means row4 col2 is 'A'.\n\nThen h4 = L A N ? ?  \nPattern: LA N __ fits \"A salon; a hall\" = maybe \"LANAI\" (a veranda) but \"hall\"? Actually LANAI fits pattern LA N A I. Word = LANAI.  \n\nCheck columns:  \n- v4: N O M _ _ pattern; row4 col4 from LANAI is A, so v4: N O M A _ … fits “A nozzle” = maybe \"NOMAS\"? Not. Wait, 4th letter now A from LANAI? yes. Actually v4 row4 col4 = A; v4 now N O M A ? → “nozzle” maybe \"NOMAS\"? Doesn’t fit; maybe instead h4 = L A N C E? No, 'salon; hall' = ? “lance”? no. But LANAI has A at pos4 and I at pos5.\n\nLet’s try h4 = L A N C E? C at pos4 would make v4: N O M C ? not valid. LANAI fits v4 maybe: v4 4th letter = A → then v4 = N O M A ? “A nozzle”… possible \"NOMAD\"? no. \"NOMAS\"? no.\n\nMaybe h4 is actually \"LOBBY\"? hall/salon? L O B B Y not matching N in 3rd.\n\nWe know 3rd letter is N from v3 (ITINK) giving N in row4 col3. L ? N ? ?  \n\"HALL\" synonyms: \"LOBBY\" not fit N. Maybe \"LANAI\" could be hall/porch. Seems LANAI. That makes v4: N O M A ?. \"A nozzle\": maybe “NOMAS”? The more likely word is “NOMAS”? not a word. “NOZZLE” synonyms: “NOMAL”? Hmm, uncertain.\n\nMaybe better pick another clue.\n\n---\n\n### Try h5: E_K__ pattern\nRow5: E, ?, K, ?, ?  \n\nFrom filled:  \nColumns:  \nv1 last letter E (from AMPLE) matches E.  \nv2 HOR__ last letter = ? row5 col2 is unknown; v2 maybe HORAL → last letter L; Row5 col2 would be L.  \nv3 last letter K (from ITINK) matches K at col3 pos3. Good.  \nv4 NOM__ last letter: row5 col4 from v4?  \nv5 KRP__ last letter: row5 col5.\n\nSo h5 = E L K ? ?  \n\"To mock; to sneer\" = “scoff” 5? no. \"jeer\"?? 4 letters. \"taunt",
+          "next_state": "Current Board:\nAHINK\nMOTOR\nPRIMP\nL_N__\nE_K__\n\nUnfilled:\nh4. A salon; a hall: L_N__\nh5. To mock; to sneer: E_K__\nv2. An Indian antelope: HOR__\nv4. A nozzle: NOM__\nv5. Desiccator; more dry: KRP__\n\nFilled:\nh2. An engine: MOTOR\nh3. Pretentious; flowery: PRIMP\nv1. To heap: AMPLE\n\nChanged:\nh1. An agendum; something to be done: AHINK\nv3. To intend; to plan; to devise; a nettle; to guess: ITINK\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh3. Pretentious; flowery: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: _____\nv2. An Indian antelope: _____\nv3. To intend; to plan; to devise; a nettle; to guess: _____\nv4. A nozzle: _____\nv5. Desiccator; more dry: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "Let’s break it down logically.  \n\nThe current board is:\n\n```\nA H I N K\nM O T O R\nP R I M P\nL _ N _ _\nE _ K _ _\n```\n\nYou have some letters filled per crosspoints.\n\n---\n\n### Clue h4: \"A salon; a hall\" = L_N__ pattern\nPositions:  \nRow 4: L, ?, N, ?, ?  \n\nFrom columns:  \n- v1 = A M P L E → 4th letter is L (matches L at h4 start)  \n- v2 = H O R _ _ → row 4 col 2 is R (4th letter of v2). So h4 = L R N ? ?  \n- v3 = I T I N K → row 4 col 3 is N (already known)  \n- v4 = N O M _ _ → row 4 col 4: 4th letter unknown yet.  \n- v5 = K R P _ _ → row 4 col 5: 4th letter unknown yet.\n\nSo h4 is \"LRN??\" — that doesn't look like a word \"salon; a hall\". Could be 'lrn' isn't correct? Wait, check v2: clue \"An Indian antelope\": HOR?? ... possibly HORSE? No, “Indian antelope” = \"nilgai\"? Not 5 letters. \"Blackbuck\" is longer. \"Chinkara\"? No. Maybe “HORNS”? But antelope? Actually “HORSE” not antelope… but \"HORNE\"? No. Maybe v2 = \"HORDE\"? no. Could \"HORAL\"? No. Let me check again: common 5-letter Indian antelope is \"Nilgai\" not HOR__. Possibly \"HORNS\"? No. Maybe “HORAL” is a Himalayan goat antelope? yes \"HORAL\" is a type of wild goat (not antelope but close). So v2 = HORAL. That means row4 col2 is 'A'.\n\nThen h4 = L A N ? ?  \nPattern: LA N __ fits \"A salon; a hall\" = maybe \"LANAI\" (a veranda) but \"hall\"? Actually LANAI fits pattern LA N A I. Word = LANAI.  \n\nCheck columns:  \n- v4: N O M _ _ pattern; row4 col4 from LANAI is A, so v4: N O M A _ … fits “A nozzle” = maybe \"NOMAS\"? Not. Wait, 4th letter now A from LANAI? yes. Actually v4 row4 col4 = A; v4 now N O M A ? → “nozzle” maybe \"NOMAS\"? Doesn’t fit; maybe instead h4 = L A N C E? No, 'salon; hall' = ? “lance”? no. But LANAI has A at pos4 and I at pos5.\n\nLet’s try h4 = L A N C E? C at pos4 would make v4: N O M C ? not valid. LANAI fits v4 maybe: v4 4th letter = A → then v4 = N O M A ? “A nozzle”… possible \"NOMAD\"? no. \"NOMAS\"? no.\n\nMaybe h4 is actually \"LOBBY\"? hall/salon? L O B B Y not matching N in 3rd.\n\nWe know 3rd letter is N from v3 (ITINK) giving N in row4 col3. L ? N ? ?  \n\"HALL\" synonyms: \"LOBBY\" not fit N. Maybe \"LANAI\" could be hall/porch. Seems LANAI. That makes v4: N O M A ?. \"A nozzle\": maybe “NOMAS”? The more likely word is “NOMAS”? not a word. “NOZZLE” synonyms: “NOMAL”? Hmm, uncertain.\n\nMaybe better pick another clue.\n\n---\n\n### Try h5: E_K__ pattern\nRow5: E, ?, K, ?, ?  \n\nFrom filled:  \nColumns:  \nv1 last letter E (from AMPLE) matches E.  \nv2 HOR__ last letter = ? row5 col2 is unknown; v2 maybe HORAL → last letter L; Row5 col2 would be L.  \nv3 last letter K (from ITINK) matches K at col3 pos3. Good.  \nv4 NOM__ last letter: row5 col4 from v4?  \nv5 KRP__ last letter: row5 col5.\n\nSo h5 = E L K ? ?  \n\"To mock; to sneer\" = “scoff” 5? no. \"jeer\"?? 4 letters. \"taunt",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.25,
+    "trajectory_key": {
+      "search_id": "0_1793587379",
+      "indices": [
+        0,
+        1,
+        0,
+        0,
+        0,
+        2
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "error": "Validation failed after 3 retries",
+      "terminate": true,
+      "action": "Let’s break it down logically.  \n\nThe current board is:\n\n```\nA H I N K\nM O T O R\nP R I M P\nL _ N _ _\nE _ K _ _\n```\n\nYou have some letters filled per crosspoints.\n\n---\n\n### Clue h4: \"A salon; a hall\" = L_N__ pattern\nPositions:  \nRow 4: L, ?, N, ?, ?  \n\nFrom columns:  \n- v1 = A M P L E → 4th letter is L (matches L at h4 start)  \n- v2 = H O R _ _ → row 4 col 2 is R (4th letter of v2). So h4 = L R N ? ?  \n- v3 = I T I N K → row 4 col 3 is N (already known)  \n- v4 = N O M _ _ → row 4 col 4: 4th letter unknown yet.  \n- v5 = K R P _ _ → row 4 col 5: 4th letter unknown yet.\n\nSo h4 is \"LRN??\" — that doesn't look like a word \"salon; a hall\". Could be 'lrn' isn't correct? Wait, check v2: clue \"An Indian antelope\": HOR?? ... possibly HORSE? No, “Indian antelope” = \"nilgai\"? Not 5 letters. \"Blackbuck\" is longer. \"Chinkara\"? No. Maybe “HORNS”? But antelope? Actually “HORSE” not antelope… but \"HORNE\"? No. Maybe v2 = \"HORDE\"? no. Could \"HORAL\"? No. Let me check again: common 5-letter Indian antelope is \"Nilgai\" not HOR__. Possibly \"HORNS\"? No. Maybe “HORAL” is a Himalayan goat antelope? yes \"HORAL\" is a type of wild goat (not antelope but close). So v2 = HORAL. That means row4 col2 is 'A'.\n\nThen h4 = L A N ? ?  \nPattern: LA N __ fits \"A salon; a hall\" = maybe \"LANAI\" (a veranda) but \"hall\"? Actually LANAI fits pattern LA N A I. Word = LANAI.  \n\nCheck columns:  \n- v4: N O M _ _ pattern; row4 col4 from LANAI is A, so v4: N O M A _ … fits “A nozzle” = maybe \"NOMAS\"? Not. Wait, 4th letter now A from LANAI? yes. Actually v4 row4 col4 = A; v4 now N O M A ? → “nozzle” maybe \"NOMAS\"? Doesn’t fit; maybe instead h4 = L A N C E? No, 'salon; hall' = ? “lance”? no. But LANAI has A at pos4 and I at pos5.\n\nLet’s try h4 = L A N C E? C at pos4 would make v4: N O M C ? not valid. LANAI fits v4 maybe: v4 4th letter = A → then v4 = N O M A ? “A nozzle”… possible \"NOMAD\"? no. \"NOMAS\"? no.\n\nMaybe h4 is actually \"LOBBY\"? hall/salon? L O B B Y not matching N in 3rd.\n\nWe know 3rd letter is N from v3 (ITINK) giving N in row4 col3. L ? N ? ?  \n\"HALL\" synonyms: \"LOBBY\" not fit N. Maybe \"LANAI\" could be hall/porch. Seems LANAI. That makes v4: N O M A ?. \"A nozzle\": maybe “NOMAS”? The more likely word is “NOMAS”? not a word. “NOZZLE” synonyms: “NOMAL”? Hmm, uncertain.\n\nMaybe better pick another clue.\n\n---\n\n### Try h5: E_K__ pattern\nRow5: E, ?, K, ?, ?  \n\nFrom filled:  \nColumns:  \nv1 last letter E (from AMPLE) matches E.  \nv2 HOR__ last letter = ? row5 col2 is unknown; v2 maybe HORAL → last letter L; Row5 col2 would be L.  \nv3 last letter K (from ITINK) matches K at col3 pos3. Good.  \nv4 NOM__ last letter: row5 col4 from v4?  \nv5 KRP__ last letter: row5 col5.\n\nSo h5 = E L K ? ?  \n\"To mock; to sneer\" = “scoff” 5? no. \"jeer\"?? 4 letters. \"taunt"
+    },
+    "from_simulate": true,
+    "is_simulated": true,
+    "from_expand": false,
+    "cum_rewards": [
+      0.175
+    ],
+    "visit_count": 1,
+    "from_continuation": false
+  }
+]

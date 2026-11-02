@@ -1,0 +1,222 @@
+[2026-11-01 22:55:33] [INFO] [root] Command: lits-search --include lits_benchmark.crosswords --dataset crosswords --transition crosswords --policy-model openai/deepseek-v4-flash --search-arg n_iters=30 n_actions=3 max_steps=10 roll_out_steps=10 n_action_for_simulate=3 n_confidence=3 force_terminating_on_depth_limit=false terminate_on_first_solution=false enable_think_policy=false enable_think_eval=false enable_think_terminal_gen=false add_continuation=false --component-arg max_new_tokens=1024 --dataset-arg data_file=D:\codex写5660作业\IndividualProject2\demos\crosswords\data\mini0505.json --var offset=0 limit=1 -o D:\codex写5660作业\IndividualProject2\reproduction\runs\iter30_seed41
+[2026-11-01 22:55:33] [INFO] [root] Working directory: D:\codex写5660作业\IndividualProject2
+[2026-11-01 22:55:33] [WARNING] [lits.components.base] Policy.__init__: task_prompt_spec not found for task_name='crosswords' or task_type='env_grounded'
+Var: offset=0
+Var: limit=1
+Imported custom modules: ['lits_benchmark.crosswords']
+Search: n_iters=30
+Search: n_actions=3
+Search: max_steps=10
+Search: roll_out_steps=10
+Search: n_action_for_simulate=3
+Search: n_confidence=3
+Search: force_terminating_on_depth_limit=False
+Search: terminate_on_first_solution=False
+Search: enable_think_policy=False
+Search: enable_think_eval=False
+Search: enable_think_terminal_gen=False
+Search: add_continuation=False
+Component: max_new_tokens=1024
+Dataset: data_file=D:\codex写5660作业\IndividualProject2\demos\crosswords\data\mini0505.json
+Current working directory: D:\codex写5660作业\IndividualProject2
+Log/config file/results are saved to: D:\codex写5660作业\IndividualProject2\reproduction\runs\iter30_seed41
+  0%|          | 0/1 [00:00<?, ?it/s][2026-11-01 22:55:33] [INFO] [lits.agents.tree.mcts] [MCTS] Begin (example=0)
+
+MCTS iteration:   0%|          | 0/30 [00:00<?, ?it/s][A[2026-11-01 22:55:33] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 0/30 (example=0) ====================
+[2026-11-01 22:55:33] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-01 22:55:33] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-01 22:55:33] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=0, phase=expand)
+[2026-11-01 22:55:33] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-01 22:55:40] [WARNING] [lits.components.policy.env_grounded] [POLICY] Invalid action (attempt 1/3): 'v2. nilgai'
+[2026-11-01 22:55:45] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=expand)
+[2026-11-01 22:55:45] [INFO] [lits.agents.tree.mcts] [Simulate] Begin
+[2026-11-01 22:55:45] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=0, phase=simulate)
+[2026-11-01 22:55:45] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-01 22:55:45] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=0, phase=simulate)
+[2026-11-01 22:55:45] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-01 22:55:51] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-01 22:55:51] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=0, phase=simulate)
+[2026-11-01 22:55:51] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-01 22:55:52] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'h2. motor', retrying with temp=0.90
+[2026-11-01 22:55:53] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 2/3): 'h2. motor', retrying with temp=1.10
+[2026-11-01 22:55:54] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 3/3): 'h2. motor', retrying with temp=1.20
+[2026-11-01 22:55:54] [ERROR] [lits.components.policy.env_grounded] Max retries (3) exceeded for action generation.
+[2026-11-01 22:55:55] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'h2. motor', retrying with temp=0.90
+[2026-11-01 22:55:55] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 2/3): 'h2. motor', retrying with temp=1.10
+[2026-11-01 22:55:57] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 3/3): 'h2. motor', retrying with temp=1.20
+[2026-11-01 22:55:57] [ERROR] [lits.components.policy.env_grounded] Max retries (3) exceeded for action generation.
+[2026-11-01 22:56:03] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-01 22:56:03] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=0, phase=simulate)
+[2026-11-01 22:56:03] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-01 22:56:13] [WARNING] [lits.components.policy.env_grounded] [POLICY] Invalid action (attempt 1/3): 'Let’s check what we have.
+
+Board:
+
+```
+AHORE
+MOTOR
+A____
+S____
+S____
+```
+
+Clues and given letters:
+
+- h3: A____ → 5 letters, starts with A.
+- h4: S____ → starts with S.
+- h5: S____ → starts with S.
+- v2: HO___ → starts with HO.
+- v3: OT___ → starts with OT.
+- v4: RO___ → starts with RO.
+- v5: ER___ → starts with ER.
+
+We need to pick one and give a fitting word.
+
+v2: "An Indian antelope" – 5 letters, starts with HO.  
+The Indian antelope is "blackbuck" — but that’s longer. Another Indian antelope is "chinkara" (also longer). For 5 letters starting with HO: "hogdeer"? Not likely.  
+Wait — "hOGDEER"? No, it’s "hog deer" but that’s two words.  
+Let's think: "Four-horned antelope" is "chousingha" – too long.  
+Actually, "HOGDEER" is 7 letters.  
+What about "HOGDEER"? no.  
+Maybe the intended word is "HOGDEER" but that's wrong length. Maybe "HOGDEER" isn't right.  
+
+Check "HOORAY"? no, not an antelope.  
+Maybe "HOGDEER" is not it — let's check "HONOUR"? no.
+
+Wait, the 5-letter Indian antelope: "HOGDEER" doesn't fit; maybe "HOGDEER" not 5.  
+Perhaps "HOGDEER" isn't correct — what about "HOGDEER"? I'm stuck. Let's try v3: "To intend; to plan; to devise; a nettle; to guess" — starts with OT.  
+5 letters: "OTTED"? No. "OTTER"? No.  
+"To intend" = "mean" but that doesn't start OT. "To plan" = "plot" but that’s 4.  
+Wait, maybe "OTTED"? No.  
+Actually, "To intend" = "aim" — no. Maybe "OTTER"? No.  
+
+But "a nettle" — the plant "dead nettle" genus is Lamium, but "nettle" itself is Urtica. Hmm.  
+"To guess" = "opine" — starts with OP not OT.  
+
+What about "OTTAR"? No.  
+
+Maybe "OTTER"? not relevant.  
+
+Let's try v4: "A nozzle" — starts with RO. 5 letters: "ROSED"? No. Nozzle = "rose" (as in watering can)? Yes! A "rose" is a nozzle on a watering can. 5 letters starting with RO: "ROSES"? That’s plural but fits: R O S E S. Check crossing:  
+Column 4 letters: Row1 h1 letter4, Row2 h2 letter4, Row3 h3 letter4, Row4 h4 letter4, Row5 h5 letter4.
+
+From board:  
+h1: AHORE → letter4 = R  
+h2: MOTOR → letter4 = O  
+So v4: R O _ _ _  
+If v4 = ROSES → R O S E S. That fits start "RO".  
+
+Check: h3 letter4 = S, h4 letter4 = E, h5 letter4 = S.  
+h3 is A _ _ S _, h4 is S _ _ E _, h5 is S _ _ S _.  
+
+That seems possible.
+
+So one valid fill: v4. ROSES.
+
+**Final:**  
+v4. roses'
+[2026-11-01 22:56:15] [WARNING] [lits.components.policy.env_grounded] [POLICY] Invalid action (attempt 1/3): 'v2. HOGDEER'
+[2026-11-01 22:56:16] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 2/3): 'h3. artsy', retrying with temp=1.10
+[2026-11-01 22:56:23] [WARNING] [lits.components.policy.env_grounded] [POLICY] Invalid action (attempt 3/3): 'Let’s check the current board:
+
+```
+Row 1: A H O R E   (h1 = AHORE, filled)
+Row 2: M O T O R   (h2 = MOTOR, filled)
+Row 3: A _ _ _ _   (h3)
+Row 4: S _ _ _ _   (h4)
+Row 5: S _ _ _ _   (h5)
+```
+
+Vertical columns (cross-checking):
+- v1: A M A S S → "AMASS" fits "To heap" ✔
+- v2: H O _ _ _ → clue "Indian antelope" = **HOGDEER?** no, 5 letters, likely "HOGDEER" not right — antelope is "HOGDEER"? No, correct is "HOGDEER" isn’t 5 letters. Actually, "HOGDEER" is 7 letters. Indian antelope 5 letters = "HOGDEER" wrong; could be "HOGDEER"? No. Let’s think: "Indian antelope" = **NILGAI** (7 letters), "CHITAL" (6), "BLACKBUCK" (9). 5 letters? "SEROW" is 5 (a goat-antelope). But clue says HO___: starts with HO. Indian antelope starting with HO? **HOGDEER** isn’t 5 letters.
+
+Wait, maybe v2 pattern is H O _ _ _ from h1=A H O R E (2nd letter H), h2=MOTOR (2nd letter O). Yes: v2 is letters down col2: H (from h1), O (from h2), then h3 col2, h4 col2, h5 col2.
+
+So v2 clue: "An Indian antelope". 5 letters starting HO... possible spelling: **HOGDEER**? That's 7 letters. Another Indian antelope: **HOGDEER**? No. "HOGDEER" isn’t even a thing; maybe they mean "HOGDEER" = "Hog deer" (7 letters w/o space 7). This could be "HOGDEER" but irrelevant. 5 letters starting HO? Could be **HOGDEER** is not correct. Wait... Four-horned antelope = **CHOWSINGHA** (10 letters) no. Indian antelope: **BLACKBUCK**, **NILGAI**, **CHITAL**, **SAMBAR** (6), **CHINKARA** (8). None start "HO". Maybe "HOGDEER" is actually **HOGDEER**? Let's check: "Hog deer" is a species (Axis porcinus), 7 letters ignoring space, but maybe 5? No.
+
+Could it be "HOGDEER" is not right. Another approach: Perhaps h1 was wrongly changed? But specified filled.
+
+Another 5-letter Indian antelope? "SEROW" is 5 letters but starts SE not HO.
+
+Wait could v2 be from col2, h3, h4, h5 unknown. So maybe h3 col2 = O? then v2 = H O O _ _. Not likely.
+
+Let's focus instead: They ask choose ONE unfilled position and give a word matching its clue.
+
+Let’s examine h4: "A salon; a hall" = **SALON** itself is 5 letters but starts S. The clue word may be **SALON** (yes, a salon). Fits h4 = S _ _ _ _. So h4 could be "SALON". That would put col: h4 pos1=S matches.
+
+But check consonants with v3: v3 clue "To intend; to plan; to devise; a nettle; to guess" → 5 letters starting OT___ from h1col3=O, h2col3=T. Yes, v3 = O T _ _ _. Possible word: **OTTED**? No. Think: "To intend" = "aim", 3 letters. "To plan" = "devise". A nettle = "URTICA" (6). "To guess" = "think"? 5 letters: "OPINE" (starts OP not OT). Wait, we have O T...
+
+Possibly **OTTED**? not a word. What 5-letter word starts OT and means intend/plan/devise/nettle/guess? "OTTER"? No. Actually "To intend" = "mean". "Devise" = "think up". "Nettle" = "IRK"? 3. Could be "OTTED"? No.
+
+Actually, old word: "Ettle" means intend, but starts ET. But we have O T from first two'
+[2026-11-01 22:56:23] [ERROR] [lits.components.policy.env_grounded] Max retries (3) exceeded for action generation.
+[2026-11-01 22:56:30] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-01 22:56:30] [INFO] [lits.agents.tree.mcts] [Simulate] End
+[2026-11-01 22:56:30] [INFO] [lits.agents.tree.mcts] [Backpropagate] Begin
+[2026-11-01 22:56:30] [INFO] [lits.agents.tree.mcts] [Backpropagate] End
+
+                                                      [A[2026-11-01 22:56:30] [ERROR] [lits.benchmarks.runner] [0] repetition 0 failed: UnicodeEncodeError: 'gbk' codec can't encode character '\u2714' in position 285: illegal multibyte sequence. Continuing with remaining examples.
+Traceback (most recent call last):
+  File "D:\codex写5660作业\IndividualProject2\lits\benchmarks\runner.py", line 116, in run_benchmark
+    run_example(example, query_idx, repetition_index)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codex写5660作业\IndividualProject2\lits\benchmarks\search.py", line 262, in run_example
+    algo_output = search.run(query_or_goals, query_idx)
+  File "D:\codex写5660作业\IndividualProject2\lits\agents\tree\search_base.py", line 181, in run
+    return self.search(query, query_idx)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "D:\codex写5660作业\IndividualProject2\lits\agents\tree\mcts.py", line 1103, in search
+    self._finalize_iteration(
+    ~~~~~~~~~~~~~~~~~~~~~~~~^
+        path, query_idx, idx_iter, trace_in_each_iter, from_phase="simulate",
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        on_trajectory_complete=on_trajectory_complete,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\codex写5660作业\IndividualProject2\lits\agents\tree\mcts.py", line 871, in _finalize_iteration
+    self.save_checkpoint(query_idx, iteration, _serialize_obj(path))
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\codex写5660作业\IndividualProject2\lits\agents\tree\search_base.py", line 300, in save_checkpoint
+    json.dump(data, f, indent=2, ensure_ascii=False)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\python\Lib\json\__init__.py", line 182, in dump
+    fp.write(chunk)
+    ~~~~~~~~^^^^^^^
+UnicodeEncodeError: 'gbk' codec can't encode character '\u2714' in position 285: illegal multibyte sequence
+100%|██████████| 1/1 [00:57<00:00, 57.35s/it]100%|██████████| 1/1 [00:57<00:00, 57.35s/it]
+[2026-11-01 22:56:30] [INFO] [root] Total time: 57.355090618133545
+[2026-11-01 22:56:30] [INFO] [root] default: 	 {'num_calls': 0, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'running_time': 0, 'total_hours': 0.0}
+[2026-11-01 22:56:30] [INFO] [root] dynamics: 	 {'num_calls': 0, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'running_time': 0, 'total_hours': 0.0}
+[2026-11-01 22:56:30] [INFO] [root] policy: 	 {'num_calls': 20, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 5815, 'output_tokens': 1916, 'running_time': 37.49896693229675, 'total_hours': 0.010416379703415765}
+[2026-11-01 22:56:30] [INFO] [root] evaluator: 	 {'num_calls': 0, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'running_time': 0, 'total_hours': 0.0}
+[2026-11-01 22:56:30] [INFO] [root] prm: 	 {'num_calls': 12, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 6042, 'output_tokens': 12, 'running_time': 19.773393154144287, 'total_hours': 0.005492609209484524}
+[2026-11-01 22:56:30] [INFO] [root] bn_eval: 	 {'num_calls': 0, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'running_time': 0, 'total_hours': 0.0}
+[2026-11-01 22:56:30] [INFO] [root] bn_entropy: 	 {'num_calls': 0, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'running_time': 0, 'total_hours': 0.0}
+[2026-11-01 22:56:30] [INFO] [root] memory: 	 {'num_calls': 0, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'running_time': 0, 'total_hours': 0.0}
+[2026-11-01 22:56:30] [INFO] [root] augmentor: 	 {'num_calls': 0, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'running_time': 0, 'total_hours': 0.0}
+[2026-11-01 22:56:30] [INFO] [lits.eval.llm_call_logger] Loaded 20 records from D:\codex写5660作业\IndividualProject2\reproduction\runs\iter30_seed41/llm_calls.jsonl
+[2026-11-01 22:56:30] [INFO] [lits.eval.llm_call_logger] ======================================================================
+[2026-11-01 22:56:30] [INFO] [lits.eval.llm_call_logger] LLM Call Diversity Report
+[2026-11-01 22:56:30] [INFO] [lits.eval.llm_call_logger] ======================================================================
+[2026-11-01 22:56:30] [INFO] [lits.eval.llm_call_logger] Unique states visited: 4
+[2026-11-01 22:56:30] [INFO] [lits.eval.llm_call_logger] Avg. policy calls per state: 5.0
+[2026-11-01 22:56:30] [INFO] [lits.eval.llm_call_logger] Dup. rate (all): 40.0%
+[2026-11-01 22:56:30] [INFO] [lits.eval.llm_call_logger] Dup. rate (correct): 0.0%
+[2026-11-01 22:56:30] [INFO] [lits.eval.llm_call_logger] Dup. rate (incorrect): 40.0%
+[2026-11-01 22:56:30] [INFO] [lits.eval.llm_call_logger] Per-prompt breakdown:
+[2026-11-01 22:56:30] [INFO] [lits.eval.llm_call_logger] Prompt       Total  Uniq   Dup%     Corr   CorrDup%  IncDup% 
+[2026-11-01 22:56:30] [INFO] [lits.eval.llm_call_logger] -------------------------------------------------------------
+[2026-11-01 22:56:30] [INFO] [lits.eval.llm_call_logger] eee55532329b 7      1      85.7%   0      N/A       85.7%
+[2026-11-01 22:56:30] [INFO] [lits.eval.llm_call_logger] 007e30ec0daf 3      2      33.3%   0      N/A       33.3%
+[2026-11-01 22:56:30] [INFO] [lits.eval.llm_call_logger] f657c2f8ea7f 6      5      16.7%   0      N/A       16.7%
+[2026-11-01 22:56:30] [INFO] [lits.eval.llm_call_logger] 581e301c5b29 4      4      0.0%   0      N/A       0.0%
+[2026-11-01 22:56:30] [INFO] [lits.eval.llm_call_logger] ======================================================================
+[2026-11-01 22:56:30] [INFO] [root] Tree search complete. Terminal nodes saved to D:\codex写5660作业\IndividualProject2\reproduction\runs\iter30_seed41/terminal_nodes/
+[2026-11-01 22:56:30] [INFO] [root] Run lits-eval to extract answers and compute accuracy.
+Auto-loaded import_modules from config: ['lits_benchmark.crosswords']
+Auto-loaded dataset_kwargs from config: {'data_file': 'D:\\codex写5660作业\\IndividualProject2\\demos\\crosswords\\data\\mini0505.json'}
+Auto-loaded dataset_name from config: crosswords
+Auto-loaded eval_model_name from config: openai/deepseek-v4-flash
+Evaluation log saved to: D:\codex写5660作业\IndividualProject2\reproduction\runs\iter30_seed41\eval.log

@@ -40,3 +40,5 @@ Thumbs.db
 # mypy
 .mypy_cache/
 jobs/
+.presentation-build/
+.pdf-preview/

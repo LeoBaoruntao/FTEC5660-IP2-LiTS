@@ -1,0 +1,121 @@
+[
+  {
+    "id": 0,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh3. Pretentious; flowery: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: _____\nv2. An Indian antelope: _____\nv3. To intend; to plan; to devise; a nettle; to guess: _____\nv4. A nozzle: _____\nv5. Desiccator; more dry: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": "AGEND\nMOTOR\nARTSY\nSALLE\nSLEER\nAMASS\nGORAL\nETTLE\nNOSLE\nDRYER",
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": -1.0,
+    "trajectory_key": {
+      "search_id": "0_1793544994",
+      "indices": [],
+      "root_token": "q"
+    },
+    "from_simulate": false,
+    "is_simulated": false,
+    "from_expand": false,
+    "cum_rewards": [
+      0.03125,
+      0.00833333333333334,
+      -0.019999999999999997
+    ],
+    "visit_count": 3,
+    "from_continuation": false
+  },
+  {
+    "id": 1,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "h3. tonya",
+          "next_state": "Current Board:\n_____\n_____\nTONYA\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: __T__\nv2. An Indian antelope: __O__\nv3. To intend; to plan; to devise; a nettle; to guess: __N__\nv4. A nozzle: __Y__\nv5. Desiccator; more dry: __A__\n\nFilled:\nh3. Pretentious; flowery: TONYA\n\nChanged:\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh3. Pretentious; flowery: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: _____\nv2. An Indian antelope: _____\nv3. To intend; to plan; to devise; a nettle; to guess: _____\nv4. A nozzle: _____\nv5. Desiccator; more dry: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "h3. tonya",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.0,
+    "trajectory_key": {
+      "search_id": "0_1793544994",
+      "indices": [
+        0
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "action": "h3. tonya"
+    },
+    "from_simulate": false,
+    "is_simulated": false,
+    "from_expand": true,
+    "cum_rewards": [
+      0.20999999999999996
+    ],
+    "visit_count": 1,
+    "from_continuation": false
+  },
+  {
+    "id": 23,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "h3. tonya",
+          "next_state": "Current Board:\n_____\n_____\nTONYA\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: __T__\nv2. An Indian antelope: __O__\nv3. To intend; to plan; to devise; a nettle; to guess: __N__\nv4. A nozzle: __Y__\nv5. Desiccator; more dry: __A__\n\nFilled:\nh3. Pretentious; flowery: TONYA\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h3. TONYA is already filled, but the clue \"Pretentious; flowery\" suggests the word might be \"tony\" (as in stylish/pretentious), but 5 letters... Actually \"TONYA\" doesn't match \"pretentious; flowery\". Wait ！ maybe it's a mistake, but I'll focus on an unfilled position.\n\nLet's take v1: \"To heap\" = AMASS. Pattern __T__ ★ AMASS has T as 3rd letter? A-M-A-S-S: 3rd letter is A, not T. So no.\n\nv2: \"An Indian antelope\" = NILGA? No, that's 5 letters: N-I-L-G-A. Pattern __O__ ★ 3rd letter O? NILGA's 3rd is L. No.  \n\"Indian antelope\" = CHIKARA? No, that's 7. \"Blackbuck\" is 9.  \n\"Indian antelope\" 5 letters: \"NILGAI\" is 6. \"CHINKARA\" no. Maybe \"SEROW\"? That's 5, but 3rd letter R, not O.  \n\nWait, 5-letter Indian antelope: \"GORAL\" is 5 ！ G-O-R-A-L. 3rd letter R, not O.  \n\"CHITAL\" is 6. \"SAMBHAR\" no.  \n\"MOUSE deer\" no.\n\nActually 5-letter: \"ORIBI\" is 5 ！ O-R-I-B-I. 3rd letter I, not O.\n\nLet me think: v2 pattern __O__ means 3rd letter is O.\n\nIndian antelope 5 letters with 3rd letter O:  \n\"FOUR-horned antelope\" = CHOUSINGHA no.  \n\"Nilgai\" = NILGAI (6).  \n\"Chikara\" = CHIKARA (7).  \n\"Gazelle\" no.\n\nMaybe \"An Indian antelope\" = \"BLACKBUCK\" no.  \n5 letters: \"SASIN\"? No.\n\nWhat about \"ANTELOPE\" itself? No.\n\nMaybe \"GORAL\" ！ G-O-R-A-L ！ 3rd is R. Not O.\n\nWait ！ \"Indian antelope\" might be \"NILGAU\" ！ N-I-L-G-A-U (6). No.\n\n\"Chousingha\" no.\n\nPerhaps \"Indian antelope\" = \"CHIKARA\" no.\n\nLet me think of \"blackbuck\" = \"ANTILOPE\" no.\n\nMaybe \"Indian antelope\" = \"KOB\"? That's 3.\n\n\"Oribi\" = O-R-I-B-I: 3rd is I.\n\n\"Four-horned antelope\" = \"CHOWSINGHA\" no.\n\nMaybe \"Indian antelope\" is \"SEROW\" ！ S-E-R-O-W ！ 3rd is R. No.\n\nWait ！ pattern __O__ means letters 1,2,4,5 unknown, 3rd is O.\n\nCould it be \"GAZAL\"? No, that's not Indian.\n\nWhat about \"MOOR\"? No.\n\nLet's try \"Indian antelope\" = \"PADA\"? No.\n\nMaybe it's \"BLACKBUCK\" but that's 9 letters.\n\nWhat about \"NILGAI\" is 6.\n\n\"Chinkara\" = 8.\n\nWait ！ \"Indian antelope\" might be \"TSEBE\"? No.\n\nLet me try v3: \"To intend; to plan; to devise; a nettle; to guess\" ！ pattern __N__ ★ 3rd letter N.\n\n5-letter word: \"MEAN\"? No, that's 4.  \n\"PURPOSE\" no.  \n\"INTEND\" no.  \n\"A nettle\" = \"STING\"? No.  \n\"To guess\" = \"THINK\"? No.  \n\"Devise\" = \"PLAN\" no.\n\nWait ！ \"a nettle\" ！ the plant is \"URTICA\" no.  \n\"To intend\" = \"MEAN\" (4).  \n\"To plan\" = \"PLOT\" (4).  \n\"To devise\" = \"FRAME\"? No.\n\nPattern __N__ ★ 3rd letter N.\n\n5 letters:  \n\"PLANN\"? No.  \n\"MEANT\" ！ M-E-A-N-T ！ 3rd is A. No.  \n\"THINK\" ！ T-H-I-N-K ！ 3rd is I. No.  \n\"MEANY\"? No.\n\nWait ！ \"a nettle\" ！ the plant is \"DEADNETTLE\" no.  \nMaybe the word is \"NETTLE\" itself? That's 6.  \n\"To guess\" = \"SURMISE\" no.  \n\"To intend\" = \"PURPOSE\" no",
+          "next_state": "Current Board:\n_____\n_____\nTONYA\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: __T__\nv2. An Indian antelope: __O__\nv3. To intend; to plan; to devise; a nettle; to guess: __N__\nv4. A nozzle: __Y__\nv5. Desiccator; more dry: __A__\n\nFilled:\nh3. Pretentious; flowery: TONYA\n\nChanged:\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh3. Pretentious; flowery: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: _____\nv2. An Indian antelope: _____\nv3. To intend; to plan; to devise; a nettle; to guess: _____\nv4. A nozzle: _____\nv5. Desiccator; more dry: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "h3. TONYA is already filled, but the clue \"Pretentious; flowery\" suggests the word might be \"tony\" (as in stylish/pretentious), but 5 letters... Actually \"TONYA\" doesn't match \"pretentious; flowery\". Wait ！ maybe it's a mistake, but I'll focus on an unfilled position.\n\nLet's take v1: \"To heap\" = AMASS. Pattern __T__ ★ AMASS has T as 3rd letter? A-M-A-S-S: 3rd letter is A, not T. So no.\n\nv2: \"An Indian antelope\" = NILGA? No, that's 5 letters: N-I-L-G-A. Pattern __O__ ★ 3rd letter O? NILGA's 3rd is L. No.  \n\"Indian antelope\" = CHIKARA? No, that's 7. \"Blackbuck\" is 9.  \n\"Indian antelope\" 5 letters: \"NILGAI\" is 6. \"CHINKARA\" no. Maybe \"SEROW\"? That's 5, but 3rd letter R, not O.  \n\nWait, 5-letter Indian antelope: \"GORAL\" is 5 ！ G-O-R-A-L. 3rd letter R, not O.  \n\"CHITAL\" is 6. \"SAMBHAR\" no.  \n\"MOUSE deer\" no.\n\nActually 5-letter: \"ORIBI\" is 5 ！ O-R-I-B-I. 3rd letter I, not O.\n\nLet me think: v2 pattern __O__ means 3rd letter is O.\n\nIndian antelope 5 letters with 3rd letter O:  \n\"FOUR-horned antelope\" = CHOUSINGHA no.  \n\"Nilgai\" = NILGAI (6).  \n\"Chikara\" = CHIKARA (7).  \n\"Gazelle\" no.\n\nMaybe \"An Indian antelope\" = \"BLACKBUCK\" no.  \n5 letters: \"SASIN\"? No.\n\nWhat about \"ANTELOPE\" itself? No.\n\nMaybe \"GORAL\" ！ G-O-R-A-L ！ 3rd is R. Not O.\n\nWait ！ \"Indian antelope\" might be \"NILGAU\" ！ N-I-L-G-A-U (6). No.\n\n\"Chousingha\" no.\n\nPerhaps \"Indian antelope\" = \"CHIKARA\" no.\n\nLet me think of \"blackbuck\" = \"ANTILOPE\" no.\n\nMaybe \"Indian antelope\" = \"KOB\"? That's 3.\n\n\"Oribi\" = O-R-I-B-I: 3rd is I.\n\n\"Four-horned antelope\" = \"CHOWSINGHA\" no.\n\nMaybe \"Indian antelope\" is \"SEROW\" ！ S-E-R-O-W ！ 3rd is R. No.\n\nWait ！ pattern __O__ means letters 1,2,4,5 unknown, 3rd is O.\n\nCould it be \"GAZAL\"? No, that's not Indian.\n\nWhat about \"MOOR\"? No.\n\nLet's try \"Indian antelope\" = \"PADA\"? No.\n\nMaybe it's \"BLACKBUCK\" but that's 9 letters.\n\nWhat about \"NILGAI\" is 6.\n\n\"Chinkara\" = 8.\n\nWait ！ \"Indian antelope\" might be \"TSEBE\"? No.\n\nLet me try v3: \"To intend; to plan; to devise; a nettle; to guess\" ！ pattern __N__ ★ 3rd letter N.\n\n5-letter word: \"MEAN\"? No, that's 4.  \n\"PURPOSE\" no.  \n\"INTEND\" no.  \n\"A nettle\" = \"STING\"? No.  \n\"To guess\" = \"THINK\"? No.  \n\"Devise\" = \"PLAN\" no.\n\nWait ！ \"a nettle\" ！ the plant is \"URTICA\" no.  \n\"To intend\" = \"MEAN\" (4).  \n\"To plan\" = \"PLOT\" (4).  \n\"To devise\" = \"FRAME\"? No.\n\nPattern __N__ ★ 3rd letter N.\n\n5 letters:  \n\"PLANN\"? No.  \n\"MEANT\" ！ M-E-A-N-T ！ 3rd is A. No.  \n\"THINK\" ！ T-H-I-N-K ！ 3rd is I. No.  \n\"MEANY\"? No.\n\nWait ！ \"a nettle\" ！ the plant is \"DEADNETTLE\" no.  \nMaybe the word is \"NETTLE\" itself? That's 6.  \n\"To guess\" = \"SURMISE\" no.  \n\"To intend\" = \"PURPOSE\" no",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.0,
+    "trajectory_key": {
+      "search_id": "0_1793544994",
+      "indices": [
+        0,
+        1
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "error": "Validation failed after 3 retries",
+      "terminate": true,
+      "action": "h3. TONYA is already filled, but the clue \"Pretentious; flowery\" suggests the word might be \"tony\" (as in stylish/pretentious), but 5 letters... Actually \"TONYA\" doesn't match \"pretentious; flowery\". Wait ！ maybe it's a mistake, but I'll focus on an unfilled position.\n\nLet's take v1: \"To heap\" = AMASS. Pattern __T__ ★ AMASS has T as 3rd letter? A-M-A-S-S: 3rd letter is A, not T. So no.\n\nv2: \"An Indian antelope\" = NILGA? No, that's 5 letters: N-I-L-G-A. Pattern __O__ ★ 3rd letter O? NILGA's 3rd is L. No.  \n\"Indian antelope\" = CHIKARA? No, that's 7. \"Blackbuck\" is 9.  \n\"Indian antelope\" 5 letters: \"NILGAI\" is 6. \"CHINKARA\" no. Maybe \"SEROW\"? That's 5, but 3rd letter R, not O.  \n\nWait, 5-letter Indian antelope: \"GORAL\" is 5 ！ G-O-R-A-L. 3rd letter R, not O.  \n\"CHITAL\" is 6. \"SAMBHAR\" no.  \n\"MOUSE deer\" no.\n\nActually 5-letter: \"ORIBI\" is 5 ！ O-R-I-B-I. 3rd letter I, not O.\n\nLet me think: v2 pattern __O__ means 3rd letter is O.\n\nIndian antelope 5 letters with 3rd letter O:  \n\"FOUR-horned antelope\" = CHOUSINGHA no.  \n\"Nilgai\" = NILGAI (6).  \n\"Chikara\" = CHIKARA (7).  \n\"Gazelle\" no.\n\nMaybe \"An Indian antelope\" = \"BLACKBUCK\" no.  \n5 letters: \"SASIN\"? No.\n\nWhat about \"ANTELOPE\" itself? No.\n\nMaybe \"GORAL\" ！ G-O-R-A-L ！ 3rd is R. Not O.\n\nWait ！ \"Indian antelope\" might be \"NILGAU\" ！ N-I-L-G-A-U (6). No.\n\n\"Chousingha\" no.\n\nPerhaps \"Indian antelope\" = \"CHIKARA\" no.\n\nLet me think of \"blackbuck\" = \"ANTILOPE\" no.\n\nMaybe \"Indian antelope\" = \"KOB\"? That's 3.\n\n\"Oribi\" = O-R-I-B-I: 3rd is I.\n\n\"Four-horned antelope\" = \"CHOWSINGHA\" no.\n\nMaybe \"Indian antelope\" is \"SEROW\" ！ S-E-R-O-W ！ 3rd is R. No.\n\nWait ！ pattern __O__ means letters 1,2,4,5 unknown, 3rd is O.\n\nCould it be \"GAZAL\"? No, that's not Indian.\n\nWhat about \"MOOR\"? No.\n\nLet's try \"Indian antelope\" = \"PADA\"? No.\n\nMaybe it's \"BLACKBUCK\" but that's 9 letters.\n\nWhat about \"NILGAI\" is 6.\n\n\"Chinkara\" = 8.\n\nWait ！ \"Indian antelope\" might be \"TSEBE\"? No.\n\nLet me try v3: \"To intend; to plan; to devise; a nettle; to guess\" ！ pattern __N__ ★ 3rd letter N.\n\n5-letter word: \"MEAN\"? No, that's 4.  \n\"PURPOSE\" no.  \n\"INTEND\" no.  \n\"A nettle\" = \"STING\"? No.  \n\"To guess\" = \"THINK\"? No.  \n\"Devise\" = \"PLAN\" no.\n\nWait ！ \"a nettle\" ！ the plant is \"URTICA\" no.  \n\"To intend\" = \"MEAN\" (4).  \n\"To plan\" = \"PLOT\" (4).  \n\"To devise\" = \"FRAME\"? No.\n\nPattern __N__ ★ 3rd letter N.\n\n5 letters:  \n\"PLANN\"? No.  \n\"MEANT\" ！ M-E-A-N-T ！ 3rd is A. No.  \n\"THINK\" ！ T-H-I-N-K ！ 3rd is I. No.  \n\"MEANY\"? No.\n\nWait ！ \"a nettle\" ！ the plant is \"DEADNETTLE\" no.  \nMaybe the word is \"NETTLE\" itself? That's 6.  \n\"To guess\" = \"SURMISE\" no.  \n\"To intend\" = \"PURPOSE\" no"
+    },
+    "from_simulate": false,
+    "is_simulated": false,
+    "from_expand": true,
+    "cum_rewards": [],
+    "visit_count": 0,
+    "from_continuation": false
+  }
+]

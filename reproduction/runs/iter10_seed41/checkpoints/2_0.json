@@ -1,0 +1,373 @@
+[
+  {
+    "id": 0,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. A male friend: _____\nh2. Something big and important: _____\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: _____\nv2. A craze: _____\nv3. To force; to drive: _____\nv4. To dig out roughly: _____\nv5. On the outside: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": "AMIGO\nMAMOU\nINPUT\nSIEGE\nHALER\nAMISH\nMANIA\nIMPEL\nGOUGE\nOUTER",
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": -1.0,
+    "trajectory_key": {
+      "search_id": "2_1793588341",
+      "indices": [],
+      "root_token": "q"
+    },
+    "from_simulate": false,
+    "is_simulated": false,
+    "from_expand": false,
+    "cum_rewards": [
+      0.06071428571428571
+    ],
+    "visit_count": 1,
+    "from_continuation": false
+  },
+  {
+    "id": 1,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "h1. buddy",
+          "next_state": "Current Board:\nBUDDY\n_____\n_____\n_____\n_____\n\nUnfilled:\nh2. Something big and important: _____\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: B____\nv2. A craze: U____\nv3. To force; to drive: D____\nv4. To dig out roughly: D____\nv5. On the outside: Y____\n\nFilled:\nh1. A male friend: BUDDY\n\nChanged:\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. A male friend: _____\nh2. Something big and important: _____\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: _____\nv2. A craze: _____\nv3. To force; to drive: _____\nv4. To dig out roughly: _____\nv5. On the outside: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "h1. buddy",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.5,
+    "trajectory_key": {
+      "search_id": "2_1793588341",
+      "indices": [
+        0
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "action": "h1. buddy"
+    },
+    "from_simulate": false,
+    "is_simulated": true,
+    "from_expand": true,
+    "cum_rewards": [
+      0.23750000000000004
+    ],
+    "visit_count": 1,
+    "from_continuation": false
+  },
+  {
+    "id": 4,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "h1. buddy",
+          "next_state": "Current Board:\nBUDDY\n_____\n_____\n_____\n_____\n\nUnfilled:\nh2. Something big and important: _____\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: B____\nv2. A craze: U____\nv3. To force; to drive: D____\nv4. To dig out roughly: D____\nv5. On the outside: Y____\n\nFilled:\nh1. A male friend: BUDDY\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "v1. Amish",
+          "next_state": "Current Board:\nAUDDY\nM____\nI____\nS____\nH____\n\nUnfilled:\nh2. Something big and important: M____\nh3. Things that enter; data given to a computer program: I____\nh4. To besiege: S____\nh5. More healthy; a coin: H____\nv2. A craze: U____\nv3. To force; to drive: D____\nv4. To dig out roughly: D____\nv5. On the outside: Y____\n\nFilled:\nv1. A Mennonite sect, named for Jacob Ammann: AMISH\n\nChanged:\nh1. A male friend: AUDDY\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. A male friend: _____\nh2. Something big and important: _____\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: _____\nv2. A craze: _____\nv3. To force; to drive: _____\nv4. To dig out roughly: _____\nv5. On the outside: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "v1. Amish",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.5,
+    "trajectory_key": {
+      "search_id": "2_1793588341",
+      "indices": [
+        0,
+        0
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "action": "v1. Amish"
+    },
+    "from_simulate": true,
+    "is_simulated": true,
+    "from_expand": false,
+    "cum_rewards": [
+      0.23500000000000001
+    ],
+    "visit_count": 1,
+    "from_continuation": false
+  },
+  {
+    "id": 8,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "h1. buddy",
+          "next_state": "Current Board:\nBUDDY\n_____\n_____\n_____\n_____\n\nUnfilled:\nh2. Something big and important: _____\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: B____\nv2. A craze: U____\nv3. To force; to drive: D____\nv4. To dig out roughly: D____\nv5. On the outside: Y____\n\nFilled:\nh1. A male friend: BUDDY\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "v1. Amish",
+          "next_state": "Current Board:\nAUDDY\nM____\nI____\nS____\nH____\n\nUnfilled:\nh2. Something big and important: M____\nh3. Things that enter; data given to a computer program: I____\nh4. To besiege: S____\nh5. More healthy; a coin: H____\nv2. A craze: U____\nv3. To force; to drive: D____\nv4. To dig out roughly: D____\nv5. On the outside: Y____\n\nFilled:\nv1. A Mennonite sect, named for Jacob Ammann: AMISH\n\nChanged:\nh1. A male friend: AUDDY\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h2. major",
+          "next_state": "Current Board:\nAUDDY\nMAJOR\nI____\nS____\nH____\n\nUnfilled:\nh3. Things that enter; data given to a computer program: I____\nh4. To besiege: S____\nh5. More healthy; a coin: H____\nv2. A craze: UA___\nv3. To force; to drive: DJ___\nv4. To dig out roughly: DO___\nv5. On the outside: YR___\n\nFilled:\nh2. Something big and important: MAJOR\nv1. A Mennonite sect, named for Jacob Ammann: AMISH\n\nChanged:\nh1. A male friend: AUDDY\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. A male friend: _____\nh2. Something big and important: _____\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: _____\nv2. A craze: _____\nv3. To force; to drive: _____\nv4. To dig out roughly: _____\nv5. On the outside: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "h2. major",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.5,
+    "trajectory_key": {
+      "search_id": "2_1793588341",
+      "indices": [
+        0,
+        0,
+        1
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "action": "h2. major"
+    },
+    "from_simulate": true,
+    "is_simulated": true,
+    "from_expand": false,
+    "cum_rewards": [
+      0.21875
+    ],
+    "visit_count": 1,
+    "from_continuation": false
+  },
+  {
+    "id": 10,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "h1. buddy",
+          "next_state": "Current Board:\nBUDDY\n_____\n_____\n_____\n_____\n\nUnfilled:\nh2. Something big and important: _____\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: B____\nv2. A craze: U____\nv3. To force; to drive: D____\nv4. To dig out roughly: D____\nv5. On the outside: Y____\n\nFilled:\nh1. A male friend: BUDDY\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "v1. Amish",
+          "next_state": "Current Board:\nAUDDY\nM____\nI____\nS____\nH____\n\nUnfilled:\nh2. Something big and important: M____\nh3. Things that enter; data given to a computer program: I____\nh4. To besiege: S____\nh5. More healthy; a coin: H____\nv2. A craze: U____\nv3. To force; to drive: D____\nv4. To dig out roughly: D____\nv5. On the outside: Y____\n\nFilled:\nv1. A Mennonite sect, named for Jacob Ammann: AMISH\n\nChanged:\nh1. A male friend: AUDDY\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h2. major",
+          "next_state": "Current Board:\nAUDDY\nMAJOR\nI____\nS____\nH____\n\nUnfilled:\nh3. Things that enter; data given to a computer program: I____\nh4. To besiege: S____\nh5. More healthy; a coin: H____\nv2. A craze: UA___\nv3. To force; to drive: DJ___\nv4. To dig out roughly: DO___\nv5. On the outside: YR___\n\nFilled:\nh2. Something big and important: MAJOR\nv1. A Mennonite sect, named for Jacob Ammann: AMISH\n\nChanged:\nh1. A male friend: AUDDY\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h3. input",
+          "next_state": "Current Board:\nAUDDY\nMAJOR\nINPUT\nS____\nH____\n\nUnfilled:\nh4. To besiege: S____\nh5. More healthy; a coin: H____\nv2. A craze: UAN__\nv3. To force; to drive: DJP__\nv4. To dig out roughly: DOU__\nv5. On the outside: YRT__\n\nFilled:\nh2. Something big and important: MAJOR\nh3. Things that enter; data given to a computer program: INPUT\nv1. A Mennonite sect, named for Jacob Ammann: AMISH\n\nChanged:\nh1. A male friend: AUDDY\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. A male friend: _____\nh2. Something big and important: _____\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: _____\nv2. A craze: _____\nv3. To force; to drive: _____\nv4. To dig out roughly: _____\nv5. On the outside: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "h3. input",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.5,
+    "trajectory_key": {
+      "search_id": "2_1793588341",
+      "indices": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "action": "h3. input"
+    },
+    "from_simulate": true,
+    "is_simulated": true,
+    "from_expand": false,
+    "cum_rewards": [
+      0.19166666666666665
+    ],
+    "visit_count": 1,
+    "from_continuation": false
+  },
+  {
+    "id": 13,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "h1. buddy",
+          "next_state": "Current Board:\nBUDDY\n_____\n_____\n_____\n_____\n\nUnfilled:\nh2. Something big and important: _____\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: B____\nv2. A craze: U____\nv3. To force; to drive: D____\nv4. To dig out roughly: D____\nv5. On the outside: Y____\n\nFilled:\nh1. A male friend: BUDDY\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "v1. Amish",
+          "next_state": "Current Board:\nAUDDY\nM____\nI____\nS____\nH____\n\nUnfilled:\nh2. Something big and important: M____\nh3. Things that enter; data given to a computer program: I____\nh4. To besiege: S____\nh5. More healthy; a coin: H____\nv2. A craze: U____\nv3. To force; to drive: D____\nv4. To dig out roughly: D____\nv5. On the outside: Y____\n\nFilled:\nv1. A Mennonite sect, named for Jacob Ammann: AMISH\n\nChanged:\nh1. A male friend: AUDDY\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h2. major",
+          "next_state": "Current Board:\nAUDDY\nMAJOR\nI____\nS____\nH____\n\nUnfilled:\nh3. Things that enter; data given to a computer program: I____\nh4. To besiege: S____\nh5. More healthy; a coin: H____\nv2. A craze: UA___\nv3. To force; to drive: DJ___\nv4. To dig out roughly: DO___\nv5. On the outside: YR___\n\nFilled:\nh2. Something big and important: MAJOR\nv1. A Mennonite sect, named for Jacob Ammann: AMISH\n\nChanged:\nh1. A male friend: AUDDY\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h3. input",
+          "next_state": "Current Board:\nAUDDY\nMAJOR\nINPUT\nS____\nH____\n\nUnfilled:\nh4. To besiege: S____\nh5. More healthy; a coin: H____\nv2. A craze: UAN__\nv3. To force; to drive: DJP__\nv4. To dig out roughly: DOU__\nv5. On the outside: YRT__\n\nFilled:\nh2. Something big and important: MAJOR\nh3. Things that enter; data given to a computer program: INPUT\nv1. A Mennonite sect, named for Jacob Ammann: AMISH\n\nChanged:\nh1. A male friend: AUDDY\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "v4. DUGUP",
+          "next_state": "Current Board:\nAUDDY\nMAJUR\nINPGT\nS__U_\nH__P_\n\nUnfilled:\nh4. To besiege: S__U_\nh5. More healthy; a coin: H__P_\nv2. A craze: UAN__\nv3. To force; to drive: DJP__\nv5. On the outside: YRT__\n\nFilled:\nv1. A Mennonite sect, named for Jacob Ammann: AMISH\nv4. To dig out roughly: DUGUP\n\nChanged:\nh1. A male friend: AUDDY\nh2. Something big and important: MAJUR\nh3. Things that enter; data given to a computer program: INPGT\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. A male friend: _____\nh2. Something big and important: _____\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: _____\nv2. A craze: _____\nv3. To force; to drive: _____\nv4. To dig out roughly: _____\nv5. On the outside: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "v4. DUGUP",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.0,
+    "trajectory_key": {
+      "search_id": "2_1793588341",
+      "indices": [
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "action": "v4. DUGUP"
+    },
+    "from_simulate": true,
+    "is_simulated": true,
+    "from_expand": false,
+    "cum_rewards": [
+      0.11249999999999999
+    ],
+    "visit_count": 1,
+    "from_continuation": false
+  },
+  {
+    "id": 18,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "h1. buddy",
+          "next_state": "Current Board:\nBUDDY\n_____\n_____\n_____\n_____\n\nUnfilled:\nh2. Something big and important: _____\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: B____\nv2. A craze: U____\nv3. To force; to drive: D____\nv4. To dig out roughly: D____\nv5. On the outside: Y____\n\nFilled:\nh1. A male friend: BUDDY\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "v1. Amish",
+          "next_state": "Current Board:\nAUDDY\nM____\nI____\nS____\nH____\n\nUnfilled:\nh2. Something big and important: M____\nh3. Things that enter; data given to a computer program: I____\nh4. To besiege: S____\nh5. More healthy; a coin: H____\nv2. A craze: U____\nv3. To force; to drive: D____\nv4. To dig out roughly: D____\nv5. On the outside: Y____\n\nFilled:\nv1. A Mennonite sect, named for Jacob Ammann: AMISH\n\nChanged:\nh1. A male friend: AUDDY\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h2. major",
+          "next_state": "Current Board:\nAUDDY\nMAJOR\nI____\nS____\nH____\n\nUnfilled:\nh3. Things that enter; data given to a computer program: I____\nh4. To besiege: S____\nh5. More healthy; a coin: H____\nv2. A craze: UA___\nv3. To force; to drive: DJ___\nv4. To dig out roughly: DO___\nv5. On the outside: YR___\n\nFilled:\nh2. Something big and important: MAJOR\nv1. A Mennonite sect, named for Jacob Ammann: AMISH\n\nChanged:\nh1. A male friend: AUDDY\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h3. input",
+          "next_state": "Current Board:\nAUDDY\nMAJOR\nINPUT\nS____\nH____\n\nUnfilled:\nh4. To besiege: S____\nh5. More healthy; a coin: H____\nv2. A craze: UAN__\nv3. To force; to drive: DJP__\nv4. To dig out roughly: DOU__\nv5. On the outside: YRT__\n\nFilled:\nh2. Something big and important: MAJOR\nh3. Things that enter; data given to a computer program: INPUT\nv1. A Mennonite sect, named for Jacob Ammann: AMISH\n\nChanged:\nh1. A male friend: AUDDY\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "v4. DUGUP",
+          "next_state": "Current Board:\nAUDDY\nMAJUR\nINPGT\nS__U_\nH__P_\n\nUnfilled:\nh4. To besiege: S__U_\nh5. More healthy; a coin: H__P_\nv2. A craze: UAN__\nv3. To force; to drive: DJP__\nv5. On the outside: YRT__\n\nFilled:\nv1. A Mennonite sect, named for Jacob Ammann: AMISH\nv4. To dig out roughly: DUGUP\n\nChanged:\nh1. A male friend: AUDDY\nh2. Something big and important: MAJUR\nh3. Things that enter; data given to a computer program: INPGT\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "Let's go step by step.\n\nThe filled board:\n\n```\nA U D D Y   (h1)\nM A J U R   (h2)\nI N P G T   (h3)\nS _ _ U _   (h4)\nH _ _ P _   (h5)\n```\n\nFilled verticals:  \nv1 = AMISH (col 1: A M I S H), OK  \nv4 = DUGUP (col 4: D U G U P), OK  \n\nUnfilled clues:  \n\n**h4**: To besiege → S _ _ U _  \nPossible 5-letter word: \"SIEGE\"? That's 5 letters: S I E G E — needs _ _ U _ pattern? No, third letter needs to be U. \"SURROUND\"? Not 5 letters. Wait, could be \"STUCK\"? No that’s not fitting. Let's check verticals to deduce.\n\nColumn 2 is v2 clue: A craze: U A N _ _ — currently col 2 has U (from h1: A**U**DDY), A (h2: M**A**JUR), N (h3: I**N**PGT), then unknown from h4, unknown from h5.\n\nCurrently v2: U A N _ _. \"UAN??\" doesn’t match a 5-letter word starting with UAN. Wait, maybe the first letter in v2 comes from h1, which is U? Yes. But \"craze\" — \"MANIA\" is 5 letters: M A N I A? That’s M A N I A — but v2 first letter is U, not M. So maybe h1 is wrong? But h1 given as AUDDY… so col2 row1 = U.  \n\nThat means v2 possibly: U A N _ _ — weird. Unless it's \"UAN??\" Maybe the clue \"A craze\" = \"FAD\"? But that's 3 letters.\n\nActually \"A craze\" = \"MANIA\". But there is mismatch with U in first position. So maybe something's off—maybe v2 is not MANIA if initial is U. But h1 clue given is \"A male friend\" = ? AUDDY is 5 letters — not standard. Perhaps AUDDY is wrong? But assume fixed for now.\n\nLet’s check v3: clue \"To force; to drive\": D J P _ _ — wait that can’t be right — D J P are already in col3 from h1(D), h2(J), h3(P). DJP__ 5-letter word? \"DJP\" not normal start. Try another possibility: maybe the filled h1–h3 are garbled or the letters are right but not forming real words in columns, meaning maybe the puzzle uses them as given. So maybe v3 clue is \"To force; to drive\" → could be \"IMPEL\" (I M P E L). IMPEL is 5 letters. That requires col3 to be I M P E L, but col3 currently from rows1-3 is D J P — doesn't match IMPEL at all. So that can't be right either. Which means maybe in this puzzle, fill is by intersection, and some given letters seem nonsensical — maybe these are encoded? Or the given h1-h3 filled words are just wrong? But in puzzle they might be correct—yet verticals should match.\n\nLet’s check v5 clue: On the outside: Y R T _ _ — again weird start: YRT?? Could be \"EXTERIOR\"? No 5 letters. \"OUTER\" starts O U T E R. Currently row1 col5 = Y (from AUDDY), row2 col5 = R (MAJUR), row3 col5 = T (INPGT). So YRT__ — again nonsense. Could \"On the outside\" = \"EXTERNAL\" no—5 letters: \"OUTER\"? no starts O not Y. But maybe actually \"outré\"? Not standard. Could be \"EXTR?\"\n\nSo many verticals start nonsensical — maybe the puzzle uses given horizontals exactly, so vertical answers are still valid with unusual letter combos? Maybe it’s just a very constrained fill with some unusual words.\n\nWhat about v2: \"A craze\": UAN?? Possibly \"UANIA\"? Not a word. Or \"UAN??\" Maybe clue = \"A craze\" = \"FAD\"? no 5 letters: \"MANIA\" is standard but conflicts with U. So maybe col2 row1 = U from wrong h1? Or maybe in this puzzle h1 \"A male friend\" could be \"BUDDY\" (B U D D Y). Then col2 row1 = U (same), still U for v2. So maybe v2 starts",
+          "next_state": "Current Board:\nAUDDY\nMAJUR\nINPGT\nS__U_\nH__P_\n\nUnfilled:\nh4. To besiege: S__U_\nh5. More healthy; a coin: H__P_\nv2. A craze: UAN__\nv3. To force; to drive: DJP__\nv5. On the outside: YRT__\n\nFilled:\nv1. A Mennonite sect, named for Jacob Ammann: AMISH\nv4. To dig out roughly: DUGUP\n\nChanged:\nh1. A male friend: AUDDY\nh2. Something big and important: MAJUR\nh3. Things that enter; data given to a computer program: INPGT\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. A male friend: _____\nh2. Something big and important: _____\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: _____\nv2. A craze: _____\nv3. To force; to drive: _____\nv4. To dig out roughly: _____\nv5. On the outside: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "Let's go step by step.\n\nThe filled board:\n\n```\nA U D D Y   (h1)\nM A J U R   (h2)\nI N P G T   (h3)\nS _ _ U _   (h4)\nH _ _ P _   (h5)\n```\n\nFilled verticals:  \nv1 = AMISH (col 1: A M I S H), OK  \nv4 = DUGUP (col 4: D U G U P), OK  \n\nUnfilled clues:  \n\n**h4**: To besiege → S _ _ U _  \nPossible 5-letter word: \"SIEGE\"? That's 5 letters: S I E G E — needs _ _ U _ pattern? No, third letter needs to be U. \"SURROUND\"? Not 5 letters. Wait, could be \"STUCK\"? No that’s not fitting. Let's check verticals to deduce.\n\nColumn 2 is v2 clue: A craze: U A N _ _ — currently col 2 has U (from h1: A**U**DDY), A (h2: M**A**JUR), N (h3: I**N**PGT), then unknown from h4, unknown from h5.\n\nCurrently v2: U A N _ _. \"UAN??\" doesn’t match a 5-letter word starting with UAN. Wait, maybe the first letter in v2 comes from h1, which is U? Yes. But \"craze\" — \"MANIA\" is 5 letters: M A N I A? That’s M A N I A — but v2 first letter is U, not M. So maybe h1 is wrong? But h1 given as AUDDY… so col2 row1 = U.  \n\nThat means v2 possibly: U A N _ _ — weird. Unless it's \"UAN??\" Maybe the clue \"A craze\" = \"FAD\"? But that's 3 letters.\n\nActually \"A craze\" = \"MANIA\". But there is mismatch with U in first position. So maybe something's off—maybe v2 is not MANIA if initial is U. But h1 clue given is \"A male friend\" = ? AUDDY is 5 letters — not standard. Perhaps AUDDY is wrong? But assume fixed for now.\n\nLet’s check v3: clue \"To force; to drive\": D J P _ _ — wait that can’t be right — D J P are already in col3 from h1(D), h2(J), h3(P). DJP__ 5-letter word? \"DJP\" not normal start. Try another possibility: maybe the filled h1–h3 are garbled or the letters are right but not forming real words in columns, meaning maybe the puzzle uses them as given. So maybe v3 clue is \"To force; to drive\" → could be \"IMPEL\" (I M P E L). IMPEL is 5 letters. That requires col3 to be I M P E L, but col3 currently from rows1-3 is D J P — doesn't match IMPEL at all. So that can't be right either. Which means maybe in this puzzle, fill is by intersection, and some given letters seem nonsensical — maybe these are encoded? Or the given h1-h3 filled words are just wrong? But in puzzle they might be correct—yet verticals should match.\n\nLet’s check v5 clue: On the outside: Y R T _ _ — again weird start: YRT?? Could be \"EXTERIOR\"? No 5 letters. \"OUTER\" starts O U T E R. Currently row1 col5 = Y (from AUDDY), row2 col5 = R (MAJUR), row3 col5 = T (INPGT). So YRT__ — again nonsense. Could \"On the outside\" = \"EXTERNAL\" no—5 letters: \"OUTER\"? no starts O not Y. But maybe actually \"outré\"? Not standard. Could be \"EXTR?\"\n\nSo many verticals start nonsensical — maybe the puzzle uses given horizontals exactly, so vertical answers are still valid with unusual letter combos? Maybe it’s just a very constrained fill with some unusual words.\n\nWhat about v2: \"A craze\": UAN?? Possibly \"UANIA\"? Not a word. Or \"UAN??\" Maybe clue = \"A craze\" = \"FAD\"? no 5 letters: \"MANIA\" is standard but conflicts with U. So maybe col2 row1 = U from wrong h1? Or maybe in this puzzle h1 \"A male friend\" could be \"BUDDY\" (B U D D Y). Then col2 row1 = U (same), still U for v2. So maybe v2 starts",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.25,
+    "trajectory_key": {
+      "search_id": "2_1793588341",
+      "indices": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        2
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "error": "Validation failed after 3 retries",
+      "terminate": true,
+      "action": "Let's go step by step.\n\nThe filled board:\n\n```\nA U D D Y   (h1)\nM A J U R   (h2)\nI N P G T   (h3)\nS _ _ U _   (h4)\nH _ _ P _   (h5)\n```\n\nFilled verticals:  \nv1 = AMISH (col 1: A M I S H), OK  \nv4 = DUGUP (col 4: D U G U P), OK  \n\nUnfilled clues:  \n\n**h4**: To besiege → S _ _ U _  \nPossible 5-letter word: \"SIEGE\"? That's 5 letters: S I E G E — needs _ _ U _ pattern? No, third letter needs to be U. \"SURROUND\"? Not 5 letters. Wait, could be \"STUCK\"? No that’s not fitting. Let's check verticals to deduce.\n\nColumn 2 is v2 clue: A craze: U A N _ _ — currently col 2 has U (from h1: A**U**DDY), A (h2: M**A**JUR), N (h3: I**N**PGT), then unknown from h4, unknown from h5.\n\nCurrently v2: U A N _ _. \"UAN??\" doesn’t match a 5-letter word starting with UAN. Wait, maybe the first letter in v2 comes from h1, which is U? Yes. But \"craze\" — \"MANIA\" is 5 letters: M A N I A? That’s M A N I A — but v2 first letter is U, not M. So maybe h1 is wrong? But h1 given as AUDDY… so col2 row1 = U.  \n\nThat means v2 possibly: U A N _ _ — weird. Unless it's \"UAN??\" Maybe the clue \"A craze\" = \"FAD\"? But that's 3 letters.\n\nActually \"A craze\" = \"MANIA\". But there is mismatch with U in first position. So maybe something's off—maybe v2 is not MANIA if initial is U. But h1 clue given is \"A male friend\" = ? AUDDY is 5 letters — not standard. Perhaps AUDDY is wrong? But assume fixed for now.\n\nLet’s check v3: clue \"To force; to drive\": D J P _ _ — wait that can’t be right — D J P are already in col3 from h1(D), h2(J), h3(P). DJP__ 5-letter word? \"DJP\" not normal start. Try another possibility: maybe the filled h1–h3 are garbled or the letters are right but not forming real words in columns, meaning maybe the puzzle uses them as given. So maybe v3 clue is \"To force; to drive\" → could be \"IMPEL\" (I M P E L). IMPEL is 5 letters. That requires col3 to be I M P E L, but col3 currently from rows1-3 is D J P — doesn't match IMPEL at all. So that can't be right either. Which means maybe in this puzzle, fill is by intersection, and some given letters seem nonsensical — maybe these are encoded? Or the given h1-h3 filled words are just wrong? But in puzzle they might be correct—yet verticals should match.\n\nLet’s check v5 clue: On the outside: Y R T _ _ — again weird start: YRT?? Could be \"EXTERIOR\"? No 5 letters. \"OUTER\" starts O U T E R. Currently row1 col5 = Y (from AUDDY), row2 col5 = R (MAJUR), row3 col5 = T (INPGT). So YRT__ — again nonsense. Could \"On the outside\" = \"EXTERNAL\" no—5 letters: \"OUTER\"? no starts O not Y. But maybe actually \"outré\"? Not standard. Could be \"EXTR?\"\n\nSo many verticals start nonsensical — maybe the puzzle uses given horizontals exactly, so vertical answers are still valid with unusual letter combos? Maybe it’s just a very constrained fill with some unusual words.\n\nWhat about v2: \"A craze\": UAN?? Possibly \"UANIA\"? Not a word. Or \"UAN??\" Maybe clue = \"A craze\" = \"FAD\"? no 5 letters: \"MANIA\" is standard but conflicts with U. So maybe col2 row1 = U from wrong h1? Or maybe in this puzzle h1 \"A male friend\" could be \"BUDDY\" (B U D D Y). Then col2 row1 = U (same), still U for v2. So maybe v2 starts"
+    },
+    "from_simulate": true,
+    "is_simulated": true,
+    "from_expand": false,
+    "cum_rewards": [
+      0.175
+    ],
+    "visit_count": 1,
+    "from_continuation": false
+  }
+]

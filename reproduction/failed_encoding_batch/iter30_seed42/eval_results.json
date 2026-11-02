@@ -1,0 +1,15 @@
+{
+  "n_attempts": 1,
+  "temperature": null,
+  "accuracy": 0.0,
+  "examples": [
+    {
+      "idx": 0,
+      "correct": false,
+      "score": 0.0
+    }
+  ],
+  "dataset_name": "crosswords",
+  "result_dir": "D:\\codex\u51995660\u4f5c\u4e1a\\IndividualProject2\\reproduction\\runs\\iter30_seed42",
+  "soft_accuracy": 0.3
+}

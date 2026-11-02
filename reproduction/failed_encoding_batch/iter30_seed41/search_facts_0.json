@@ -1,0 +1,1 @@
+{"error": {"message": "'gbk' codec can't encode character '\\u2714' in position 285: illegal multibyte sequence", "type": "UnicodeEncodeError"}, "query_idx": 0, "repetition_index": 0, "status": "failed"}

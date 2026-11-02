@@ -1,0 +1,381 @@
+[
+  {
+    "id": 0,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. A male friend: _____\nh2. Something big and important: _____\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: _____\nv2. A craze: _____\nv3. To force; to drive: _____\nv4. To dig out roughly: _____\nv5. On the outside: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": "AMIGO\nMAMOU\nINPUT\nSIEGE\nHALER\nAMISH\nMANIA\nIMPEL\nGOUGE\nOUTER",
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": -1.0,
+    "trajectory_key": {
+      "search_id": "2_1793588341",
+      "indices": [],
+      "root_token": "q"
+    },
+    "from_simulate": false,
+    "is_simulated": false,
+    "from_expand": false,
+    "cum_rewards": [
+      0.06071428571428571,
+      0.315,
+      0.17500000000000002,
+      0.315,
+      0.09166666666666667,
+      0.12499999999999999,
+      0.20555555555555557,
+      0.15555555555555556,
+      0.06428571428571428
+    ],
+    "visit_count": 9,
+    "from_continuation": false
+  },
+  {
+    "id": 1,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "h1. buddy",
+          "next_state": "Current Board:\nBUDDY\n_____\n_____\n_____\n_____\n\nUnfilled:\nh2. Something big and important: _____\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: B____\nv2. A craze: U____\nv3. To force; to drive: D____\nv4. To dig out roughly: D____\nv5. On the outside: Y____\n\nFilled:\nh1. A male friend: BUDDY\n\nChanged:\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. A male friend: _____\nh2. Something big and important: _____\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: _____\nv2. A craze: _____\nv3. To force; to drive: _____\nv4. To dig out roughly: _____\nv5. On the outside: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "h1. buddy",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.5,
+    "trajectory_key": {
+      "search_id": "2_1793588341",
+      "indices": [
+        0
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "action": "h1. buddy"
+    },
+    "from_simulate": false,
+    "is_simulated": true,
+    "from_expand": true,
+    "cum_rewards": [
+      0.23750000000000004,
+      0.2857142857142857,
+      0.2416666666666666
+    ],
+    "visit_count": 3,
+    "from_continuation": false
+  },
+  {
+    "id": 6,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "h1. buddy",
+          "next_state": "Current Board:\nBUDDY\n_____\n_____\n_____\n_____\n\nUnfilled:\nh2. Something big and important: _____\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: B____\nv2. A craze: U____\nv3. To force; to drive: D____\nv4. To dig out roughly: D____\nv5. On the outside: Y____\n\nFilled:\nh1. A male friend: BUDDY\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h2. large",
+          "next_state": "Current Board:\nBUDDY\nLARGE\n_____\n_____\n_____\n\nUnfilled:\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: BL___\nv2. A craze: UA___\nv3. To force; to drive: DR___\nv4. To dig out roughly: DG___\nv5. On the outside: YE___\n\nFilled:\nh1. A male friend: BUDDY\nh2. Something big and important: LARGE\n\nChanged:\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. A male friend: _____\nh2. Something big and important: _____\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: _____\nv2. A craze: _____\nv3. To force; to drive: _____\nv4. To dig out roughly: _____\nv5. On the outside: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "h2. large",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.5,
+    "trajectory_key": {
+      "search_id": "2_1793588341",
+      "indices": [
+        0,
+        2
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "action": "h2. large"
+    },
+    "from_simulate": true,
+    "is_simulated": false,
+    "from_expand": false,
+    "cum_rewards": [
+      0.24
+    ],
+    "visit_count": 1,
+    "from_continuation": false
+  },
+  {
+    "id": 142,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "h1. buddy",
+          "next_state": "Current Board:\nBUDDY\n_____\n_____\n_____\n_____\n\nUnfilled:\nh2. Something big and important: _____\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: B____\nv2. A craze: U____\nv3. To force; to drive: D____\nv4. To dig out roughly: D____\nv5. On the outside: Y____\n\nFilled:\nh1. A male friend: BUDDY\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h2. large",
+          "next_state": "Current Board:\nBUDDY\nLARGE\n_____\n_____\n_____\n\nUnfilled:\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: BL___\nv2. A craze: UA___\nv3. To force; to drive: DR___\nv4. To dig out roughly: DG___\nv5. On the outside: YE___\n\nFilled:\nh1. A male friend: BUDDY\nh2. Something big and important: LARGE\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "v1. AMISH",
+          "next_state": "Current Board:\nAUDDY\nMARGE\nI____\nS____\nH____\n\nUnfilled:\nh3. Things that enter; data given to a computer program: I____\nh4. To besiege: S____\nh5. More healthy; a coin: H____\nv2. A craze: UA___\nv3. To force; to drive: DR___\nv4. To dig out roughly: DG___\nv5. On the outside: YE___\n\nFilled:\nv1. A Mennonite sect, named for Jacob Ammann: AMISH\n\nChanged:\nh1. A male friend: AUDDY\nh2. Something big and important: MARGE\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. A male friend: _____\nh2. Something big and important: _____\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: _____\nv2. A craze: _____\nv3. To force; to drive: _____\nv4. To dig out roughly: _____\nv5. On the outside: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "v1. AMISH",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.5,
+    "trajectory_key": {
+      "search_id": "2_1793588341",
+      "indices": [
+        0,
+        2,
+        0
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "action": "v1. AMISH"
+    },
+    "from_simulate": false,
+    "is_simulated": true,
+    "from_expand": true,
+    "cum_rewards": [
+      0.2375
+    ],
+    "visit_count": 1,
+    "from_continuation": false
+  },
+  {
+    "id": 145,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "h1. buddy",
+          "next_state": "Current Board:\nBUDDY\n_____\n_____\n_____\n_____\n\nUnfilled:\nh2. Something big and important: _____\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: B____\nv2. A craze: U____\nv3. To force; to drive: D____\nv4. To dig out roughly: D____\nv5. On the outside: Y____\n\nFilled:\nh1. A male friend: BUDDY\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h2. large",
+          "next_state": "Current Board:\nBUDDY\nLARGE\n_____\n_____\n_____\n\nUnfilled:\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: BL___\nv2. A craze: UA___\nv3. To force; to drive: DR___\nv4. To dig out roughly: DG___\nv5. On the outside: YE___\n\nFilled:\nh1. A male friend: BUDDY\nh2. Something big and important: LARGE\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "v1. AMISH",
+          "next_state": "Current Board:\nAUDDY\nMARGE\nI____\nS____\nH____\n\nUnfilled:\nh3. Things that enter; data given to a computer program: I____\nh4. To besiege: S____\nh5. More healthy; a coin: H____\nv2. A craze: UA___\nv3. To force; to drive: DR___\nv4. To dig out roughly: DG___\nv5. On the outside: YE___\n\nFilled:\nv1. A Mennonite sect, named for Jacob Ammann: AMISH\n\nChanged:\nh1. A male friend: AUDDY\nh2. Something big and important: MARGE\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h3. input",
+          "next_state": "Current Board:\nAUDDY\nMARGE\nINPUT\nS____\nH____\n\nUnfilled:\nh4. To besiege: S____\nh5. More healthy; a coin: H____\nv2. A craze: UAN__\nv3. To force; to drive: DRP__\nv4. To dig out roughly: DGU__\nv5. On the outside: YET__\n\nFilled:\nh3. Things that enter; data given to a computer program: INPUT\nv1. A Mennonite sect, named for Jacob Ammann: AMISH\n\nChanged:\nh1. A male friend: AUDDY\nh2. Something big and important: MARGE\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. A male friend: _____\nh2. Something big and important: _____\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: _____\nv2. A craze: _____\nv3. To force; to drive: _____\nv4. To dig out roughly: _____\nv5. On the outside: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "h3. input",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.5,
+    "trajectory_key": {
+      "search_id": "2_1793588341",
+      "indices": [
+        0,
+        2,
+        0,
+        0
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "action": "h3. input"
+    },
+    "from_simulate": true,
+    "is_simulated": true,
+    "from_expand": false,
+    "cum_rewards": [
+      0.21666666666666667
+    ],
+    "visit_count": 1,
+    "from_continuation": false
+  },
+  {
+    "id": 148,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "h1. buddy",
+          "next_state": "Current Board:\nBUDDY\n_____\n_____\n_____\n_____\n\nUnfilled:\nh2. Something big and important: _____\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: B____\nv2. A craze: U____\nv3. To force; to drive: D____\nv4. To dig out roughly: D____\nv5. On the outside: Y____\n\nFilled:\nh1. A male friend: BUDDY\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h2. large",
+          "next_state": "Current Board:\nBUDDY\nLARGE\n_____\n_____\n_____\n\nUnfilled:\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: BL___\nv2. A craze: UA___\nv3. To force; to drive: DR___\nv4. To dig out roughly: DG___\nv5. On the outside: YE___\n\nFilled:\nh1. A male friend: BUDDY\nh2. Something big and important: LARGE\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "v1. AMISH",
+          "next_state": "Current Board:\nAUDDY\nMARGE\nI____\nS____\nH____\n\nUnfilled:\nh3. Things that enter; data given to a computer program: I____\nh4. To besiege: S____\nh5. More healthy; a coin: H____\nv2. A craze: UA___\nv3. To force; to drive: DR___\nv4. To dig out roughly: DG___\nv5. On the outside: YE___\n\nFilled:\nv1. A Mennonite sect, named for Jacob Ammann: AMISH\n\nChanged:\nh1. A male friend: AUDDY\nh2. Something big and important: MARGE\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h3. input",
+          "next_state": "Current Board:\nAUDDY\nMARGE\nINPUT\nS____\nH____\n\nUnfilled:\nh4. To besiege: S____\nh5. More healthy; a coin: H____\nv2. A craze: UAN__\nv3. To force; to drive: DRP__\nv4. To dig out roughly: DGU__\nv5. On the outside: YET__\n\nFilled:\nh3. Things that enter; data given to a computer program: INPUT\nv1. A Mennonite sect, named for Jacob Ammann: AMISH\n\nChanged:\nh1. A male friend: AUDDY\nh2. Something big and important: MARGE\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h4. siege",
+          "next_state": "Current Board:\nAUDDY\nMARGE\nINPUT\nSIEGE\nH____\n\nUnfilled:\nh5. More healthy; a coin: H____\nv2. A craze: UANI_\nv3. To force; to drive: DRPE_\nv4. To dig out roughly: DGUG_\nv5. On the outside: YETE_\n\nFilled:\nh3. Things that enter; data given to a computer program: INPUT\nh4. To besiege: SIEGE\nv1. A Mennonite sect, named for Jacob Ammann: AMISH\n\nChanged:\nh1. A male friend: AUDDY\nh2. Something big and important: MARGE\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. A male friend: _____\nh2. Something big and important: _____\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: _____\nv2. A craze: _____\nv3. To force; to drive: _____\nv4. To dig out roughly: _____\nv5. On the outside: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "h4. siege",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.0,
+    "trajectory_key": {
+      "search_id": "2_1793588341",
+      "indices": [
+        0,
+        2,
+        0,
+        0,
+        0
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "action": "h4. siege"
+    },
+    "from_simulate": true,
+    "is_simulated": true,
+    "from_expand": false,
+    "cum_rewards": [
+      0.15
+    ],
+    "visit_count": 1,
+    "from_continuation": false
+  },
+  {
+    "id": 151,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "h1. buddy",
+          "next_state": "Current Board:\nBUDDY\n_____\n_____\n_____\n_____\n\nUnfilled:\nh2. Something big and important: _____\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: B____\nv2. A craze: U____\nv3. To force; to drive: D____\nv4. To dig out roughly: D____\nv5. On the outside: Y____\n\nFilled:\nh1. A male friend: BUDDY\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h2. large",
+          "next_state": "Current Board:\nBUDDY\nLARGE\n_____\n_____\n_____\n\nUnfilled:\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: BL___\nv2. A craze: UA___\nv3. To force; to drive: DR___\nv4. To dig out roughly: DG___\nv5. On the outside: YE___\n\nFilled:\nh1. A male friend: BUDDY\nh2. Something big and important: LARGE\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "v1. AMISH",
+          "next_state": "Current Board:\nAUDDY\nMARGE\nI____\nS____\nH____\n\nUnfilled:\nh3. Things that enter; data given to a computer program: I____\nh4. To besiege: S____\nh5. More healthy; a coin: H____\nv2. A craze: UA___\nv3. To force; to drive: DR___\nv4. To dig out roughly: DG___\nv5. On the outside: YE___\n\nFilled:\nv1. A Mennonite sect, named for Jacob Ammann: AMISH\n\nChanged:\nh1. A male friend: AUDDY\nh2. Something big and important: MARGE\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h3. input",
+          "next_state": "Current Board:\nAUDDY\nMARGE\nINPUT\nS____\nH____\n\nUnfilled:\nh4. To besiege: S____\nh5. More healthy; a coin: H____\nv2. A craze: UAN__\nv3. To force; to drive: DRP__\nv4. To dig out roughly: DGU__\nv5. On the outside: YET__\n\nFilled:\nh3. Things that enter; data given to a computer program: INPUT\nv1. A Mennonite sect, named for Jacob Ammann: AMISH\n\nChanged:\nh1. A male friend: AUDDY\nh2. Something big and important: MARGE\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h4. siege",
+          "next_state": "Current Board:\nAUDDY\nMARGE\nINPUT\nSIEGE\nH____\n\nUnfilled:\nh5. More healthy; a coin: H____\nv2. A craze: UANI_\nv3. To force; to drive: DRPE_\nv4. To dig out roughly: DGUG_\nv5. On the outside: YETE_\n\nFilled:\nh3. Things that enter; data given to a computer program: INPUT\nh4. To besiege: SIEGE\nv1. A Mennonite sect, named for Jacob Ammann: AMISH\n\nChanged:\nh1. A male friend: AUDDY\nh2. Something big and important: MARGE\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h5. HEART",
+          "next_state": "Current Board:\nAUDDY\nMARGE\nINPUT\nSIEGE\nHEART\n\nUnfilled:\nv2. A craze: UANIE\nv3. To force; to drive: DRPEA\nv4. To dig out roughly: DGUGR\nv5. On the outside: YETET\n\nFilled:\nh3. Things that enter; data given to a computer program: INPUT\nh4. To besiege: SIEGE\nh5. More healthy; a coin: HEART\nv1. A Mennonite sect, named for Jacob Ammann: AMISH\n\nChanged:\nh1. A male friend: AUDDY\nh2. Something big and important: MARGE\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. A male friend: _____\nh2. Something big and important: _____\nh3. Things that enter; data given to a computer program: _____\nh4. To besiege: _____\nh5. More healthy; a coin: _____\nv1. A Mennonite sect, named for Jacob Ammann: _____\nv2. A craze: _____\nv3. To force; to drive: _____\nv4. To dig out roughly: _____\nv5. On the outside: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "h5. HEART",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": true,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.0,
+    "trajectory_key": {
+      "search_id": "2_1793588341",
+      "indices": [
+        0,
+        2,
+        0,
+        0,
+        0,
+        0
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "action": "h5. HEART"
+    },
+    "from_simulate": true,
+    "is_simulated": true,
+    "from_expand": false,
+    "cum_rewards": [
+      0.15
+    ],
+    "visit_count": 1,
+    "from_continuation": false
+  }
+]

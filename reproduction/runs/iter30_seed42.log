@@ -1,0 +1,537 @@
+[2026-11-02 10:59:01] [INFO] [root] Command: lits-search --include lits_benchmark.crosswords --dataset crosswords --transition crosswords --policy-model openai/deepseek-v4-flash --search-arg n_iters=30 n_actions=3 max_steps=10 roll_out_steps=10 n_action_for_simulate=3 n_confidence=3 force_terminating_on_depth_limit=false terminate_on_first_solution=false enable_think_policy=false enable_think_eval=false enable_think_terminal_gen=false add_continuation=false --component-arg max_new_tokens=1024 --dataset-arg data_file=D:\codex写5660作业\IndividualProject2\demos\crosswords\data\mini0505.json --var offset=2 limit=1 -o D:\codex写5660作业\IndividualProject2\reproduction\runs\iter30_seed42
+[2026-11-02 10:59:01] [INFO] [root] Working directory: D:\codex写5660作业\IndividualProject2
+[2026-11-02 10:59:01] [WARNING] [lits.components.base] Policy.__init__: task_prompt_spec not found for task_name='crosswords' or task_type='env_grounded'
+Var: offset=2
+Var: limit=1
+Imported custom modules: ['lits_benchmark.crosswords']
+Search: n_iters=30
+Search: n_actions=3
+Search: max_steps=10
+Search: roll_out_steps=10
+Search: n_action_for_simulate=3
+Search: n_confidence=3
+Search: force_terminating_on_depth_limit=False
+Search: terminate_on_first_solution=False
+Search: enable_think_policy=False
+Search: enable_think_eval=False
+Search: enable_think_terminal_gen=False
+Search: add_continuation=False
+Component: max_new_tokens=1024
+Dataset: data_file=D:\codex写5660作业\IndividualProject2\demos\crosswords\data\mini0505.json
+Current working directory: D:\codex写5660作业\IndividualProject2
+Log/config file/results are saved to: D:\codex写5660作业\IndividualProject2\reproduction\runs\iter30_seed42
+  0%|          | 0/1 [00:00<?, ?it/s][2026-11-02 10:59:01] [INFO] [lits.agents.tree.mcts] [MCTS] Begin (example=2)
+
+MCTS iteration:   0%|          | 0/30 [00:00<?, ?it/s][A[2026-11-02 10:59:01] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 0/30 (example=2) ====================
+[2026-11-02 10:59:01] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 10:59:01] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 10:59:01] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=2, phase=expand)
+[2026-11-02 10:59:01] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-02 10:59:04] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'h1. amigo', retrying with temp=0.90
+[2026-11-02 10:59:05] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 2/3): 'h1. amigo', retrying with temp=1.10
+[2026-11-02 10:59:06] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 3/3): 'h1. amigo', retrying with temp=1.20
+[2026-11-02 10:59:06] [ERROR] [lits.components.policy.env_grounded] Max retries (3) exceeded for action generation.
+[2026-11-02 10:59:08] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=expand)
+[2026-11-02 10:59:08] [INFO] [lits.agents.tree.mcts] [Simulate] Begin
+[2026-11-02 10:59:08] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=2, phase=simulate)
+[2026-11-02 10:59:08] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-02 10:59:08] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=2, phase=simulate)
+[2026-11-02 10:59:08] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-02 10:59:13] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-02 10:59:13] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=2, phase=simulate)
+[2026-11-02 10:59:13] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-02 10:59:15] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'h2. major', retrying with temp=0.90
+[2026-11-02 10:59:16] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 2/3): 'h2. major', retrying with temp=1.10
+[2026-11-02 10:59:17] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 3/3): 'h2. major', retrying with temp=1.20
+[2026-11-02 10:59:17] [ERROR] [lits.components.policy.env_grounded] Max retries (3) exceeded for action generation.
+[2026-11-02 10:59:18] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'h2. major', retrying with temp=0.90
+[2026-11-02 10:59:21] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-02 10:59:21] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=2, phase=simulate)
+[2026-11-02 10:59:21] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-02 10:59:23] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'h3. input', retrying with temp=0.90
+[2026-11-02 10:59:24] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 2/3): 'h3. input', retrying with temp=1.10
+[2026-11-02 10:59:25] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 3/3): 'h3. input', retrying with temp=1.20
+[2026-11-02 10:59:25] [ERROR] [lits.components.policy.env_grounded] Max retries (3) exceeded for action generation.
+[2026-11-02 10:59:25] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'h3. input', retrying with temp=0.90
+[2026-11-02 10:59:26] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 2/3): 'h3. input', retrying with temp=1.10
+[2026-11-02 10:59:27] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 3/3): 'h3. input', retrying with temp=1.20
+[2026-11-02 10:59:27] [ERROR] [lits.components.policy.env_grounded] Max retries (3) exceeded for action generation.
+[2026-11-02 10:59:30] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-02 10:59:30] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=2, phase=simulate)
+[2026-11-02 10:59:30] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-02 10:59:32] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'h4. siege', retrying with temp=0.90
+[2026-11-02 10:59:33] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 2/3): 'h4. siege', retrying with temp=1.10
+[2026-11-02 10:59:34] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 3/3): 'h4. siege', retrying with temp=1.20
+[2026-11-02 10:59:34] [ERROR] [lits.components.policy.env_grounded] Max retries (3) exceeded for action generation.
+[2026-11-02 10:59:35] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'h4. siege', retrying with temp=0.90
+[2026-11-02 10:59:42] [WARNING] [lits.components.policy.env_grounded] [POLICY] Invalid action (attempt 2/3): 'Let's solve one clue step by step.
+
+We know:
+
+**Current Board** (rows are h1–h5, columns v1–v5):
+
+```
+h1: A U D D Y
+h2: M A J O R
+h3: I N P U T
+h4: S _ _ _ _
+h5: H _ _ _ _
+```
+
+Already some verticals are partially filled:
+
+- **v1**: A M I S H (correct, filled)
+- **v2**: U A N _ _ → from h1[2] = U, h2[2] = A, h3[2] = N, h4[2] = ?, h5[2] = ?
+- **v3**: D J P _ _ → from h1[3] = D, h2[3] = J, h3[3] = P, h4[3] = ?, h5[3] = ?
+- **v4**: D O U _ _ → from h1[4] = D, h2[4] = O, h3[4] = U, h4[4] = ?, h5[4] = ?
+- **v5**: Y R T _ _ → from h1[5] = Y, h2[5] = R, h3[5] = T, h4[5] = ?, h5[5] = ?
+
+---
+
+**Clue h4**: "To besiege" → S _ _ _ _ (5 letters, starts with S).
+
+A possible word is **SIEGE** (to besiege = to siege? Actually "siege" as a verb is less common, but "besiege" means to surround; another possibility: "storm"?). But let's check crossing letters from verticals:
+
+Position h4:
+- h4[1] = S (given)
+- h4[2] = v2[4] = ?
+- h4[3] = v3[4] = ?
+- h4[4] = v4[4] = ?
+- h4[5] = v5[4] = ?
+
+From possible v2: UAN__ → likely "UAN??". A craze: "manIA"? No, UAN??. "UAN??" doesn't fit. Maybe the clue for v2 is "A craze": could be "MANIA" but here starts UAN??. Could be "fad"? No, 5 letters. Possibly "UAN??" not yielding obvious; maybe h1[2] should not be U? But h1 is AUDDY (fixed?), so h1[2]=U is fixed. "UAN??" → Could be "UAN??" from "UAN??" Maybe v2 is "UAN??" but craze "UAN??" maybe "UAN??" doesn't make sense. Could be miss? Actually maybe h1 is wrong? But we can't change h1? It says changed h1 to AUDDY. But AUDDY isn't a word. Maybe that's the error but not our concern.
+
+Let's focus: maybe h4 is SIEGE → S I E G E:
+
+Check compatibility:
+h4[2] = I → v2[4] = I. v2 = UAN I _? "UAN I ?" doesn’t make sense. So maybe not SIEGE.
+
+Try another "To besiege": **STORM**? S T O R M.
+Check: h4[2] = T → v2[4] = T → v2: UAN T _? word? Maybe "UANT?" no.
+
+Another: "To besiege" = **SIEGE** might be wrong. Possibly **STALK**? No.
+
+Wait, v4 clue: "To dig out roughly" = DOU__ → maybe "DOUG?" No, 5 letters: DOUGH? No, dig out = "DIG??". Actually "To dig out roughly" could be "EXCAVATE"? No, 5 letters maybe "DIGUP"? No. DOU?? → maybe DOUSE? No. Could be "DOUT?" Let’s think: v4: D O U _ _. Possible word: "DOUSE" (to drench) not dig. "DOUAR"? No. "DOUCS"? No. Actually "To dig out roughly" → "QUARRY"? too long. Could be "DELVE" (dig) but D O U _ _ doesn't match DELVE. Could be "DIG??" But v4 is D O U _ _. So maybe clue mismatch? Possibly v4 is "DOUSE"? But that means to drench, not dig. But maybe "To dig out roughly" = "ROOT?" No.
+
+Maybe I should pick h5:'
+[2026-11-02 10:59:45] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-02 10:59:45] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=2, phase=simulate)
+[2026-11-02 10:59:45] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-02 10:59:47] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'h5. hardy', retrying with temp=0.90
+[2026-11-02 10:59:55] [WARNING] [lits.components.policy.env_grounded] [POLICY] Invalid action (attempt 2/3): 'Let's look at the grid:
+
+```
+Row 1: A U D D Y
+Row 2: M A J O R
+Row 3: I N P U T
+Row 4: S I E G E
+Row 5: H _ _ _ _
+```
+
+We can fill in from the clues and existing letters.
+
+**h5 clue:** "More healthy; a coin: H____" → It starts with H. Also, the vertical words will give letters for h5’s positions.
+
+**v2 clue:** "A craze: UANI_" — This is 5 letters, pattern U A N I _. But wait, v2 is column 2: that would be letters from rows 1-5, column 2: Row1 col2 = U, Row2 col2 = A, Row3 col2 = N, Row4 col2 = I, Row5 col2 is unknown. So indeed v2 = U A N I _. A craze … This is likely "MANIA" but starts with U... no, it must match existing: U A N I _. Could "UANIA"? No. Possibly they gave partial and a letter is wrong? But clue says "A craze": MANIA. But here first letter is U — that's wrong. Maybe the word is not MANIA but something else fitting UANIX? Unlikely. Possibly they want me to find h5 col2 — so letter 2 of h5 will make v2 word valid.
+
+Let’s check knowns:  
+v2 = U A N I _ → This would be "UANIA" or "UANIC" etc., not English. Possibly I misread — maybe row1 col2 is not U? But given filled word h1 is AUDDY: second letter is U, correct. So v2 first letter is U.
+
+So perhaps v2 solution is "UANIA"? That’s not a word. Maybe clue is misassigned? Wait: "A craze" = MANIA, but here v2 is UANIA — maybe they made an error, or the puzzle letters are wrong?  
+
+Actually maybe v2 is supposed to be "UANIA"? Could be "Uania" is not a word. Maybe the first letter should be M from "mania" but that’s not fitting. So maybe they want me to pick one unfilled and fill. The best chance is to fill h5 since it’s horizontal and will complete v2-v5.
+
+**v3:** "To force; to drive: DJPE_" — column3 letters: Row1 col3 = D, Row2 col3 = J, Row3 col3 = P, Row4 col3 = E, Row5 col3 unknown. So v3 = D J P E _. Word for "To force; to drive" = "IMPEL" — not match. "DRIVE" no. This doesn't fit DJPE_. Possibly they scrambled? Maybe it’s actually "DJPE_" from given letters, but the clue "To force; to drive" = "DRIVE"? That is 5 letters D R I V E, but here we have D J P E _. So no.
+
+Given the weird letters, perhaps only v5 fits: "On the outside: YRTE_" → column5: Row1 col5=Y, Row2 col5=R, Row3 col5=T, Row4 col5=E, Row5 col5 unknown → Y R T E _. "On the outside" = "EXTERNAL" no. "OUTER" is 5 but pattern YRTE_ doesn't match. Possibly "YRTEX"? Not word.
+
+Given these strange vertical clues, maybe the intended word is for h5.
+
+h5: "More healthy; a coin: H____"
+
+"More healthy" = HEALTHIER? too long. "A coin" might be slang "dime"? Possibly "H" something.
+
+If "More healthy" = "haler" (5 letters: H A L E R). A coin? That doesn’t fit. Or "Hardy" (healthy) but not a coin.
+
+Maybe "More healthy" and "a coin" → two possible answers: "Hale" + coin? Possibly "heal?" No.
+
+Another: "A coin" = "dinar" no, "holic"? Wait, could be "Healthy" = "hale", coin = "penny"? Not match.
+
+Maybe "h5" is "HALER"– not coin.
+
+Alternatively "More healthy" could be "HALER" but coin? Possibly "dime"? no.
+
+Could be "H" word that means both: "hardy" (healthy) and "coin" = "hardy"? There is a coin called "hardy"? No.
+
+Given uncertainty with verticals, maybe pick v2 since "A craze"'
+[2026-11-02 10:59:56] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 3/3): 'h5. hardy', retrying with temp=1.20
+[2026-11-02 10:59:56] [ERROR] [lits.components.policy.env_grounded] Max retries (3) exceeded for action generation.
+[2026-11-02 10:59:59] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-02 10:59:59] [INFO] [lits.agents.tree.mcts] [Simulate] End
+[2026-11-02 10:59:59] [INFO] [lits.agents.tree.mcts] [Backpropagate] Begin
+[2026-11-02 10:59:59] [INFO] [lits.agents.tree.mcts] [Backpropagate] End
+[2026-11-02 10:59:59] [INFO] [lits.agents.tree.mcts] [MCTS] Iteration 0/30 (example=2) | terminals=1
+Root
+├── h1. buddy r=0.50 d=1 [sim]
+│   ├── v1. Amish r=0.50 d=2 [sim]
+│   │   ├── h2. major r=0.50 d=3 [sim]
+│   │   │   ├── h3. input r=0.50 d=4 [sim]
+│   │   │   │   ├── h4. siege r=0.00 d=5 [sim]
+│   │   │   │   │   ├── h5. hardy r=0.50 d=6 [sim] ★
+│   │   │   │   │   ├── h5. hardy r=0.00 d=6
+│   │   │   │   │   └── v2. mania r=0.00 d=6
+│   │   │   │   ├── h4. siege r=0.00 d=5
+│   │   │   │   └── v2. craze r=0.00 d=5
+│   │   │   ├── h3. input r=0.50 d=4
+│   │   │   └── h3. input r=0.50 d=4
+│   │   ├── h2. major r=0.50 d=3
+│   │   └── v2. umada r=0.00 d=3
+│   ├── v1. amish r=0.50 d=2
+│   └── v5. outer r=0.50 d=2
+├── h1. amigo r=0.50 d=1
+└── h1. amigo r=0.50 d=1
+
+MCTS iteration:   3%|▎         | 1/30 [00:58<28:13, 58.39s/it][A[2026-11-02 10:59:59] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 1/30 (example=2) ====================
+[2026-11-02 10:59:59] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 10:59:59] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 10:59:59] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=2, phase=expand)
+[2026-11-02 10:59:59] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-02 11:00:01] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'h2. major', retrying with temp=0.90
+[2026-11-02 11:00:02] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 2/3): 'h2. major', retrying with temp=1.10
+[2026-11-02 11:00:04] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'h2. major', retrying with temp=0.90
+[2026-11-02 11:00:05] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 2/3): 'h2. major', retrying with temp=1.10
+[2026-11-02 11:00:10] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=expand)
+[2026-11-02 11:00:10] [INFO] [lits.agents.tree.mcts] [Simulate] Begin
+[2026-11-02 11:00:10] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=2, phase=simulate)
+[2026-11-02 11:00:10] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-02 11:00:10] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=2, phase=simulate)
+[2026-11-02 11:00:10] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-02 11:00:14] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'v1. AMISH', retrying with temp=0.90
+[2026-11-02 11:00:15] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 2/3): 'v1. AMISH', retrying with temp=1.10
+[2026-11-02 11:00:16] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 3/3): 'h3. input', retrying with temp=1.20
+[2026-11-02 11:00:16] [ERROR] [lits.components.policy.env_grounded] Max retries (3) exceeded for action generation.
+[2026-11-02 11:00:20] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-02 11:00:20] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=2, phase=simulate)
+[2026-11-02 11:00:20] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-02 11:00:23] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'h3. input', retrying with temp=0.90
+[2026-11-02 11:00:24] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 2/3): 'h3. input', retrying with temp=1.10
+[2026-11-02 11:00:30] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-02 11:00:30] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=2, phase=simulate)
+[2026-11-02 11:00:30] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-02 11:00:31] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'h4. siege', retrying with temp=0.90
+[2026-11-02 11:00:34] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'h4. siege', retrying with temp=0.90
+[2026-11-02 11:00:35] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 2/3): 'h4. siege', retrying with temp=1.10
+[2026-11-02 11:00:36] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 3/3): 'h4. siege', retrying with temp=1.20
+[2026-11-02 11:00:36] [ERROR] [lits.components.policy.env_grounded] Max retries (3) exceeded for action generation.
+[2026-11-02 11:00:39] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-02 11:00:39] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=2, phase=simulate)
+[2026-11-02 11:00:39] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-02 11:00:44] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'h4. siege', retrying with temp=0.90
+[2026-11-02 11:00:45] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 2/3): 'v3. IMPEL', retrying with temp=1.10
+[2026-11-02 11:00:46] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 3/3): 'h4. siege', retrying with temp=1.20
+[2026-11-02 11:00:46] [ERROR] [lits.components.policy.env_grounded] Max retries (3) exceeded for action generation.
+[2026-11-02 11:00:50] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-02 11:00:50] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=2, phase=simulate)
+[2026-11-02 11:00:50] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-02 11:00:53] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'h4. siege', retrying with temp=0.90
+[2026-11-02 11:00:54] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 2/3): 'h4. SIEGE', retrying with temp=1.10
+[2026-11-02 11:00:56] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 3/3): 'h4. siege', retrying with temp=1.20
+[2026-11-02 11:00:56] [ERROR] [lits.components.policy.env_grounded] Max retries (3) exceeded for action generation.
+[2026-11-02 11:01:01] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-02 11:01:01] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=2, phase=simulate)
+[2026-11-02 11:01:01] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-02 11:01:09] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-02 11:01:09] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=2, phase=simulate)
+[2026-11-02 11:01:09] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-02 11:01:11] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'h5. HALER', retrying with temp=0.90
+[2026-11-02 11:01:14] [WARNING] [lits.components.policy.env_grounded] [POLICY] Invalid action (attempt 2/3): 'Let’s check the intersections for h5 and v5.
+
+**h5 (5 letters):** HALE_  
+Clue: “More healthy; a coin” suggests **HALER**? But “more healthy” = healthier; a coin could be “haler” (a coin in some countries) — not very common. Another thought: “HALE” plus a letter — maybe **HALER**? But h5 is across, so it’s one word completing HALE_ where the last letter is from v5.
+
+**v5 (5 letters):** ORTE_  
+Clue: “On the outside” = **OUTER**. That fits: O-U-T-E-R.  
+
+If v5 = OUTER, then its 5th letter (row 5, column 5) is **R**.  
+That makes h5 = **HALER**. “Haler” can mean “more healthy” (comparative of “hale”) and also a coin (heller/haler). That works.
+
+But checking board: Current row 5: H A L E _ → last letter would be R → **HALER**. Fits both clues.
+
+So the unfilled one to fill now:  
+v5 = OUTER.
+
+Final answer:
+
+**v5. outer**'
+[2026-11-02 11:01:18] [WARNING] [lits.components.policy.env_grounded] [POLICY] Invalid action (attempt 3/3): 'Based on the current board, let's look at the unfilled positions:
+
+- **h5. More healthy; a coin: HALE_**  
+  The clue suggests "haler" (more healthy) or a coin. Since it's 5 letters and starts with HALE, the likely word is **HALER** (comparative of "hale", meaning more healthy). A "haler" is also a coin in some regions (e.g., haler, a small coin). This fits the pattern HALE_ with R.
+
+- **v5. On the outside: ORTE_**  
+  This one would be column 5, which currently would be: O (from AMIGO), R (from MAMOR), T (from INPUT), E (from SIEGE), _ (from HALE_). That's ORTE_, which suggests "OUTER" (on the outside). But that doesn't fit the given letters O-R-T-E-_. Actually, looking again:
+
+Column 5 letters:  
+Row 1: AMIGO → O  
+Row 2: MAMOR → R  
+Row 3: INPUT → T  
+Row 4: SIEGE → E  
+Row 5: HALE_ → _  
+
+So we have O R T E _. "Outer" doesn't fit because O-U-T-E-R would require row 2 to be U, but it's R. The clue says "On the outside: ORTE_", so the answer must start ORTE. Is there a 5-letter word ORTE_? Possibly "ORTEL"? Unlikely. Maybe v5 is already partially wrong due to h2 being incorrect?
+
+Wait — h2 is "MAMOR", which was "changed". That doesn't look like a real word; probably a placeholder or error. If h2 should be something else, v5's second letter would change. But we're told to pick one unfilled position and give a word.
+
+Given h5 is "More healthy; a coin: HALE_", the answer is almost certainly **HALER**.
+
+Thus:  
+**h5. haler**'
+[2026-11-02 11:01:18] [ERROR] [lits.components.policy.env_grounded] Max retries (3) exceeded for action generation.
+[2026-11-02 11:01:19] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'h5. HALER', retrying with temp=0.90
+[2026-11-02 11:01:19] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 2/3): 'h5. HALER', retrying with temp=1.10
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Simulate] End
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Backpropagate] Begin
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Backpropagate] End
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [MCTS] Iteration 1/30 (example=2) | terminals=2
+Root
+├── h1. buddy r=0.50 d=1 [sim]
+│   ├── v1. Amish r=0.50 d=2 [sim]
+│   │   ├── h2. major r=0.50 d=3 [sim]
+│   │   │   ├── h3. input r=0.50 d=4 [sim]
+│   │   │   │   ├── h4. siege r=0.00 d=5 [sim]
+│   │   │   │   │   ├── h5. hardy r=0.50 d=6 [sim] ★
+│   │   │   │   │   ├── h5. hardy r=0.00 d=6
+│   │   │   │   │   └── v2. mania r=0.00 d=6
+│   │   │   │   ├── h4. siege r=0.00 d=5
+│   │   │   │   └── v2. craze r=0.00 d=5
+│   │   │   ├── h3. input r=0.50 d=4
+│   │   │   └── h3. input r=0.50 d=4
+│   │   ├── h2. major r=0.50 d=3
+│   │   └── v2. umada r=0.00 d=3
+│   ├── v1. amish r=0.50 d=2
+│   └── v5. outer r=0.50 d=2
+├── h1. amigo r=0.50 d=1
+│   ├── h2. major r=0.50 d=2 [sim]
+│   │   ├── v1. AMISH r=0.50 d=3 [sim]
+│   │   │   ├── h3. input r=0.50 d=4 [sim]
+│   │   │   │   ├── h4. siege r=0.00 d=5
+│   │   │   │   ├── v2. MANIA r=0.50 d=5 [sim]
+│   │   │   │   │   ├── v3. IMPEL r=0.50 d=6 [sim]
+│   │   │   │   │   │   ├── h4. siege r=0.00 d=7
+│   │   │   │   │   │   ├── h4. SIEGE r=0.50 d=7 [sim]
+│   │   │   │   │   │   │   ├── v4. gouge r=0.50 d=8 [sim]
+│   │   │   │   │   │   │   │   ├── h5. HALER r=0.50 d=9 [sim] ★
+│   │   │   │   │   │   │   │   ├── Based on the current board, let's look at the unfilled po... r=0.00 d=9
+│   │   │   │   │   │   │   │   └── v5. OUTER r=0.50 d=9
+│   │   │   │   │   │   │   ├── h5. HALAL r=0.00 d=8
+│   │   │   │   │   │   │   └── h5. HALER r=0.00 d=8
+│   │   │   │   │   │   └── h4. siege r=0.00 d=7
+│   │   │   │   │   ├── h4. siege r=0.00 d=6
+│   │   │   │   │   └── h4. siege r=0.00 d=6
+│   │   │   │   └── h4. siege r=0.00 d=5
+│   │   │   ├── v2. MANIA r=0.50 d=4
+│   │   │   └── h4. siege r=0.00 d=4
+│   │   ├── h3. input r=0.00 d=3
+│   │   └── h3. input r=0.00 d=3
+│   ├── v1. Amish r=0.50 d=2
+│   └── v1. amish r=0.50 d=2
+└── h1. amigo r=0.50 d=1
+
+MCTS iteration:   7%|▋         | 2/30 [02:24<34:43, 74.41s/it][A[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 2/30 (example=2) ====================
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 3/30 (example=2) ====================
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 4/30 (example=2) ====================
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 5/30 (example=2) ====================
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 6/30 (example=2) ====================
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 7/30 (example=2) ====================
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 8/30 (example=2) ====================
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 9/30 (example=2) ====================
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 10/30 (example=2) ====================
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 11/30 (example=2) ====================
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 12/30 (example=2) ====================
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 13/30 (example=2) ====================
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 14/30 (example=2) ====================
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 15/30 (example=2) ====================
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 16/30 (example=2) ====================
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 17/30 (example=2) ====================
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 18/30 (example=2) ====================
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 19/30 (example=2) ====================
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 20/30 (example=2) ====================
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 21/30 (example=2) ====================
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 22/30 (example=2) ====================
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 23/30 (example=2) ====================
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 24/30 (example=2) ====================
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 25/30 (example=2) ====================
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 26/30 (example=2) ====================
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 27/30 (example=2) ====================
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 28/30 (example=2) ====================
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 29/30 (example=2) ====================
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [Select] End
+
+                                                              [A[2026-11-02 11:01:25] [INFO] [lits.agents.tree.mcts] [MCTS] End (example=2)
+100%|██████████| 1/1 [02:24<00:00, 144.09s/it]100%|██████████| 1/1 [02:24<00:00, 144.09s/it]
+[2026-11-02 11:01:25] [INFO] [root] Total time: 144.09128308296204
+[2026-11-02 11:01:25] [INFO] [root] default: 	 {'num_calls': 0, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'running_time': 0, 'total_hours': 0.0}
+[2026-11-02 11:01:25] [INFO] [root] dynamics: 	 {'num_calls': 0, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'running_time': 0, 'total_hours': 0.0}
+[2026-11-02 11:01:25] [INFO] [root] policy: 	 {'num_calls': 76, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 22025, 'output_tokens': 3078, 'running_time': 98.67411828041077, 'total_hours': 0.027409477300114102}
+[2026-11-02 11:01:25] [INFO] [root] evaluator: 	 {'num_calls': 0, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'running_time': 0, 'total_hours': 0.0}
+[2026-11-02 11:01:25] [INFO] [root] prm: 	 {'num_calls': 42, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 18036, 'output_tokens': 42, 'running_time': 45.15365695953369, 'total_hours': 0.012542682488759359}
+[2026-11-02 11:01:25] [INFO] [root] bn_eval: 	 {'num_calls': 0, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'running_time': 0, 'total_hours': 0.0}
+[2026-11-02 11:01:25] [INFO] [root] bn_entropy: 	 {'num_calls': 0, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'running_time': 0, 'total_hours': 0.0}
+[2026-11-02 11:01:25] [INFO] [root] memory: 	 {'num_calls': 0, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'running_time': 0, 'total_hours': 0.0}
+[2026-11-02 11:01:25] [INFO] [root] augmentor: 	 {'num_calls': 0, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'running_time': 0, 'total_hours': 0.0}
+[2026-11-02 11:01:25] [INFO] [lits.eval.llm_call_logger] Loaded 76 records from D:\codex写5660作业\IndividualProject2\reproduction\runs\iter30_seed42/llm_calls.jsonl
+[2026-11-02 11:01:25] [INFO] [lits.eval.llm_call_logger] ======================================================================
+[2026-11-02 11:01:25] [INFO] [lits.eval.llm_call_logger] LLM Call Diversity Report
+[2026-11-02 11:01:25] [INFO] [lits.eval.llm_call_logger] ======================================================================
+[2026-11-02 11:01:25] [INFO] [lits.eval.llm_call_logger] Unique states visited: 14
+[2026-11-02 11:01:25] [INFO] [lits.eval.llm_call_logger] Avg. policy calls per state: 5.4
+[2026-11-02 11:01:25] [INFO] [lits.eval.llm_call_logger] Dup. rate (all): 59.2%
+[2026-11-02 11:01:25] [INFO] [lits.eval.llm_call_logger] Dup. rate (correct): 0.0%
+[2026-11-02 11:01:25] [INFO] [lits.eval.llm_call_logger] Dup. rate (incorrect): 59.2%
+[2026-11-02 11:01:25] [INFO] [lits.eval.llm_call_logger] Per-prompt breakdown:
+[2026-11-02 11:01:25] [INFO] [lits.eval.llm_call_logger] Prompt       Total  Uniq   Dup%     Corr   CorrDup%  IncDup% 
+[2026-11-02 11:01:25] [INFO] [lits.eval.llm_call_logger] -------------------------------------------------------------
+[2026-11-02 11:01:25] [INFO] [lits.eval.llm_call_logger] aa9c97b81bc4 7      1      85.7%   0      N/A       85.7%
+[2026-11-02 11:01:25] [INFO] [lits.eval.llm_call_logger] 10de8b4f0bc4 5      1      80.0%   0      N/A       80.0%
+[2026-11-02 11:01:25] [INFO] [lits.eval.llm_call_logger] f0a5b349385c 7      2      71.4%   0      N/A       71.4%
+[2026-11-02 11:01:25] [INFO] [lits.eval.llm_call_logger] 055759183f0a 6      2      66.7%   0      N/A       66.7%
+[2026-11-02 11:01:25] [INFO] [lits.eval.llm_call_logger] c7715c02ed12 6      2      66.7%   0      N/A       66.7%
+[2026-11-02 11:01:25] [INFO] [lits.eval.llm_call_logger] 11ca1c90c9d7 5      2      60.0%   0      N/A       60.0%
+[2026-11-02 11:01:25] [INFO] [lits.eval.llm_call_logger] e2797059ddaf 5      2      60.0%   0      N/A       60.0%
+[2026-11-02 11:01:25] [INFO] [lits.eval.llm_call_logger] 9b87213f2ea3 5      2      60.0%   0      N/A       60.0%
+[2026-11-02 11:01:25] [INFO] [lits.eval.llm_call_logger] ca2749de222a 7      3      57.1%   0      N/A       57.1%
+[2026-11-02 11:01:25] [INFO] [lits.eval.llm_call_logger] 2d9369d2a6b7 7      3      57.1%   0      N/A       57.1%
+[2026-11-02 11:01:25] [INFO] [lits.eval.llm_call_logger] bf37ce18df83 5      3      40.0%   0      N/A       40.0%
+[2026-11-02 11:01:25] [INFO] [lits.eval.llm_call_logger] 30321ee7c900 5      3      40.0%   0      N/A       40.0%
+[2026-11-02 11:01:25] [INFO] [lits.eval.llm_call_logger] e02ec9223c4a 3      2      33.3%   0      N/A       33.3%
+[2026-11-02 11:01:25] [INFO] [lits.eval.llm_call_logger] 549f318dcb2b 3      3      0.0%   0      N/A       0.0%
+[2026-11-02 11:01:25] [INFO] [lits.eval.llm_call_logger] ======================================================================
+[2026-11-02 11:01:25] [INFO] [root] Tree search complete. Terminal nodes saved to D:\codex写5660作业\IndividualProject2\reproduction\runs\iter30_seed42/terminal_nodes/
+[2026-11-02 11:01:25] [INFO] [root] Run lits-eval to extract answers and compute accuracy.
+Auto-loaded import_modules from config: ['lits_benchmark.crosswords']
+Auto-loaded dataset_kwargs from config: {'data_file': 'D:\\codex写5660作业\\IndividualProject2\\demos\\crosswords\\data\\mini0505.json'}
+Auto-loaded dataset_name from config: crosswords
+Auto-loaded eval_model_name from config: openai/deepseek-v4-flash
+Evaluating:   0%|          | 0/1 [00:00<?, ?file/s]Evaluating: 100%|██████████| 1/1 [00:00<00:00, 61.09file/s]
+Result file D:\codex写5660作业\IndividualProject2\reproduction\runs\iter30_seed42\inferencelogger.log already exists. I will append to it. 
+
+============================================================
+  Evaluation Results: iter30_seed42
+============================================================
+  Dataset:    crosswords
+  Examples:   1
+  Correct:    0
+  Accuracy:   0.0000 (0.00%)
+  Soft Acc:   0.8000 (80.00%)
+============================================================
+
+================================================================================
+                        INFERENCE USAGE REPORT
+================================================================================
+
+SUMMARY:
+  Total Calls:    118
+  Input Tokens:   40061
+  Output Tokens:  3120
+  Total Time:     143.8s (0.04h)
+  Est. Cost:      $0.17
+
+BY COMPONENT:
+┌─────────┬───────┬───────────┬────────────┬──────────┬───────┬─────────┐
+│   Name  │ Calls │ Input Tok │ Output Tok │ Time (s) │  Cost │ % Total │
+├─────────┼───────┼───────────┼────────────┼──────────┼───────┼─────────┤
+│  policy │   76  │   22025   │    3078    │   98.7   │ $0.11 │  55.0%  │
+│ prm_env │   42  │   18036   │     42     │   45.2   │ $0.05 │  45.0%  │
+├─────────┼───────┼───────────┼────────────┼──────────┼───────┼─────────┤
+│  TOTAL  │  118  │   40061   │    3120    │  143.8   │ $0.17 │  100.0% │
+└─────────┴───────┴───────────┴────────────┴──────────┴───────┴─────────┘
+
+BY SEARCH PHASE:
+┌──────────┬───────┬───────────┬────────────┬──────────┬─────────┐
+│   Name   │ Calls │ Input Tok │ Output Tok │ Time (s) │ % Total │
+├──────────┼───────┼───────────┼────────────┼──────────┼─────────┤
+│ simulate │  100  │   34261   │    3060    │  125.8   │  85.5%  │
+│  expand  │   18  │    5800   │     60     │   18.0   │  14.5%  │
+├──────────┼───────┼───────────┼────────────┼──────────┼─────────┤
+│  TOTAL   │  118  │   40061   │    3120    │  143.8   │  100.0% │
+└──────────┴───────┴───────────┴────────────┴──────────┴─────────┘
+
+BY COMPONENT × PHASE:
+┌──────────────────┬───────┬───────────┬────────────┬──────────┬─────────┐
+│       Name       │ Calls │ Input Tok │ Output Tok │ Time (s) │ % Total │
+├──────────────────┼───────┼───────────┼────────────┼──────────┼─────────┤
+│ policy_simulate  │   64  │   18674   │    3024    │   86.6   │  46.6%  │
+│ prm_env_simulate │   36  │   15587   │     36     │   39.3   │  38.9%  │
+│  policy_expand   │   12  │    3351   │     54     │   12.1   │   8.4%  │
+│  prm_env_expand  │   6   │    2449   │     6      │   5.9    │   6.1%  │
+├──────────────────┼───────┼───────────┼────────────┼──────────┼─────────┤
+│      TOTAL       │  118  │   40061   │    3120    │  143.8   │  100.0% │
+└──────────────────┴───────┴───────────┴────────────┴──────────┴─────────┘
+
+BY INSTANCE (Top 1 of 1):
+┌───────┬───────┬───────────┬────────────┬──────────┬───────┐
+│  Name │ Calls │ Input Tok │ Output Tok │ Time (s) │  Cost │
+├───────┼───────┼───────────┼────────────┼──────────┼───────┤
+│   2   │  118  │   40061   │    3120    │  143.8   │ $0.17 │
+├───────┼───────┼───────────┼────────────┼──────────┼───────┤
+│ TOTAL │  118  │   40061   │    3120    │  143.8   │ $0.17 │
+└───────┴───────┴───────────┴────────────┴──────────┴───────┘
+
+================================================================================
+Evaluation log saved to: D:\codex写5660作业\IndividualProject2\reproduction\runs\iter30_seed42\eval.log

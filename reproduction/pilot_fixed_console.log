@@ -1,0 +1,207 @@
+[2026-11-01 22:53:12] [INFO] [root] Command: lits-search --include lits_benchmark.crosswords --dataset crosswords --transition crosswords --policy-model openai/deepseek-v4-flash --search-arg n_iters=2 n_actions=3 max_steps=10 roll_out_steps=10 n_action_for_simulate=3 n_confidence=3 force_terminating_on_depth_limit=false terminate_on_first_solution=false enable_think_policy=false enable_think_eval=false enable_think_terminal_gen=false add_continuation=false --component-arg max_new_tokens=1024 --dataset-arg data_file=D:\codex写5660作业\IndividualProject2\demos\crosswords\data\mini0505.json --var offset=0 limit=1 -o D:\codex写5660作业\IndividualProject2\reproduction\pilot_fixed
+[2026-11-01 22:53:12] [INFO] [root] Working directory: D:\codex写5660作业\IndividualProject2
+[2026-11-01 22:53:12] [WARNING] [lits.components.base] Policy.__init__: task_prompt_spec not found for task_name='crosswords' or task_type='env_grounded'
+Var: offset=0
+Var: limit=1
+Imported custom modules: ['lits_benchmark.crosswords']
+Search: n_iters=2
+Search: n_actions=3
+Search: max_steps=10
+Search: roll_out_steps=10
+Search: n_action_for_simulate=3
+Search: n_confidence=3
+Search: force_terminating_on_depth_limit=False
+Search: terminate_on_first_solution=False
+Search: enable_think_policy=False
+Search: enable_think_eval=False
+Search: enable_think_terminal_gen=False
+Search: add_continuation=False
+Component: max_new_tokens=1024
+Dataset: data_file=D:\codex写5660作业\IndividualProject2\demos\crosswords\data\mini0505.json
+Current working directory: D:\codex写5660作业\IndividualProject2
+Log/config file/results are saved to: D:\codex写5660作业\IndividualProject2\reproduction\pilot_fixed
+
+  0%|          | 0/1 [00:00<?, ?it/s][2026-11-01 22:53:12] [INFO] [lits.agents.tree.mcts] [MCTS] Begin (example=0)
+
+
+MCTS iteration:   0%|          | 0/2 [00:00<?, ?it/s][A[2026-11-01 22:53:12] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 0/2 (example=0) ====================
+[2026-11-01 22:53:12] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-01 22:53:12] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-01 22:53:12] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=0, phase=expand)
+[2026-11-01 22:53:12] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-01 22:53:16] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'h1. chore', retrying with temp=0.90
+[2026-11-01 22:53:17] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 2/3): 'h1. chore', retrying with temp=1.10
+[2026-11-01 22:53:18] [WARNING] [lits.components.policy.env_grounded] [POLICY] Invalid action (attempt 3/3): 'v2. nilgai'
+[2026-11-01 22:53:18] [ERROR] [lits.components.policy.env_grounded] Max retries (3) exceeded for action generation.
+[2026-11-01 22:53:25] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=expand)
+[2026-11-01 22:53:25] [INFO] [lits.agents.tree.mcts] [Simulate] Begin
+[2026-11-01 22:53:25] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=0, phase=simulate)
+[2026-11-01 22:53:25] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-01 22:53:25] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=0, phase=simulate)
+[2026-11-01 22:53:25] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-01 22:53:31] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'v1. amass', retrying with temp=0.90
+[2026-11-01 22:53:32] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 2/3): 'v1. amass', retrying with temp=1.10
+[2026-11-01 22:53:33] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'v1. amass', retrying with temp=0.90
+[2026-11-01 22:53:37] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-01 22:53:37] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=0, phase=simulate)
+[2026-11-01 22:53:37] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-01 22:53:40] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'h2. motor', retrying with temp=0.90
+[2026-11-01 22:53:41] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 2/3): 'h2. motor', retrying with temp=1.10
+[2026-11-01 22:53:42] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 3/3): 'h2. motor', retrying with temp=1.20
+[2026-11-01 22:53:42] [ERROR] [lits.components.policy.env_grounded] Max retries (3) exceeded for action generation.
+[2026-11-01 22:53:44] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-01 22:53:44] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=0, phase=simulate)
+[2026-11-01 22:53:44] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-01 22:53:45] [WARNING] [lits.components.policy.env_grounded] [POLICY] Invalid action (attempt 1/3): 'v2. HOGDEER'
+[2026-11-01 22:53:48] [WARNING] [lits.components.policy.env_grounded] [POLICY] Invalid action (attempt 1/3): 'v2. HOGDEER'
+[2026-11-01 22:53:49] [WARNING] [lits.components.policy.env_grounded] [POLICY] Invalid action (attempt 2/3): 'h3. ostentatious'
+[2026-11-01 22:53:56] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-01 22:53:56] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=0, phase=simulate)
+[2026-11-01 22:53:56] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-01 22:54:00] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'h4. salon', retrying with temp=0.90
+[2026-11-01 22:54:08] [WARNING] [lits.components.policy.env_grounded] [POLICY] Invalid action (attempt 2/3): 'Let's look at what's already placed and what the clues suggest.
+
+The current board is:
+
+```
+A H O R E
+M O T O R
+A R T S Y
+S _ _ _ _
+S _ _ _ _
+```
+
+Filled:
+- h1: AHORE → Wait, that seems incorrect for "An agendum; something to be done". The correct word is likely "AGENDA" but that’s 6 letters — actually, "chore" is 5 letters, and "a chore" could mean a task, which fits "something to be done". But the first letter is A, so perhaps "AHORE" is a mistake for "CHORE"? However, the puzzle shows AHORE, so maybe the given h1 is wrong — but we are told not to change filled unless we are picking unfilled. Let's keep going.
+
+Wait: in the given "Changed" section, h1 is marked as changed to "AHORE", which means it's fixed that way.
+
+- h2: MOTOR (fits)
+- h3: ARTSY (fits)
+- v1: AMASS (fits down col 1: A M A S S).
+
+So column 1 is A M A S S. Yes.
+
+Now, cross-check:
+
+Row 1: A H O R E  
+Row 2: M O T O R  
+Row 3: A R T S Y  
+Row 4: S _ _ _ _  
+Row 5: S _ _ _ _
+
+Vertical:
+
+v1: A M A S S (correct)  
+v2: H O R _ _ (clue: Indian antelope → likely "HORSE"? No, that’s not an antelope. “HORN” something? Actually "HOR_" → HORDE? No. "HORAL"? Let’s check: Indian antelope = "nilgai" or "chinkara", but 5 letters? "HORSE" no. “HOGDEER”? Not antelope. But given clue "HOR__" suggests the word starts HOR. "HORNS"? no. Actually “HOR" + 2 letters… Wait, "HORAL"? Not an antelope. Is “HORSE” possible? Horse is not an antelope. But could the antelope be “HORSE”? No. "HOR" could start "HORDE"? Not antelope.
+
+Hold on: Indian antelope = blackbuck (not 5). Four-horned antelope = "chousingha" (too long). Could it be "HOR" + ... Actually “HOR” in v2 comes from h1-2=H, h2-2=O, h3-2=R, h4-2=?, h5-2=? So v2 = H O R _ _. The clue says "HOR__". If it's an Indian antelope, 5 letters: maybe "HORSE"? No. But could be "HOGDEER" no. Could be “HORAL” — that's a word for a goat-antelope? Actually "HORAL" is a Himalayan goat-antelope (yes! "Horal" is a type of wild goat). But is it 5 letters? Yes. So HORAL might work. That gives v2 = HORAL. Then h4 = S _ _ A _, h5 = S _ _ L _.
+
+Let’s check: h4: S _ _ A _  
+h5: S _ _ L _
+
+v3 clue: "To intend; to plan; to devise; a nettle; to guess" → OTT__? Wait, v3 currently = O T T _ _ from row1 col3=O, row2 col3=T, row3 col3=T, row4 col3=?, row5 col3=? So v3 = O T T _ _. Clue: “To intend; to plan; to devise; a nettle; to guess” — what 5-letter word means intend? "OTT??" Possibly “OTTAR”? No. "To intend" = "opine"? Not OTT. The archaic “ettin”? Hmm — but “a nettle” = “ nettle” can be “urti” no.
+
+Actually: think "To guess" = "opine" no. "To devise" = "think"? Not OTT. "To plan" = "intend". Word starting OTT... maybe “OTTAR”? No. Could v3 be "OTTER"? No, otter is animal.
+
+Maybe the clue is for a word meaning "to intend" — could be “aim” etc. But OTT... is weird. Possibly the clue “a nettle” refers to “ nettle” = “urtīca” no. Wait —'
+[2026-11-01 22:54:10] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'h4. salon', retrying with temp=0.90
+[2026-11-01 22:54:18] [WARNING] [lits.components.policy.env_grounded] [POLICY] Invalid action (attempt 2/3): 'Let’s check what’s consistent so far.
+
+Grid:
+
+```
+h1: A H O R E
+h2: M O T O R
+h3: A R T S Y
+h4: S _ _ _ _
+h5: S _ _ _ _
+```
+
+Verticals:
+
+- v1: A M A S S → clue "To heap" = AMASS ✓
+- v2: H O R _ _ → clue "Indian antelope" = HORSE? No, antelope is "nilgai" (6), "blackbuck" is longer; but the antelope genus could be **HORSE**? No, not an antelope. Wait — could be "HOGDEER"? No. Let's think — “Indian antelope” typically 5 letters: **Nilgai** is 6; **Chinkara**? longer. **Sasin** is 5 — but looks like they already have HOR__ so maybe “HORNS”? No, that’s not an antelope. Actually “HORSE” isn’t antelope. But there is "Hog deer" (not antelope). Could be “HORNS” as in horned animal? But clue is “Indian antelope” with pattern HOR__ → maybe "HORAL"? Not a word. This might not match the clue, but maybe it's “HORNY”? No. Let’s hold on this.
+- v3: O T T _ _ → “To intend; to plan; to devise; a nettle; to guess” = **OTTAR**? No, "to intend" = "mean", "plan" = "intend", "devise" = "contrive", "nettle" = "urtica" (plant), "to guess" = "opine", "surmise". But pattern OTT__ maybe "OTTER"? Not matching clues. Could be “OTTOS”? Actually "to intend" = "aim"; nettle = "urt..."? suspect maybe v3 is not OTT__? Wait, v3 letters: col3 from h1 O, h2 T, h3 T... so yes OTT__. Word fitting OTT__ and multiple meanings including nettle? Possibly “OTTAR” is perfume, no. What about "OTTAV"? no. Might be they think "nettle" = "irritate", "to guess" = "opine"? Doesn't fit. Possibly the word is **OTTER**? No. Holding.
+- v4: R O S _ _ → clue “A nozzle” = ROSES? No; "roset"? No; "rosin"? No. Maybe "spout"? That’s 5 but pattern not matching. Actually nozzle = "rosin"? no. This could be **ROSET**? not a nozzle. Maybe "ROSES" as in watering can? No. Hold.
+- v5: E R Y _ _ → clue “Desiccator; more dry” = “drier” = DRIER, but pattern ERY__ doesn’t match. Actually "more dry" = "drier" but not ERY__. Maybe "serer"? No, "more dry" = "arider", but that’s 6 letters. “Desiccator” is a device, maybe "drier". But ERY?? Possibly "eryst"? No. Hold.
+
+But we have h4 clue: "A salon; a hall" = S _ _ _ _ — 5 letters starting S: "salon" = "salle"? That’s French but 5 letters? "salon" is 5: S A L O N. Yes, salon = SALON. Hall = SALON? A hall could be "salon". Also could be "salle" (5, but not English). Likely SALON.
+
+So h4 = SALON: S A L O N.
+
+That changes verticals:
+- v2: H O R _ _ → now third letter from h4 is L? Wait no, v2 is column 2: currently H (h1), O (h2), R (h3), then h4 letter2 = A from SALON, so v2: H O R A _ → HORA_ — possible "HORAL"? Not antelope. Hmm. "Indian antelope" maybe "HOGDEER"? no. But maybe HORAL is not it.
+
+Wait maybe h4 isn't SALON? Let's check other pattern: h4 clue also "a hall", "S____" maybe "spa"? no 5 letters. Could be "salle"?? Not English? Maybe "studio"? no, starts S, 5 letters: "salle". No, could be "salon" indeed. Let's proceed but'
+[2026-11-01 22:54:19] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 3/3): 'h4. salon', retrying with temp=1.20
+[2026-11-01 22:54:19] [ERROR] [lits.components.policy.env_grounded] Max retries (3) exceeded for action generation.
+[2026-11-01 22:54:21] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-01 22:54:21] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=0, phase=simulate)
+[2026-11-01 22:54:21] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-01 22:54:27] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-01 22:54:27] [INFO] [lits.agents.tree.mcts] [Simulate] End
+[2026-11-01 22:54:27] [INFO] [lits.agents.tree.mcts] [Backpropagate] Begin
+[2026-11-01 22:54:27] [INFO] [lits.agents.tree.mcts] [Backpropagate] End
+[2026-11-01 22:54:27] [INFO] [lits.agents.tree.mcts] [MCTS] Iteration 0/2 (example=0) | terminals=1
+Root
+├── v2. chink r=0.00 d=1
+├── h1. chore r=0.50 d=1 [sim]
+│   ├── v1. amass r=0.00 d=2 [sim]
+│   │   ├── v2. HURRY r=0.00 d=3
+│   │   ├── h2. motor r=0.50 d=3 [sim]
+│   │   │   ├── h3. artsy r=0.00 d=4 [sim]
+│   │   │   │   ├── h4. salon r=0.00 d=5 [sim]
+│   │   │   │   │   ├── h5. sneer r=0.00 d=6
+│   │   │   │   │   ├── v5. DRIER r=0.00 d=6
+│   │   │   │   │   └── h5. SNEER r=0.50 d=6 [sim] ★
+│   │   │   │   ├── v2. HORSE r=0.00 d=5
+│   │   │   │   └── h4. salon r=0.00 d=5
+│   │   │   ├── h3. showy r=0.00 d=4
+│   │   │   └── h3. orate r=0.00 d=4
+│   │   └── h2. motor r=0.50 d=3
+│   ├── v1. choke r=0.00 d=2
+│   └── h2. motor r=0.00 d=2
+└── v2. nilgai r=0.50 d=1
+
+
+MCTS iteration:  50%|█████     | 1/2 [01:14<01:14, 74.86s/it][A[2026-11-01 22:54:27] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 1/2 (example=0) ====================
+[2026-11-01 22:54:27] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-01 22:54:27] [INFO] [lits.agents.tree.mcts] [Select] End
+
+
+                                                             [A[2026-11-01 22:54:27] [INFO] [lits.agents.tree.mcts] [MCTS] End (example=0)
+
+100%|██████████| 1/1 [01:14<00:00, 74.88s/it]
+100%|██████████| 1/1 [01:14<00:00, 74.88s/it]
+[2026-11-01 22:54:27] [INFO] [root] Total time: 74.88077688217163
+[2026-11-01 22:54:27] [INFO] [root] default: 	 {'num_calls': 0, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'running_time': 0, 'total_hours': 0.0}
+[2026-11-01 22:54:27] [INFO] [root] dynamics: 	 {'num_calls': 0, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'running_time': 0, 'total_hours': 0.0}
+[2026-11-01 22:54:27] [INFO] [root] policy: 	 {'num_calls': 32, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 9348, 'output_tokens': 2196, 'running_time': 50.032222747802734, 'total_hours': 0.013897839652167426}
+[2026-11-01 22:54:27] [INFO] [root] evaluator: 	 {'num_calls': 0, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'running_time': 0, 'total_hours': 0.0}
+[2026-11-01 22:54:27] [INFO] [root] prm: 	 {'num_calls': 18, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 7600, 'output_tokens': 18, 'running_time': 24.73952555656433, 'total_hours': 0.006872090432378981}
+[2026-11-01 22:54:27] [INFO] [root] bn_eval: 	 {'num_calls': 0, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'running_time': 0, 'total_hours': 0.0}
+[2026-11-01 22:54:27] [INFO] [root] bn_entropy: 	 {'num_calls': 0, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'running_time': 0, 'total_hours': 0.0}
+[2026-11-01 22:54:27] [INFO] [root] memory: 	 {'num_calls': 0, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'running_time': 0, 'total_hours': 0.0}
+[2026-11-01 22:54:27] [INFO] [root] augmentor: 	 {'num_calls': 0, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'running_time': 0, 'total_hours': 0.0}
+[2026-11-01 22:54:27] [INFO] [lits.eval.llm_call_logger] Loaded 32 records from D:\codex写5660作业\IndividualProject2\reproduction\pilot_fixed/llm_calls.jsonl
+[2026-11-01 22:54:27] [INFO] [lits.eval.llm_call_logger] ======================================================================
+[2026-11-01 22:54:27] [INFO] [lits.eval.llm_call_logger] LLM Call Diversity Report
+[2026-11-01 22:54:27] [INFO] [lits.eval.llm_call_logger] ======================================================================
+[2026-11-01 22:54:27] [INFO] [lits.eval.llm_call_logger] Unique states visited: 6
+[2026-11-01 22:54:27] [INFO] [lits.eval.llm_call_logger] Avg. policy calls per state: 5.3
+[2026-11-01 22:54:27] [INFO] [lits.eval.llm_call_logger] Dup. rate (all): 40.6%
+[2026-11-01 22:54:27] [INFO] [lits.eval.llm_call_logger] Dup. rate (correct): 0.0%
+[2026-11-01 22:54:27] [INFO] [lits.eval.llm_call_logger] Dup. rate (incorrect): 40.6%
+[2026-11-01 22:54:27] [INFO] [lits.eval.llm_call_logger] Per-prompt breakdown:
+[2026-11-01 22:54:27] [INFO] [lits.eval.llm_call_logger] Prompt       Total  Uniq   Dup%     Corr   CorrDup%  IncDup% 
+[2026-11-01 22:54:27] [INFO] [lits.eval.llm_call_logger] -------------------------------------------------------------
+[2026-11-01 22:54:27] [INFO] [lits.eval.llm_call_logger] eee55532329b 5      2      60.0%   0      N/A       60.0%
+[2026-11-01 22:54:27] [INFO] [lits.eval.llm_call_logger] 007e30ec0daf 6      3      50.0%   0      N/A       50.0%
+[2026-11-01 22:54:27] [INFO] [lits.eval.llm_call_logger] 9f98cb5fdb97 7      4      42.9%   0      N/A       42.9%
+[2026-11-01 22:54:27] [INFO] [lits.eval.llm_call_logger] 581e301c5b29 5      3      40.0%   0      N/A       40.0%
+[2026-11-01 22:54:27] [INFO] [lits.eval.llm_call_logger] 4597a40d025f 3      2      33.3%   0      N/A       33.3%
+[2026-11-01 22:54:27] [INFO] [lits.eval.llm_call_logger] f657c2f8ea7f 6      5      16.7%   0      N/A       16.7%
+[2026-11-01 22:54:27] [INFO] [lits.eval.llm_call_logger] ======================================================================
+[2026-11-01 22:54:27] [INFO] [root] Tree search complete. Terminal nodes saved to D:\codex写5660作业\IndividualProject2\reproduction\pilot_fixed/terminal_nodes/
+[2026-11-01 22:54:27] [INFO] [root] Run lits-eval to extract answers and compute accuracy.

@@ -1,0 +1,1159 @@
+[2026-11-02 11:10:42.972] [INFO] [root] Command: lits-search --include lits_benchmark.crosswords --dataset crosswords --transition crosswords --policy-model openai/deepseek-v4-flash --search-arg n_iters=10 n_actions=3 max_steps=10 roll_out_steps=10 n_action_for_simulate=3 n_confidence=3 force_terminating_on_depth_limit=false terminate_on_first_solution=false enable_think_policy=false enable_think_eval=false enable_think_terminal_gen=false add_continuation=false --component-arg max_new_tokens=1024 --dataset-arg data_file=D:\codex写5660作业\IndividualProject2\demos\crosswords\data\mini0505.json --var offset=2 limit=1 -o D:\codex写5660作业\IndividualProject2\reproduction\runs\iter10_seed43
+[2026-11-02 11:10:42.972] [INFO] [root] Working directory: D:\codex写5660作业\IndividualProject2
+[2026-11-02 11:10:42.973] [DEBUG] [lits.components.base] Policy.__init__: agent_name=env_grounded, task_name=crosswords, task_type=env_grounded
+[2026-11-02 11:10:42.973] [DEBUG] [lits.components.base] Policy.__init__: task_prompt_spec (before registry) type=<class 'NoneType'>, value=None
+[2026-11-02 11:10:42.973] [WARNING] [lits.components.base] Policy.__init__: task_prompt_spec not found for task_name='crosswords' or task_type='env_grounded'
+[2026-11-02 11:10:42.973] [DEBUG] [lits.components.base] Policy.__init__: usr_prompt_spec loaded from registry, type=<class 'lits.prompts.prompt.PromptTemplate'>, value=<lits.prompts.prompt.PromptTemplate object at 0x000001931101BCE0>
+[2026-11-02 11:10:42.973] [DEBUG] [lits.components.base] Policy.__init__: Final task_prompt_spec type=<class 'NoneType'>
+[2026-11-02 11:10:42.973] [DEBUG] [lits.components.base] Policy.__init__: Final usr_prompt_spec type=<class 'lits.prompts.prompt.PromptTemplate'>
+[2026-11-02 11:10:42.973] [DEBUG] [lits.components.base] Task prompt spec not provided, loading from registry for agent 'env_grounded', task_name='crosswords', task_type='env_grounded'
+[2026-11-02 11:10:42.973] [DEBUG] [lits.components.base] LLM call function set for EnvGroundedPolicy
+[2026-11-02 11:10:42.978] [DEBUG] [lits.agents.tree.mcts] Question: AMIGO
+MAMOU
+INPUT
+SIEGE
+HALER
+AMISH
+MANIA
+IMPEL
+GOUGE
+OUTER
+[2026-11-02 11:10:42.978] [INFO] [lits.agents.tree.mcts] [MCTS] Begin (example=2)
+[2026-11-02 11:10:42.978] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 0/10 (example=2) ====================
+[2026-11-02 11:10:42.978] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:10:42.978] [DEBUG] [lits.agents.tree.mcts] Path Visualization:
+Node 0 (reward: -1, bn_score: -1, cum rewards: []Num children: 0): 
+	AMIGO
+MAMOU
+INPUT
+SIEGE
+HALER
+AMISH
+MANIA
+IMPEL
+GOUGE
+OUTER
+[2026-11-02 11:10:42.978] [DEBUG] [lits.agents.tree.mcts] [Select] Types: 
+[2026-11-02 11:10:42.978] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:10:42.978] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=2, phase=expand)
+[2026-11-02 11:10:42.978] [DEBUG] [lits.agents.tree.common] n_needed=3, n_actions - n_existing=3 - 0
+[2026-11-02 11:10:42.978] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-02 11:10:42.978] [DEBUG] [lits.components.base] 
+======================================================================
+[2026-11-02 11:10:42.978] [DEBUG] [lits.components.base] >>> Policy Call: Generating 3 actions (BEGIN)
+[2026-11-02 11:10:42.978] [DEBUG] [lits.components.base] ======================================================================
+[2026-11-02 11:10:42.979] [DEBUG] [lits.components.base] State: EnvState(steps=0, env_state='Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. A male friend: _____\nh2. Something big a...')
+[2026-11-02 11:10:42.979] [DEBUG] [lits.components.policy.env_grounded] Current env_state (len=0 steps):
+Current Board:
+_____
+_____
+_____
+_____
+_____
+
+Unfilled:
+h1. A male friend: _____
+h2. Something big and important: _____
+h3. Things that enter; data given to a computer program: _____
+h4. To besiege: _...
+[2026-11-02 11:10:42.979] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:10:43.877] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:10:44.464] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'h1. amigo', retrying with temp=0.90
+[2026-11-02 11:10:44.465] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:10:45.143] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 2/3): 'h1. amigo', retrying with temp=1.10
+[2026-11-02 11:10:45.143] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:10:46.067] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 3/3): 'h1. amigo', retrying with temp=1.20
+[2026-11-02 11:10:46.067] [ERROR] [lits.components.policy.env_grounded] Max retries (3) exceeded for action generation.
+[2026-11-02 11:10:46.067] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:10:46.941] [DEBUG] [lits.components.base] 
+Generated Actions:
+[2026-11-02 11:10:46.941] [DEBUG] [lits.components.base]   [0] EnvStep(error=None, terminate=False, action=StringAction(action_str='h1. amigo'), next_state=None)
+[2026-11-02 11:10:46.941] [DEBUG] [lits.components.base]   [1] EnvStep(error='Validation failed after 3 retries', terminate=True, action=StringAction(action_str='h1. amigo'), next_state=None)
+[2026-11-02 11:10:46.941] [DEBUG] [lits.components.base]   [2] EnvStep(error=None, terminate=False, action=StringAction(action_str='h4. siege'), next_state=None)
+[2026-11-02 11:10:46.941] [DEBUG] [lits.components.base] ======================================================================
+[2026-11-02 11:10:46.941] [DEBUG] [lits.components.base] >>> Policy Call: Generating 3 actions (END)
+[2026-11-02 11:10:46.941] [DEBUG] [lits.components.base] ======================================================================
+
+[2026-11-02 11:10:46.941] [DEBUG] [lits.agents.tree.common] Assigning fast reward for Node 1
+[2026-11-02 11:10:46.941] [DEBUG] [lits.components.base] 
+>>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (BEGIN) <<<<<<<<<
+[2026-11-02 11:10:46.941] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'enable_thinking', 'max_length'}
+[2026-11-02 11:10:47.899] [DEBUG] [lits.components.base] fast_reward: 0.5
+[2026-11-02 11:10:47.899] [DEBUG] [lits.components.base] >>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (END) <<<<<<<<<
+
+[2026-11-02 11:10:47.899] [DEBUG] [lits.agents.tree.common] Node 1 fast_reward assigned: 0.5
+[2026-11-02 11:10:47.899] [DEBUG] [lits.agents.tree.mcts] Node 1 (reward: 0.5, bn_score: -1, cum rewards: []Num children: 0): 
+	h1. amigo
+[2026-11-02 11:10:47.899] [DEBUG] [lits.agents.tree.common] Assigning fast reward for Node 2
+[2026-11-02 11:10:47.899] [DEBUG] [lits.components.base] 
+>>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (BEGIN) <<<<<<<<<
+[2026-11-02 11:10:47.899] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'enable_thinking', 'max_length'}
+[2026-11-02 11:10:48.677] [DEBUG] [lits.components.base] fast_reward: 0.5
+[2026-11-02 11:10:48.678] [DEBUG] [lits.components.base] >>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (END) <<<<<<<<<
+
+[2026-11-02 11:10:48.678] [DEBUG] [lits.agents.tree.common] Node 2 fast_reward assigned: 0.5
+[2026-11-02 11:10:48.678] [DEBUG] [lits.agents.tree.mcts] Node 2 (reward: 0.5, bn_score: -1, cum rewards: []Num children: 0): 
+	h1. amigo
+[2026-11-02 11:10:48.678] [DEBUG] [lits.agents.tree.common] Assigning fast reward for Node 3
+[2026-11-02 11:10:48.678] [DEBUG] [lits.components.base] 
+>>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (BEGIN) <<<<<<<<<
+[2026-11-02 11:10:48.678] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'enable_thinking', 'max_length'}
+[2026-11-02 11:10:49.706] [DEBUG] [lits.components.base] fast_reward: 0.0
+[2026-11-02 11:10:49.706] [DEBUG] [lits.components.base] >>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (END) <<<<<<<<<
+
+[2026-11-02 11:10:49.706] [DEBUG] [lits.agents.tree.common] Node 3 fast_reward assigned: 0.0
+[2026-11-02 11:10:49.706] [DEBUG] [lits.agents.tree.mcts] Node 3 (reward: 0.0, bn_score: -1, cum rewards: []Num children: 0): 
+	h4. siege
+[2026-11-02 11:10:49.706] [DEBUG] [lits.agents.tree.mcts] Child's (Node 1) fast_reward already assigned as 0.5
+[2026-11-02 11:10:49.706] [DEBUG] [lits.agents.tree.mcts] Child's (Node 2) fast_reward already assigned as 0.5
+[2026-11-02 11:10:49.706] [DEBUG] [lits.agents.tree.mcts] Child's (Node 3) fast_reward already assigned as 0.0
+[2026-11-02 11:10:49.706] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=expand)
+[2026-11-02 11:10:49.706] [INFO] [lits.agents.tree.mcts] [Simulate] Begin
+[2026-11-02 11:10:49.706] [DEBUG] [lits.agents.tree.mcts] [Simulate] Rollout step 1
+[2026-11-02 11:10:49.706] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=2, phase=simulate)
+[2026-11-02 11:10:49.706] [DEBUG] [lits.agents.tree.common] n_needed=0, n_actions - n_existing=3 - 3
+[2026-11-02 11:10:49.706] [DEBUG] [lits.agents.tree.mcts] Child's (Node 1) fast_reward already assigned as 0.5
+[2026-11-02 11:10:49.706] [DEBUG] [lits.agents.tree.mcts] Child's (Node 2) fast_reward already assigned as 0.5
+[2026-11-02 11:10:49.706] [DEBUG] [lits.agents.tree.mcts] Child's (Node 3) fast_reward already assigned as 0.0
+[2026-11-02 11:10:49.706] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-02 11:10:49.706] [DEBUG] [lits.agents.tree.common] 
+=========== [Set State for Node 1 Begin] ===========
+[2026-11-02 11:10:49.707] [DEBUG] [lits.agents.tree.common] State is set to: EnvState(steps=1, env_state='Current Board:\nAMIGO\n_____\n_____\n_____\n_____\n\nUnfilled:\nh2. Something big and important: _____\nh3. T...')
+[2026-11-02 11:10:49.707] [DEBUG] [lits.agents.tree.common] State confidence is set to: -1
+[2026-11-02 11:10:49.707] [DEBUG] [lits.agents.tree.common] Reward is set via {} and {'goal_reached': (False, 0.1), 'message': ''}
+[2026-11-02 11:10:49.707] [DEBUG] [lits.agents.tree.common] 
+=========== [Set State for Node 1 End] ===========
+
+[2026-11-02 11:10:49.707] [DEBUG] [lits.agents.tree.mcts] NEW NODE Transfer with the action: h1. amigo. The resulting state: EnvState(steps=1, env_state='Current Board:\nAMIGO\n_____\n_____\n_____\n_____\n\nUnfilled:\nh2. Something big and important: _____\nh3. T...')
+[2026-11-02 11:10:49.707] [DEBUG] [lits.agents.tree.mcts] [Simulate] Rollout step 2
+[2026-11-02 11:10:49.707] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=2, phase=simulate)
+[2026-11-02 11:10:49.707] [DEBUG] [lits.agents.tree.common] n_needed=3, n_actions - n_existing=3 - 0
+[2026-11-02 11:10:49.707] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-02 11:10:49.707] [DEBUG] [lits.components.base] 
+======================================================================
+[2026-11-02 11:10:49.707] [DEBUG] [lits.components.base] >>> Policy Call: Generating 3 actions (BEGIN)
+[2026-11-02 11:10:49.707] [DEBUG] [lits.components.base] ======================================================================
+[2026-11-02 11:10:49.707] [DEBUG] [lits.components.base] State: EnvState(steps=1, env_state='Current Board:\nAMIGO\n_____\n_____\n_____\n_____\n\nUnfilled:\nh2. Something big and important: _____\nh3. T...')
+[2026-11-02 11:10:49.707] [DEBUG] [lits.components.policy.env_grounded] Current env_state (len=1 steps):
+Current Board:
+AMIGO
+_____
+_____
+_____
+_____
+
+Unfilled:
+h2. Something big and important: _____
+h3. Things that enter; data given to a computer program: _____
+h4. To besiege: _____
+h5. More healthy; a ...
+[2026-11-02 11:10:49.707] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:10:50.666] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:10:51.348] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:10:52.382] [DEBUG] [lits.components.base] 
+Generated Actions:
+[2026-11-02 11:10:52.383] [DEBUG] [lits.components.base]   [0] EnvStep(error=None, terminate=False, action=StringAction(action_str='h2. major'), next_state=None)
+[2026-11-02 11:10:52.383] [DEBUG] [lits.components.base]   [1] EnvStep(error=None, terminate=False, action=StringAction(action_str='v1. amish'), next_state=None)
+[2026-11-02 11:10:52.383] [DEBUG] [lits.components.base]   [2] EnvStep(error=None, terminate=False, action=StringAction(action_str='v1. Amish'), next_state=None)
+[2026-11-02 11:10:52.383] [DEBUG] [lits.components.base] ======================================================================
+[2026-11-02 11:10:52.383] [DEBUG] [lits.components.base] >>> Policy Call: Generating 3 actions (END)
+[2026-11-02 11:10:52.383] [DEBUG] [lits.components.base] ======================================================================
+
+[2026-11-02 11:10:52.383] [DEBUG] [lits.agents.tree.common] Assigning fast reward for Node 4
+[2026-11-02 11:10:52.383] [DEBUG] [lits.components.base] 
+>>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (BEGIN) <<<<<<<<<
+[2026-11-02 11:10:52.383] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'enable_thinking', 'max_length'}
+[2026-11-02 11:10:53.073] [DEBUG] [lits.components.base] fast_reward: 0.5
+[2026-11-02 11:10:53.073] [DEBUG] [lits.components.base] >>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (END) <<<<<<<<<
+
+[2026-11-02 11:10:53.073] [DEBUG] [lits.agents.tree.common] Node 4 fast_reward assigned: 0.5
+[2026-11-02 11:10:53.073] [DEBUG] [lits.agents.tree.mcts] Node 4 (reward: 0.5, bn_score: -1, cum rewards: []Num children: 0): 
+	h2. major
+[2026-11-02 11:10:53.073] [DEBUG] [lits.agents.tree.common] Assigning fast reward for Node 5
+[2026-11-02 11:10:53.073] [DEBUG] [lits.components.base] 
+>>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (BEGIN) <<<<<<<<<
+[2026-11-02 11:10:53.073] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'enable_thinking', 'max_length'}
+[2026-11-02 11:10:54.002] [DEBUG] [lits.components.base] fast_reward: 0.5
+[2026-11-02 11:10:54.002] [DEBUG] [lits.components.base] >>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (END) <<<<<<<<<
+
+[2026-11-02 11:10:54.002] [DEBUG] [lits.agents.tree.common] Node 5 fast_reward assigned: 0.5
+[2026-11-02 11:10:54.002] [DEBUG] [lits.agents.tree.mcts] Node 5 (reward: 0.5, bn_score: -1, cum rewards: []Num children: 0): 
+	v1. amish
+[2026-11-02 11:10:54.002] [DEBUG] [lits.agents.tree.common] Assigning fast reward for Node 6
+[2026-11-02 11:10:54.002] [DEBUG] [lits.components.base] 
+>>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (BEGIN) <<<<<<<<<
+[2026-11-02 11:10:54.003] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'enable_thinking', 'max_length'}
+[2026-11-02 11:10:54.647] [DEBUG] [lits.components.base] fast_reward: 0.5
+[2026-11-02 11:10:54.647] [DEBUG] [lits.components.base] >>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (END) <<<<<<<<<
+
+[2026-11-02 11:10:54.647] [DEBUG] [lits.agents.tree.common] Node 6 fast_reward assigned: 0.5
+[2026-11-02 11:10:54.647] [DEBUG] [lits.agents.tree.mcts] Node 6 (reward: 0.5, bn_score: -1, cum rewards: []Num children: 0): 
+	v1. Amish
+[2026-11-02 11:10:54.647] [DEBUG] [lits.agents.tree.mcts] Child's (Node 4) fast_reward already assigned as 0.5
+[2026-11-02 11:10:54.647] [DEBUG] [lits.agents.tree.mcts] Child's (Node 5) fast_reward already assigned as 0.5
+[2026-11-02 11:10:54.647] [DEBUG] [lits.agents.tree.mcts] Child's (Node 6) fast_reward already assigned as 0.5
+[2026-11-02 11:10:54.647] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-02 11:10:54.648] [DEBUG] [lits.agents.tree.common] 
+=========== [Set State for Node 4 Begin] ===========
+[2026-11-02 11:10:54.648] [DEBUG] [lits.agents.tree.common] State is set to: EnvState(steps=2, env_state='Current Board:\nAMIGO\nMAJOR\n_____\n_____\n_____\n\nUnfilled:\nh3. Things that enter; data given to a compu...')
+[2026-11-02 11:10:54.648] [DEBUG] [lits.agents.tree.common] State confidence is set to: -1
+[2026-11-02 11:10:54.648] [DEBUG] [lits.agents.tree.common] Reward is set via {} and {'goal_reached': (False, 0.1), 'message': ''}
+[2026-11-02 11:10:54.648] [DEBUG] [lits.agents.tree.common] 
+=========== [Set State for Node 4 End] ===========
+
+[2026-11-02 11:10:54.648] [DEBUG] [lits.agents.tree.mcts] NEW NODE Transfer with the action: h2. major. The resulting state: EnvState(steps=2, env_state='Current Board:\nAMIGO\nMAJOR\n_____\n_____\n_____\n\nUnfilled:\nh3. Things that enter; data given to a compu...')
+[2026-11-02 11:10:54.648] [DEBUG] [lits.agents.tree.mcts] [Simulate] Rollout step 3
+[2026-11-02 11:10:54.648] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=2, phase=simulate)
+[2026-11-02 11:10:54.648] [DEBUG] [lits.agents.tree.common] n_needed=3, n_actions - n_existing=3 - 0
+[2026-11-02 11:10:54.648] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-02 11:10:54.648] [DEBUG] [lits.components.base] 
+======================================================================
+[2026-11-02 11:10:54.648] [DEBUG] [lits.components.base] >>> Policy Call: Generating 3 actions (BEGIN)
+[2026-11-02 11:10:54.648] [DEBUG] [lits.components.base] ======================================================================
+[2026-11-02 11:10:54.648] [DEBUG] [lits.components.base] State: EnvState(steps=2, env_state='Current Board:\nAMIGO\nMAJOR\n_____\n_____\n_____\n\nUnfilled:\nh3. Things that enter; data given to a compu...')
+[2026-11-02 11:10:54.648] [DEBUG] [lits.components.policy.env_grounded] Current env_state (len=2 steps):
+Current Board:
+AMIGO
+MAJOR
+_____
+_____
+_____
+
+Unfilled:
+h3. Things that enter; data given to a computer program: _____
+h4. To besiege: _____
+h5. More healthy; a coin: _____
+v1. A Mennonite sect, named...
+[2026-11-02 11:10:54.648] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:10:55.406] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:10:56.071] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:10:57.038] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'v1. AMISH', retrying with temp=0.90
+[2026-11-02 11:10:57.038] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:10:57.965] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 2/3): 'h3. input', retrying with temp=1.10
+[2026-11-02 11:10:57.965] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:10:58.747] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 3/3): 'h3. input', retrying with temp=1.20
+[2026-11-02 11:10:58.748] [ERROR] [lits.components.policy.env_grounded] Max retries (3) exceeded for action generation.
+[2026-11-02 11:10:58.748] [DEBUG] [lits.components.base] 
+Generated Actions:
+[2026-11-02 11:10:58.748] [DEBUG] [lits.components.base]   [0] EnvStep(error=None, terminate=False, action=StringAction(action_str='h3. input'), next_state=None)
+[2026-11-02 11:10:58.748] [DEBUG] [lits.components.base]   [1] EnvStep(error=None, terminate=False, action=StringAction(action_str='v1. AMISH'), next_state=None)
+[2026-11-02 11:10:58.748] [DEBUG] [lits.components.base]   [2] EnvStep(error='Validation failed after 3 retries', terminate=True, action=StringAction(action_str='h3. input'), next_state=None)
+[2026-11-02 11:10:58.748] [DEBUG] [lits.components.base] ======================================================================
+[2026-11-02 11:10:58.748] [DEBUG] [lits.components.base] >>> Policy Call: Generating 3 actions (END)
+[2026-11-02 11:10:58.748] [DEBUG] [lits.components.base] ======================================================================
+
+[2026-11-02 11:10:58.748] [DEBUG] [lits.agents.tree.common] Assigning fast reward for Node 7
+[2026-11-02 11:10:58.748] [DEBUG] [lits.components.base] 
+>>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (BEGIN) <<<<<<<<<
+[2026-11-02 11:10:58.748] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'enable_thinking', 'max_length'}
+[2026-11-02 11:10:59.433] [DEBUG] [lits.components.base] fast_reward: 0.0
+[2026-11-02 11:10:59.433] [DEBUG] [lits.components.base] >>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (END) <<<<<<<<<
+
+[2026-11-02 11:10:59.433] [DEBUG] [lits.agents.tree.common] Node 7 fast_reward assigned: 0.0
+[2026-11-02 11:10:59.433] [DEBUG] [lits.agents.tree.mcts] Node 7 (reward: 0.0, bn_score: -1, cum rewards: []Num children: 0): 
+	h3. input
+[2026-11-02 11:10:59.434] [DEBUG] [lits.agents.tree.common] Assigning fast reward for Node 8
+[2026-11-02 11:10:59.434] [DEBUG] [lits.components.base] 
+>>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (BEGIN) <<<<<<<<<
+[2026-11-02 11:10:59.434] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'enable_thinking', 'max_length'}
+[2026-11-02 11:11:00.215] [DEBUG] [lits.components.base] fast_reward: 0.5
+[2026-11-02 11:11:00.216] [DEBUG] [lits.components.base] >>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (END) <<<<<<<<<
+
+[2026-11-02 11:11:00.216] [DEBUG] [lits.agents.tree.common] Node 8 fast_reward assigned: 0.5
+[2026-11-02 11:11:00.216] [DEBUG] [lits.agents.tree.mcts] Node 8 (reward: 0.5, bn_score: -1, cum rewards: []Num children: 0): 
+	v1. AMISH
+[2026-11-02 11:11:00.216] [DEBUG] [lits.agents.tree.common] Assigning fast reward for Node 9
+[2026-11-02 11:11:00.216] [DEBUG] [lits.components.base] 
+>>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (BEGIN) <<<<<<<<<
+[2026-11-02 11:11:00.216] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'enable_thinking', 'max_length'}
+[2026-11-02 11:11:01.208] [DEBUG] [lits.components.base] fast_reward: 0.0
+[2026-11-02 11:11:01.209] [DEBUG] [lits.components.base] >>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (END) <<<<<<<<<
+
+[2026-11-02 11:11:01.209] [DEBUG] [lits.agents.tree.common] Node 9 fast_reward assigned: 0.0
+[2026-11-02 11:11:01.209] [DEBUG] [lits.agents.tree.mcts] Node 9 (reward: 0.0, bn_score: -1, cum rewards: []Num children: 0): 
+	h3. input
+[2026-11-02 11:11:01.209] [DEBUG] [lits.agents.tree.mcts] Child's (Node 7) fast_reward already assigned as 0.0
+[2026-11-02 11:11:01.209] [DEBUG] [lits.agents.tree.mcts] Child's (Node 8) fast_reward already assigned as 0.5
+[2026-11-02 11:11:01.209] [DEBUG] [lits.agents.tree.mcts] Child's (Node 9) fast_reward already assigned as 0.0
+[2026-11-02 11:11:01.209] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-02 11:11:01.209] [DEBUG] [lits.agents.tree.common] 
+=========== [Set State for Node 8 Begin] ===========
+[2026-11-02 11:11:01.209] [DEBUG] [lits.agents.tree.common] State is set to: EnvState(steps=3, env_state='Current Board:\nAMIGO\nMAJOR\nI____\nS____\nH____\n\nUnfilled:\nh3. Things that enter; data given to a compu...')
+[2026-11-02 11:11:01.210] [DEBUG] [lits.agents.tree.common] State confidence is set to: -1
+[2026-11-02 11:11:01.210] [DEBUG] [lits.agents.tree.common] Reward is set via {} and {'goal_reached': (False, 0.2), 'message': ''}
+[2026-11-02 11:11:01.210] [DEBUG] [lits.agents.tree.common] 
+=========== [Set State for Node 8 End] ===========
+
+[2026-11-02 11:11:01.210] [DEBUG] [lits.agents.tree.mcts] NEW NODE Transfer with the action: v1. AMISH. The resulting state: EnvState(steps=3, env_state='Current Board:\nAMIGO\nMAJOR\nI____\nS____\nH____\n\nUnfilled:\nh3. Things that enter; data given to a compu...')
+[2026-11-02 11:11:01.210] [DEBUG] [lits.agents.tree.mcts] [Simulate] Rollout step 4
+[2026-11-02 11:11:01.210] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=2, phase=simulate)
+[2026-11-02 11:11:01.210] [DEBUG] [lits.agents.tree.common] n_needed=3, n_actions - n_existing=3 - 0
+[2026-11-02 11:11:01.210] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-02 11:11:01.210] [DEBUG] [lits.components.base] 
+======================================================================
+[2026-11-02 11:11:01.210] [DEBUG] [lits.components.base] >>> Policy Call: Generating 3 actions (BEGIN)
+[2026-11-02 11:11:01.210] [DEBUG] [lits.components.base] ======================================================================
+[2026-11-02 11:11:01.210] [DEBUG] [lits.components.base] State: EnvState(steps=3, env_state='Current Board:\nAMIGO\nMAJOR\nI____\nS____\nH____\n\nUnfilled:\nh3. Things that enter; data given to a compu...')
+[2026-11-02 11:11:01.210] [DEBUG] [lits.components.policy.env_grounded] Current env_state (len=3 steps):
+Current Board:
+AMIGO
+MAJOR
+I____
+S____
+H____
+
+Unfilled:
+h3. Things that enter; data given to a computer program: I____
+h4. To besiege: S____
+h5. More healthy; a coin: H____
+v2. A craze: MA___
+v3. To f...
+[2026-11-02 11:11:01.210] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:11:01.932] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:11:02.435] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'h3. input', retrying with temp=0.90
+[2026-11-02 11:11:02.435] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:11:03.316] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:11:04.252] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'h3. input', retrying with temp=0.90
+[2026-11-02 11:11:04.252] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:11:05.059] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 2/3): 'h3. input', retrying with temp=1.10
+[2026-11-02 11:11:05.059] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:11:05.752] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 3/3): 'h3. input', retrying with temp=1.20
+[2026-11-02 11:11:05.752] [ERROR] [lits.components.policy.env_grounded] Max retries (3) exceeded for action generation.
+[2026-11-02 11:11:05.752] [DEBUG] [lits.components.base] 
+Generated Actions:
+[2026-11-02 11:11:05.753] [DEBUG] [lits.components.base]   [0] EnvStep(error=None, terminate=False, action=StringAction(action_str='h3. input'), next_state=None)
+[2026-11-02 11:11:05.753] [DEBUG] [lits.components.base]   [1] EnvStep(error=None, terminate=False, action=StringAction(action_str='v2. MANIA'), next_state=None)
+[2026-11-02 11:11:05.753] [DEBUG] [lits.components.base]   [2] EnvStep(error='Validation failed after 3 retries', terminate=True, action=StringAction(action_str='h3. input'), next_state=None)
+[2026-11-02 11:11:05.753] [DEBUG] [lits.components.base] ======================================================================
+[2026-11-02 11:11:05.753] [DEBUG] [lits.components.base] >>> Policy Call: Generating 3 actions (END)
+[2026-11-02 11:11:05.753] [DEBUG] [lits.components.base] ======================================================================
+
+[2026-11-02 11:11:05.753] [DEBUG] [lits.agents.tree.common] Assigning fast reward for Node 10
+[2026-11-02 11:11:05.753] [DEBUG] [lits.components.base] 
+>>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (BEGIN) <<<<<<<<<
+[2026-11-02 11:11:05.753] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'enable_thinking', 'max_length'}
+[2026-11-02 11:11:06.629] [DEBUG] [lits.components.base] fast_reward: 0.5
+[2026-11-02 11:11:06.629] [DEBUG] [lits.components.base] >>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (END) <<<<<<<<<
+
+[2026-11-02 11:11:06.629] [DEBUG] [lits.agents.tree.common] Node 10 fast_reward assigned: 0.5
+[2026-11-02 11:11:06.629] [DEBUG] [lits.agents.tree.mcts] Node 10 (reward: 0.5, bn_score: -1, cum rewards: []Num children: 0): 
+	h3. input
+[2026-11-02 11:11:06.629] [DEBUG] [lits.agents.tree.common] Assigning fast reward for Node 11
+[2026-11-02 11:11:06.629] [DEBUG] [lits.components.base] 
+>>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (BEGIN) <<<<<<<<<
+[2026-11-02 11:11:06.630] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'enable_thinking', 'max_length'}
+[2026-11-02 11:11:07.668] [DEBUG] [lits.components.base] fast_reward: 0.5
+[2026-11-02 11:11:07.669] [DEBUG] [lits.components.base] >>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (END) <<<<<<<<<
+
+[2026-11-02 11:11:07.669] [DEBUG] [lits.agents.tree.common] Node 11 fast_reward assigned: 0.5
+[2026-11-02 11:11:07.669] [DEBUG] [lits.agents.tree.mcts] Node 11 (reward: 0.5, bn_score: -1, cum rewards: []Num children: 0): 
+	v2. MANIA
+[2026-11-02 11:11:07.669] [DEBUG] [lits.agents.tree.common] Assigning fast reward for Node 12
+[2026-11-02 11:11:07.669] [DEBUG] [lits.components.base] 
+>>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (BEGIN) <<<<<<<<<
+[2026-11-02 11:11:07.669] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'enable_thinking', 'max_length'}
+[2026-11-02 11:11:08.353] [DEBUG] [lits.components.base] fast_reward: 0.5
+[2026-11-02 11:11:08.353] [DEBUG] [lits.components.base] >>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (END) <<<<<<<<<
+
+[2026-11-02 11:11:08.353] [DEBUG] [lits.agents.tree.common] Node 12 fast_reward assigned: 0.5
+[2026-11-02 11:11:08.353] [DEBUG] [lits.agents.tree.mcts] Node 12 (reward: 0.5, bn_score: -1, cum rewards: []Num children: 0): 
+	h3. input
+[2026-11-02 11:11:08.353] [DEBUG] [lits.agents.tree.mcts] Child's (Node 10) fast_reward already assigned as 0.5
+[2026-11-02 11:11:08.353] [DEBUG] [lits.agents.tree.mcts] Child's (Node 11) fast_reward already assigned as 0.5
+[2026-11-02 11:11:08.353] [DEBUG] [lits.agents.tree.mcts] Child's (Node 12) fast_reward already assigned as 0.5
+[2026-11-02 11:11:08.353] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-02 11:11:08.353] [DEBUG] [lits.agents.tree.common] 
+=========== [Set State for Node 10 Begin] ===========
+[2026-11-02 11:11:08.354] [DEBUG] [lits.agents.tree.common] State is set to: EnvState(steps=4, env_state='Current Board:\nAMIGO\nMAJOR\nINPUT\nS____\nH____\n\nUnfilled:\nh4. To besiege: S____\nh5. More healthy; a co...')
+[2026-11-02 11:11:08.354] [DEBUG] [lits.agents.tree.common] State confidence is set to: -1
+[2026-11-02 11:11:08.354] [DEBUG] [lits.agents.tree.common] Reward is set via {} and {'goal_reached': (False, 0.3), 'message': ''}
+[2026-11-02 11:11:08.354] [DEBUG] [lits.agents.tree.common] 
+=========== [Set State for Node 10 End] ===========
+
+[2026-11-02 11:11:08.354] [DEBUG] [lits.agents.tree.mcts] NEW NODE Transfer with the action: h3. input. The resulting state: EnvState(steps=4, env_state='Current Board:\nAMIGO\nMAJOR\nINPUT\nS____\nH____\n\nUnfilled:\nh4. To besiege: S____\nh5. More healthy; a co...')
+[2026-11-02 11:11:08.354] [DEBUG] [lits.agents.tree.mcts] [Simulate] Rollout step 5
+[2026-11-02 11:11:08.355] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=2, phase=simulate)
+[2026-11-02 11:11:08.355] [DEBUG] [lits.agents.tree.common] n_needed=3, n_actions - n_existing=3 - 0
+[2026-11-02 11:11:08.355] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-02 11:11:08.355] [DEBUG] [lits.components.base] 
+======================================================================
+[2026-11-02 11:11:08.355] [DEBUG] [lits.components.base] >>> Policy Call: Generating 3 actions (BEGIN)
+[2026-11-02 11:11:08.355] [DEBUG] [lits.components.base] ======================================================================
+[2026-11-02 11:11:08.355] [DEBUG] [lits.components.base] State: EnvState(steps=4, env_state='Current Board:\nAMIGO\nMAJOR\nINPUT\nS____\nH____\n\nUnfilled:\nh4. To besiege: S____\nh5. More healthy; a co...')
+[2026-11-02 11:11:08.355] [DEBUG] [lits.components.policy.env_grounded] Current env_state (len=4 steps):
+Current Board:
+AMIGO
+MAJOR
+INPUT
+S____
+H____
+
+Unfilled:
+h4. To besiege: S____
+h5. More healthy; a coin: H____
+v2. A craze: MAN__
+v3. To force; to drive: IJP__
+v4. To dig out roughly: GOU__
+v5. On the ...
+[2026-11-02 11:11:08.355] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:11:09.316] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:11:10.294] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:11:11.696] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'h4. siege', retrying with temp=0.90
+[2026-11-02 11:11:11.697] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:11:12.700] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 2/3): 'h4. SIEGE', retrying with temp=1.10
+[2026-11-02 11:11:12.700] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:11:13.748] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 3/3): 'h4. siege', retrying with temp=1.20
+[2026-11-02 11:11:13.749] [ERROR] [lits.components.policy.env_grounded] Max retries (3) exceeded for action generation.
+[2026-11-02 11:11:13.749] [DEBUG] [lits.components.base] 
+Generated Actions:
+[2026-11-02 11:11:13.749] [DEBUG] [lits.components.base]   [0] EnvStep(error=None, terminate=False, action=StringAction(action_str='h4. siege'), next_state=None)
+[2026-11-02 11:11:13.749] [DEBUG] [lits.components.base]   [1] EnvStep(error=None, terminate=False, action=StringAction(action_str='h4. SIEGE'), next_state=None)
+[2026-11-02 11:11:13.749] [DEBUG] [lits.components.base]   [2] EnvStep(error='Validation failed after 3 retries', terminate=True, action=StringAction(action_str='h4. siege'), next_state=None)
+[2026-11-02 11:11:13.749] [DEBUG] [lits.components.base] ======================================================================
+[2026-11-02 11:11:13.749] [DEBUG] [lits.components.base] >>> Policy Call: Generating 3 actions (END)
+[2026-11-02 11:11:13.749] [DEBUG] [lits.components.base] ======================================================================
+
+[2026-11-02 11:11:13.749] [DEBUG] [lits.agents.tree.common] Assigning fast reward for Node 13
+[2026-11-02 11:11:13.749] [DEBUG] [lits.components.base] 
+>>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (BEGIN) <<<<<<<<<
+[2026-11-02 11:11:13.749] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'enable_thinking', 'max_length'}
+[2026-11-02 11:11:17.448] [DEBUG] [lits.components.base] fast_reward: 0.0
+[2026-11-02 11:11:17.448] [DEBUG] [lits.components.base] >>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (END) <<<<<<<<<
+
+[2026-11-02 11:11:17.448] [DEBUG] [lits.agents.tree.common] Node 13 fast_reward assigned: 0.0
+[2026-11-02 11:11:17.448] [DEBUG] [lits.agents.tree.mcts] Node 13 (reward: 0.0, bn_score: -1, cum rewards: []Num children: 0): 
+	h4. siege
+[2026-11-02 11:11:17.448] [DEBUG] [lits.agents.tree.common] Assigning fast reward for Node 14
+[2026-11-02 11:11:17.448] [DEBUG] [lits.components.base] 
+>>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (BEGIN) <<<<<<<<<
+[2026-11-02 11:11:17.448] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'enable_thinking', 'max_length'}
+[2026-11-02 11:11:18.357] [DEBUG] [lits.components.base] fast_reward: 0.5
+[2026-11-02 11:11:18.357] [DEBUG] [lits.components.base] >>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (END) <<<<<<<<<
+
+[2026-11-02 11:11:18.357] [DEBUG] [lits.agents.tree.common] Node 14 fast_reward assigned: 0.5
+[2026-11-02 11:11:18.357] [DEBUG] [lits.agents.tree.mcts] Node 14 (reward: 0.5, bn_score: -1, cum rewards: []Num children: 0): 
+	h4. SIEGE
+[2026-11-02 11:11:18.357] [DEBUG] [lits.agents.tree.common] Assigning fast reward for Node 15
+[2026-11-02 11:11:18.357] [DEBUG] [lits.components.base] 
+>>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (BEGIN) <<<<<<<<<
+[2026-11-02 11:11:18.357] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'enable_thinking', 'max_length'}
+[2026-11-02 11:11:19.332] [DEBUG] [lits.components.base] fast_reward: 0.0
+[2026-11-02 11:11:19.334] [DEBUG] [lits.components.base] >>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (END) <<<<<<<<<
+
+[2026-11-02 11:11:19.334] [DEBUG] [lits.agents.tree.common] Node 15 fast_reward assigned: 0.0
+[2026-11-02 11:11:19.334] [DEBUG] [lits.agents.tree.mcts] Node 15 (reward: 0.0, bn_score: -1, cum rewards: []Num children: 0): 
+	h4. siege
+[2026-11-02 11:11:19.334] [DEBUG] [lits.agents.tree.mcts] Child's (Node 13) fast_reward already assigned as 0.0
+[2026-11-02 11:11:19.334] [DEBUG] [lits.agents.tree.mcts] Child's (Node 14) fast_reward already assigned as 0.5
+[2026-11-02 11:11:19.334] [DEBUG] [lits.agents.tree.mcts] Child's (Node 15) fast_reward already assigned as 0.0
+[2026-11-02 11:11:19.334] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-02 11:11:19.334] [DEBUG] [lits.agents.tree.common] 
+=========== [Set State for Node 14 Begin] ===========
+[2026-11-02 11:11:19.335] [DEBUG] [lits.agents.tree.common] State is set to: EnvState(steps=5, env_state='Current Board:\nAMIGO\nMAJOR\nINPUT\nSIEGE\nH____\n\nUnfilled:\nh5. More healthy; a coin: H____\nv2. A craze:...')
+[2026-11-02 11:11:19.335] [DEBUG] [lits.agents.tree.common] State confidence is set to: -1
+[2026-11-02 11:11:19.335] [DEBUG] [lits.agents.tree.common] Reward is set via {} and {'goal_reached': (False, 0.4), 'message': ''}
+[2026-11-02 11:11:19.335] [DEBUG] [lits.agents.tree.common] 
+=========== [Set State for Node 14 End] ===========
+
+[2026-11-02 11:11:19.335] [DEBUG] [lits.agents.tree.mcts] NEW NODE Transfer with the action: h4. SIEGE. The resulting state: EnvState(steps=5, env_state='Current Board:\nAMIGO\nMAJOR\nINPUT\nSIEGE\nH____\n\nUnfilled:\nh5. More healthy; a coin: H____\nv2. A craze:...')
+[2026-11-02 11:11:19.335] [DEBUG] [lits.agents.tree.mcts] [Simulate] Rollout step 6
+[2026-11-02 11:11:19.335] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=2, phase=simulate)
+[2026-11-02 11:11:19.335] [DEBUG] [lits.agents.tree.common] n_needed=3, n_actions - n_existing=3 - 0
+[2026-11-02 11:11:19.335] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-02 11:11:19.335] [DEBUG] [lits.components.base] 
+======================================================================
+[2026-11-02 11:11:19.335] [DEBUG] [lits.components.base] >>> Policy Call: Generating 3 actions (BEGIN)
+[2026-11-02 11:11:19.335] [DEBUG] [lits.components.base] ======================================================================
+[2026-11-02 11:11:19.335] [DEBUG] [lits.components.base] State: EnvState(steps=5, env_state='Current Board:\nAMIGO\nMAJOR\nINPUT\nSIEGE\nH____\n\nUnfilled:\nh5. More healthy; a coin: H____\nv2. A craze:...')
+[2026-11-02 11:11:19.335] [DEBUG] [lits.components.policy.env_grounded] Current env_state (len=5 steps):
+Current Board:
+AMIGO
+MAJOR
+INPUT
+SIEGE
+H____
+
+Unfilled:
+h5. More healthy; a coin: H____
+v2. A craze: MANI_
+v3. To force; to drive: IJPE_
+v4. To dig out roughly: GOUG_
+v5. On the outside: ORTE_
+
+Filled...
+[2026-11-02 11:11:19.335] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:11:21.475] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:11:22.462] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 1/3): 'h5. HEALT', retrying with temp=0.90
+[2026-11-02 11:11:22.462] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:11:23.282] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 2/3): 'h5. HEALT', retrying with temp=1.10
+[2026-11-02 11:11:23.283] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:11:24.320] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:11:25.089] [DEBUG] [lits.components.base] 
+Generated Actions:
+[2026-11-02 11:11:25.089] [DEBUG] [lits.components.base]   [0] EnvStep(error=None, terminate=False, action=StringAction(action_str='h5. HEALT'), next_state=None)
+[2026-11-02 11:11:25.090] [DEBUG] [lits.components.base]   [1] EnvStep(error=None, terminate=False, action=StringAction(action_str='h5. healt'), next_state=None)
+[2026-11-02 11:11:25.090] [DEBUG] [lits.components.base]   [2] EnvStep(error=None, terminate=False, action=StringAction(action_str='h5. HAPPY'), next_state=None)
+[2026-11-02 11:11:25.090] [DEBUG] [lits.components.base] ======================================================================
+[2026-11-02 11:11:25.090] [DEBUG] [lits.components.base] >>> Policy Call: Generating 3 actions (END)
+[2026-11-02 11:11:25.090] [DEBUG] [lits.components.base] ======================================================================
+
+[2026-11-02 11:11:25.090] [DEBUG] [lits.agents.tree.common] Assigning fast reward for Node 16
+[2026-11-02 11:11:25.090] [DEBUG] [lits.components.base] 
+>>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (BEGIN) <<<<<<<<<
+[2026-11-02 11:11:25.090] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'enable_thinking', 'max_length'}
+[2026-11-02 11:11:26.097] [DEBUG] [lits.components.base] fast_reward: 0.0
+[2026-11-02 11:11:26.097] [DEBUG] [lits.components.base] >>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (END) <<<<<<<<<
+
+[2026-11-02 11:11:26.097] [DEBUG] [lits.agents.tree.common] Node 16 fast_reward assigned: 0.0
+[2026-11-02 11:11:26.097] [DEBUG] [lits.agents.tree.mcts] Node 16 (reward: 0.0, bn_score: -1, cum rewards: []Num children: 0): 
+	h5. HEALT
+[2026-11-02 11:11:26.097] [DEBUG] [lits.agents.tree.common] Assigning fast reward for Node 17
+[2026-11-02 11:11:26.097] [DEBUG] [lits.components.base] 
+>>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (BEGIN) <<<<<<<<<
+[2026-11-02 11:11:26.097] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'enable_thinking', 'max_length'}
+[2026-11-02 11:11:26.992] [DEBUG] [lits.components.base] fast_reward: 0.0
+[2026-11-02 11:11:26.992] [DEBUG] [lits.components.base] >>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (END) <<<<<<<<<
+
+[2026-11-02 11:11:26.992] [DEBUG] [lits.agents.tree.common] Node 17 fast_reward assigned: 0.0
+[2026-11-02 11:11:26.992] [DEBUG] [lits.agents.tree.mcts] Node 17 (reward: 0.0, bn_score: -1, cum rewards: []Num children: 0): 
+	h5. healt
+[2026-11-02 11:11:26.992] [DEBUG] [lits.agents.tree.common] Assigning fast reward for Node 18
+[2026-11-02 11:11:26.992] [DEBUG] [lits.components.base] 
+>>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (BEGIN) <<<<<<<<<
+[2026-11-02 11:11:26.992] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'enable_thinking', 'max_length'}
+[2026-11-02 11:11:27.885] [DEBUG] [lits.components.base] fast_reward: 0.0
+[2026-11-02 11:11:27.885] [DEBUG] [lits.components.base] >>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (END) <<<<<<<<<
+
+[2026-11-02 11:11:27.885] [DEBUG] [lits.agents.tree.common] Node 18 fast_reward assigned: 0.0
+[2026-11-02 11:11:27.885] [DEBUG] [lits.agents.tree.mcts] Node 18 (reward: 0.0, bn_score: -1, cum rewards: []Num children: 0): 
+	h5. HAPPY
+[2026-11-02 11:11:27.885] [DEBUG] [lits.agents.tree.mcts] Child's (Node 16) fast_reward already assigned as 0.0
+[2026-11-02 11:11:27.885] [DEBUG] [lits.agents.tree.mcts] Child's (Node 17) fast_reward already assigned as 0.0
+[2026-11-02 11:11:27.885] [DEBUG] [lits.agents.tree.mcts] Child's (Node 18) fast_reward already assigned as 0.0
+[2026-11-02 11:11:27.885] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-02 11:11:27.885] [DEBUG] [lits.agents.tree.common] 
+=========== [Set State for Node 16 Begin] ===========
+[2026-11-02 11:11:27.886] [DEBUG] [lits.agents.tree.common] State is set to: EnvState(steps=6, env_state='Current Board:\nAMIGO\nMAJOR\nINPUT\nSIEGE\nHEALT\n\nUnfilled:\nv2. A craze: MANIE\nv3. To force; to drive: I...')
+[2026-11-02 11:11:27.886] [DEBUG] [lits.agents.tree.common] State confidence is set to: -1
+[2026-11-02 11:11:27.886] [DEBUG] [lits.agents.tree.common] Reward is set via {} and {'goal_reached': (False, 0.4), 'message': ''}
+[2026-11-02 11:11:27.886] [DEBUG] [lits.agents.tree.common] The state is terminal
+[2026-11-02 11:11:27.886] [DEBUG] [lits.agents.tree.common] 
+=========== [Set State for Node 16 End] ===========
+
+[2026-11-02 11:11:27.886] [DEBUG] [lits.agents.tree.mcts] NEW NODE Transfer with the action: h5. HEALT. The resulting state: EnvState(steps=6, env_state='Current Board:\nAMIGO\nMAJOR\nINPUT\nSIEGE\nHEALT\n\nUnfilled:\nv2. A craze: MANIE\nv3. To force; to drive: I...')
+[2026-11-02 11:11:27.886] [INFO] [lits.agents.tree.mcts] [Simulate] End
+[2026-11-02 11:11:27.886] [INFO] [lits.agents.tree.mcts] [Backpropagate] Begin
+[2026-11-02 11:11:27.886] [DEBUG] [lits.agents.tree.mcts] [Backpropagate] Rewards (leaf->root): [0.2, 0.45, 0.4, 0.35, 0.3, 0.3, -1]
+[2026-11-02 11:11:27.886] [DEBUG] [lits.agents.tree.mcts] [Backpropagate] Cum rewards: [np.float64(0.2), np.float64(0.325), np.float64(0.35000000000000003), np.float64(0.35), np.float64(0.33999999999999997), np.float64(0.3333333333333333), np.float64(0.14285714285714285)]
+[2026-11-02 11:11:27.886] [INFO] [lits.agents.tree.mcts] [Backpropagate] End
+[2026-11-02 11:11:27.888] [INFO] [lits.agents.tree.mcts] [MCTS] Iteration 0/10 (example=2) | terminals=1
+Root
+├── h1. amigo r=0.50 d=1 [sim]
+│   ├── h2. major r=0.50 d=2 [sim]
+│   │   ├── h3. input r=0.00 d=3
+│   │   ├── v1. AMISH r=0.50 d=3 [sim]
+│   │   │   ├── h3. input r=0.50 d=4 [sim]
+│   │   │   │   ├── h4. siege r=0.00 d=5
+│   │   │   │   ├── h4. SIEGE r=0.50 d=5 [sim]
+│   │   │   │   │   ├── h5. HEALT r=0.00 d=6 [sim] ★
+│   │   │   │   │   ├── h5. healt r=0.00 d=6
+│   │   │   │   │   └── h5. HAPPY r=0.00 d=6
+│   │   │   │   └── h4. siege r=0.00 d=5
+│   │   │   ├── v2. MANIA r=0.50 d=4
+│   │   │   └── h3. input r=0.50 d=4
+│   │   └── h3. input r=0.00 d=3
+│   ├── v1. amish r=0.50 d=2
+│   └── v1. Amish r=0.50 d=2
+├── h1. amigo r=0.50 d=1
+└── h4. siege r=0.00 d=1
+[2026-11-02 11:11:27.888] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 1/10 (example=2) ====================
+[2026-11-02 11:11:27.888] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:11:27.888] [DEBUG] [lits.agents.tree.mcts] Unvisited children exist for node 0, selecting based on fast reward.
+[2026-11-02 11:11:27.888] [DEBUG] [lits.agents.tree.mcts] Path Visualization:
+Node 0 (reward: -1, bn_score: -1, cum rewards: [np.float64(0.14285714285714285)]Num children: 3): 
+	AMIGO
+MAMOU
+INPUT
+SIEGE
+HALER
+AMISH
+MANIA
+IMPEL
+GOUGE
+OUTER
+Node 2 (reward: 0.5, bn_score: -1, cum rewards: []Num children: 0): 
+	h1. amigo
+[2026-11-02 11:11:27.888] [DEBUG] [lits.agents.tree.mcts] [Select] Types: unvisited/fast_reward
+[2026-11-02 11:11:27.888] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:11:27.888] [DEBUG] [lits.agents.tree.common] 
+=========== [Set State for Node 2 Begin] ===========
+[2026-11-02 11:11:27.888] [DEBUG] [lits.agents.tree.common] State is set to: EnvState(steps=1, env_state='Current Board:\nAMIGO\n_____\n_____\n_____\n_____\n\nUnfilled:\nh2. Something big and important: _____\nh3. T...')
+[2026-11-02 11:11:27.888] [DEBUG] [lits.agents.tree.common] State confidence is set to: -1
+[2026-11-02 11:11:27.888] [DEBUG] [lits.agents.tree.common] Reward is set via {} and {'goal_reached': (False, 0.1), 'message': ''}
+[2026-11-02 11:11:27.888] [DEBUG] [lits.agents.tree.common] 
+=========== [Set State for Node 2 End] ===========
+
+[2026-11-02 11:11:27.889] [DEBUG] [lits.agents.tree.mcts] [MCTS] Continues to next iteration due to terminal node (after select)
+[2026-11-02 11:11:27.889] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 2/10 (example=2) ====================
+[2026-11-02 11:11:27.890] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:11:27.890] [DEBUG] [lits.agents.tree.mcts] Unvisited children exist for node 0, selecting based on fast reward.
+[2026-11-02 11:11:27.890] [DEBUG] [lits.agents.tree.mcts] Path Visualization:
+Node 0 (reward: -1, bn_score: -1, cum rewards: [np.float64(0.14285714285714285)]Num children: 3): 
+	AMIGO
+MAMOU
+INPUT
+SIEGE
+HALER
+AMISH
+MANIA
+IMPEL
+GOUGE
+OUTER
+Node 3 (reward: 0.0, bn_score: -1, cum rewards: []Num children: 0): 
+	h4. siege
+[2026-11-02 11:11:27.890] [DEBUG] [lits.agents.tree.mcts] [Select] Types: unvisited/fast_reward
+[2026-11-02 11:11:27.890] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:11:27.890] [DEBUG] [lits.agents.tree.common] 
+=========== [Set State for Node 3 Begin] ===========
+[2026-11-02 11:11:27.890] [DEBUG] [lits.agents.tree.common] State is set to: EnvState(steps=1, env_state='Current Board:\n_____\n_____\n_____\nSIEGE\n_____\n\nUnfilled:\nh1. A male friend: _____\nh2. Something big a...')
+[2026-11-02 11:11:27.890] [DEBUG] [lits.agents.tree.common] State confidence is set to: -1
+[2026-11-02 11:11:27.890] [DEBUG] [lits.agents.tree.common] Reward is set via {} and {'goal_reached': (False, 0.1), 'message': ''}
+[2026-11-02 11:11:27.890] [DEBUG] [lits.agents.tree.common] 
+=========== [Set State for Node 3 End] ===========
+
+[2026-11-02 11:11:27.890] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=2, phase=expand)
+[2026-11-02 11:11:27.890] [DEBUG] [lits.agents.tree.common] n_needed=3, n_actions - n_existing=3 - 0
+[2026-11-02 11:11:27.890] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-02 11:11:27.890] [DEBUG] [lits.components.base] 
+======================================================================
+[2026-11-02 11:11:27.890] [DEBUG] [lits.components.base] >>> Policy Call: Generating 3 actions (BEGIN)
+[2026-11-02 11:11:27.890] [DEBUG] [lits.components.base] ======================================================================
+[2026-11-02 11:11:27.890] [DEBUG] [lits.components.base] State: EnvState(steps=1, env_state='Current Board:\n_____\n_____\n_____\nSIEGE\n_____\n\nUnfilled:\nh1. A male friend: _____\nh2. Something big a...')
+[2026-11-02 11:11:27.890] [DEBUG] [lits.components.policy.env_grounded] Current env_state (len=1 steps):
+Current Board:
+_____
+_____
+_____
+SIEGE
+_____
+
+Unfilled:
+h1. A male friend: _____
+h2. Something big and important: _____
+h3. Things that enter; data given to a computer program: _____
+h5. More healthy;...
+[2026-11-02 11:11:27.890] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:11:28.588] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:11:29.587] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:11:30.389] [DEBUG] [lits.components.base] 
+Generated Actions:
+[2026-11-02 11:11:30.389] [DEBUG] [lits.components.base]   [0] EnvStep(error=None, terminate=False, action=StringAction(action_str='v1. amish'), next_state=None)
+[2026-11-02 11:11:30.389] [DEBUG] [lits.components.base]   [1] EnvStep(error=None, terminate=False, action=StringAction(action_str='h1. amigo'), next_state=None)
+[2026-11-02 11:11:30.389] [DEBUG] [lits.components.base]   [2] EnvStep(error=None, terminate=False, action=StringAction(action_str='h5. finer'), next_state=None)
+[2026-11-02 11:11:30.389] [DEBUG] [lits.components.base] ======================================================================
+[2026-11-02 11:11:30.389] [DEBUG] [lits.components.base] >>> Policy Call: Generating 3 actions (END)
+[2026-11-02 11:11:30.389] [DEBUG] [lits.components.base] ======================================================================
+
+[2026-11-02 11:11:30.389] [DEBUG] [lits.agents.tree.common] Assigning fast reward for Node 19
+[2026-11-02 11:11:30.389] [DEBUG] [lits.components.base] 
+>>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (BEGIN) <<<<<<<<<
+[2026-11-02 11:11:30.389] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'enable_thinking', 'max_length'}
+[2026-11-02 11:11:31.345] [DEBUG] [lits.components.base] fast_reward: 0.5
+[2026-11-02 11:11:31.345] [DEBUG] [lits.components.base] >>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (END) <<<<<<<<<
+
+[2026-11-02 11:11:31.345] [DEBUG] [lits.agents.tree.common] Node 19 fast_reward assigned: 0.5
+[2026-11-02 11:11:31.345] [DEBUG] [lits.agents.tree.mcts] Node 19 (reward: 0.5, bn_score: -1, cum rewards: []Num children: 0): 
+	v1. amish
+[2026-11-02 11:11:31.345] [DEBUG] [lits.agents.tree.common] Assigning fast reward for Node 20
+[2026-11-02 11:11:31.345] [DEBUG] [lits.components.base] 
+>>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (BEGIN) <<<<<<<<<
+[2026-11-02 11:11:31.345] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'enable_thinking', 'max_length'}
+[2026-11-02 11:11:31.948] [DEBUG] [lits.components.base] fast_reward: 0.0
+[2026-11-02 11:11:31.949] [DEBUG] [lits.components.base] >>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (END) <<<<<<<<<
+
+[2026-11-02 11:11:31.949] [DEBUG] [lits.agents.tree.common] Node 20 fast_reward assigned: 0.0
+[2026-11-02 11:11:31.949] [DEBUG] [lits.agents.tree.mcts] Node 20 (reward: 0.0, bn_score: -1, cum rewards: []Num children: 0): 
+	h1. amigo
+[2026-11-02 11:11:31.949] [DEBUG] [lits.agents.tree.common] Assigning fast reward for Node 21
+[2026-11-02 11:11:31.949] [DEBUG] [lits.components.base] 
+>>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (BEGIN) <<<<<<<<<
+[2026-11-02 11:11:31.949] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'enable_thinking', 'max_length'}
+[2026-11-02 11:11:32.736] [DEBUG] [lits.components.base] fast_reward: 0.0
+[2026-11-02 11:11:32.736] [DEBUG] [lits.components.base] >>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (END) <<<<<<<<<
+
+[2026-11-02 11:11:32.736] [DEBUG] [lits.agents.tree.common] Node 21 fast_reward assigned: 0.0
+[2026-11-02 11:11:32.736] [DEBUG] [lits.agents.tree.mcts] Node 21 (reward: 0.0, bn_score: -1, cum rewards: []Num children: 0): 
+	h5. finer
+[2026-11-02 11:11:32.737] [DEBUG] [lits.agents.tree.mcts] Child's (Node 19) fast_reward already assigned as 0.5
+[2026-11-02 11:11:32.737] [DEBUG] [lits.agents.tree.mcts] Child's (Node 20) fast_reward already assigned as 0.0
+[2026-11-02 11:11:32.737] [DEBUG] [lits.agents.tree.mcts] Child's (Node 21) fast_reward already assigned as 0.0
+[2026-11-02 11:11:32.737] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=expand)
+[2026-11-02 11:11:32.737] [INFO] [lits.agents.tree.mcts] [Simulate] Begin
+[2026-11-02 11:11:32.737] [DEBUG] [lits.agents.tree.mcts] [Simulate] Rollout step 1
+[2026-11-02 11:11:32.737] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=2, phase=simulate)
+[2026-11-02 11:11:32.737] [DEBUG] [lits.agents.tree.common] n_needed=0, n_actions - n_existing=3 - 3
+[2026-11-02 11:11:32.737] [DEBUG] [lits.agents.tree.mcts] Child's (Node 19) fast_reward already assigned as 0.5
+[2026-11-02 11:11:32.737] [DEBUG] [lits.agents.tree.mcts] Child's (Node 20) fast_reward already assigned as 0.0
+[2026-11-02 11:11:32.737] [DEBUG] [lits.agents.tree.mcts] Child's (Node 21) fast_reward already assigned as 0.0
+[2026-11-02 11:11:32.737] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-02 11:11:32.737] [DEBUG] [lits.agents.tree.common] 
+=========== [Set State for Node 19 Begin] ===========
+[2026-11-02 11:11:32.738] [DEBUG] [lits.agents.tree.common] State is set to: EnvState(steps=2, env_state='Current Board:\nA____\nM____\nI____\nSIEGE\nH____\n\nUnfilled:\nh1. A male friend: A____\nh2. Something big a...')
+[2026-11-02 11:11:32.738] [DEBUG] [lits.agents.tree.common] State confidence is set to: -1
+[2026-11-02 11:11:32.738] [DEBUG] [lits.agents.tree.common] Reward is set via {} and {'goal_reached': (False, 0.2), 'message': ''}
+[2026-11-02 11:11:32.738] [DEBUG] [lits.agents.tree.common] 
+=========== [Set State for Node 19 End] ===========
+
+[2026-11-02 11:11:32.738] [DEBUG] [lits.agents.tree.mcts] NEW NODE Transfer with the action: v1. amish. The resulting state: EnvState(steps=2, env_state='Current Board:\nA____\nM____\nI____\nSIEGE\nH____\n\nUnfilled:\nh1. A male friend: A____\nh2. Something big a...')
+[2026-11-02 11:11:32.738] [DEBUG] [lits.agents.tree.mcts] [Simulate] Rollout step 2
+[2026-11-02 11:11:32.738] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=2, phase=simulate)
+[2026-11-02 11:11:32.738] [DEBUG] [lits.agents.tree.common] n_needed=3, n_actions - n_existing=3 - 0
+[2026-11-02 11:11:32.738] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-02 11:11:32.738] [DEBUG] [lits.components.base] 
+======================================================================
+[2026-11-02 11:11:32.738] [DEBUG] [lits.components.base] >>> Policy Call: Generating 3 actions (BEGIN)
+[2026-11-02 11:11:32.738] [DEBUG] [lits.components.base] ======================================================================
+[2026-11-02 11:11:32.738] [DEBUG] [lits.components.base] State: EnvState(steps=2, env_state='Current Board:\nA____\nM____\nI____\nSIEGE\nH____\n\nUnfilled:\nh1. A male friend: A____\nh2. Something big a...')
+[2026-11-02 11:11:32.738] [DEBUG] [lits.components.policy.env_grounded] Current env_state (len=2 steps):
+Current Board:
+A____
+M____
+I____
+SIEGE
+H____
+
+Unfilled:
+h1. A male friend: A____
+h2. Something big and important: M____
+h3. Things that enter; data given to a computer program: I____
+h5. More healthy;...
+[2026-11-02 11:11:32.739] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:11:33.606] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:11:34.487] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:11:35.220] [DEBUG] [lits.components.base] 
+Generated Actions:
+[2026-11-02 11:11:35.220] [DEBUG] [lits.components.base]   [0] EnvStep(error=None, terminate=False, action=StringAction(action_str='h2. major'), next_state=None)
+[2026-11-02 11:11:35.220] [DEBUG] [lits.components.base]   [1] EnvStep(error=None, terminate=False, action=StringAction(action_str='v2. craze'), next_state=None)
+[2026-11-02 11:11:35.220] [DEBUG] [lits.components.base]   [2] EnvStep(error=None, terminate=False, action=StringAction(action_str='h5. HEALT'), next_state=None)
+[2026-11-02 11:11:35.220] [DEBUG] [lits.components.base] ======================================================================
+[2026-11-02 11:11:35.220] [DEBUG] [lits.components.base] >>> Policy Call: Generating 3 actions (END)
+[2026-11-02 11:11:35.220] [DEBUG] [lits.components.base] ======================================================================
+
+[2026-11-02 11:11:35.220] [DEBUG] [lits.agents.tree.common] Assigning fast reward for Node 22
+[2026-11-02 11:11:35.220] [DEBUG] [lits.components.base] 
+>>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (BEGIN) <<<<<<<<<
+[2026-11-02 11:11:35.220] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'enable_thinking', 'max_length'}
+[2026-11-02 11:11:36.040] [DEBUG] [lits.components.base] fast_reward: 0.5
+[2026-11-02 11:11:36.040] [DEBUG] [lits.components.base] >>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (END) <<<<<<<<<
+
+[2026-11-02 11:11:36.040] [DEBUG] [lits.agents.tree.common] Node 22 fast_reward assigned: 0.5
+[2026-11-02 11:11:36.040] [DEBUG] [lits.agents.tree.mcts] Node 22 (reward: 0.5, bn_score: -1, cum rewards: []Num children: 0): 
+	h2. major
+[2026-11-02 11:11:36.040] [DEBUG] [lits.agents.tree.common] Assigning fast reward for Node 23
+[2026-11-02 11:11:36.040] [DEBUG] [lits.components.base] 
+>>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (BEGIN) <<<<<<<<<
+[2026-11-02 11:11:36.040] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'enable_thinking', 'max_length'}
+[2026-11-02 11:11:36.911] [DEBUG] [lits.components.base] fast_reward: 0.0
+[2026-11-02 11:11:36.911] [DEBUG] [lits.components.base] >>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (END) <<<<<<<<<
+
+[2026-11-02 11:11:36.911] [DEBUG] [lits.agents.tree.common] Node 23 fast_reward assigned: 0.0
+[2026-11-02 11:11:36.911] [DEBUG] [lits.agents.tree.mcts] Node 23 (reward: 0.0, bn_score: -1, cum rewards: []Num children: 0): 
+	v2. craze
+[2026-11-02 11:11:36.911] [DEBUG] [lits.agents.tree.common] Assigning fast reward for Node 24
+[2026-11-02 11:11:36.911] [DEBUG] [lits.components.base] 
+>>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (BEGIN) <<<<<<<<<
+[2026-11-02 11:11:36.911] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'enable_thinking', 'max_length'}
+[2026-11-02 11:11:37.780] [DEBUG] [lits.components.base] fast_reward: 0.0
+[2026-11-02 11:11:37.780] [DEBUG] [lits.components.base] >>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (END) <<<<<<<<<
+
+[2026-11-02 11:11:37.780] [DEBUG] [lits.agents.tree.common] Node 24 fast_reward assigned: 0.0
+[2026-11-02 11:11:37.780] [DEBUG] [lits.agents.tree.mcts] Node 24 (reward: 0.0, bn_score: -1, cum rewards: []Num children: 0): 
+	h5. HEALT
+[2026-11-02 11:11:37.780] [DEBUG] [lits.agents.tree.mcts] Child's (Node 22) fast_reward already assigned as 0.5
+[2026-11-02 11:11:37.780] [DEBUG] [lits.agents.tree.mcts] Child's (Node 23) fast_reward already assigned as 0.0
+[2026-11-02 11:11:37.780] [DEBUG] [lits.agents.tree.mcts] Child's (Node 24) fast_reward already assigned as 0.0
+[2026-11-02 11:11:37.780] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-02 11:11:37.780] [DEBUG] [lits.agents.tree.common] 
+=========== [Set State for Node 22 Begin] ===========
+[2026-11-02 11:11:37.781] [DEBUG] [lits.agents.tree.common] State is set to: EnvState(steps=3, env_state='Current Board:\nA____\nMAJOR\nI____\nSIEGE\nH____\n\nUnfilled:\nh1. A male friend: A____\nh3. Things that ent...')
+[2026-11-02 11:11:37.781] [DEBUG] [lits.agents.tree.common] State confidence is set to: -1
+[2026-11-02 11:11:37.781] [DEBUG] [lits.agents.tree.common] Reward is set via {} and {'goal_reached': (False, 0.2), 'message': ''}
+[2026-11-02 11:11:37.781] [DEBUG] [lits.agents.tree.common] 
+=========== [Set State for Node 22 End] ===========
+
+[2026-11-02 11:11:37.781] [DEBUG] [lits.agents.tree.mcts] NEW NODE Transfer with the action: h2. major. The resulting state: EnvState(steps=3, env_state='Current Board:\nA____\nMAJOR\nI____\nSIEGE\nH____\n\nUnfilled:\nh1. A male friend: A____\nh3. Things that ent...')
+[2026-11-02 11:11:37.781] [DEBUG] [lits.agents.tree.mcts] [Simulate] Rollout step 3
+[2026-11-02 11:11:37.781] [INFO] [lits.agents.tree.mcts] [Expand] Begin (example=2, phase=simulate)
+[2026-11-02 11:11:37.781] [DEBUG] [lits.agents.tree.common] n_needed=3, n_actions - n_existing=3 - 0
+[2026-11-02 11:11:37.781] [WARNING] [lits.components.base] Chat Model but no system prompt constructed since `task_prompt_spec` is None 
+[2026-11-02 11:11:37.781] [DEBUG] [lits.components.base] 
+======================================================================
+[2026-11-02 11:11:37.781] [DEBUG] [lits.components.base] >>> Policy Call: Generating 3 actions (BEGIN)
+[2026-11-02 11:11:37.781] [DEBUG] [lits.components.base] ======================================================================
+[2026-11-02 11:11:37.781] [DEBUG] [lits.components.base] State: EnvState(steps=3, env_state='Current Board:\nA____\nMAJOR\nI____\nSIEGE\nH____\n\nUnfilled:\nh1. A male friend: A____\nh3. Things that ent...')
+[2026-11-02 11:11:37.781] [DEBUG] [lits.components.policy.env_grounded] Current env_state (len=3 steps):
+Current Board:
+A____
+MAJOR
+I____
+SIEGE
+H____
+
+Unfilled:
+h1. A male friend: A____
+h3. Things that enter; data given to a computer program: I____
+h5. More healthy; a coin: H____
+v2. A craze: _A_I_
+v3. T...
+[2026-11-02 11:11:37.782] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:11:39.462] [WARNING] [lits.components.policy.env_grounded] [POLICY] Invalid action (attempt 1/3): 'Based on the clues and the current board:
+
+- v1 is AMISH (A M I S H), giving the first letters of each row: A, M, I, S, H.
+- h1 is "A male friend" starting with A: **AMIGO** fits.
+- Cross-checking: v2 is _A_I_ (second letter A from AMIGO), v3 is _J_E_, v4 is _O_G_, v5 is _R_E_ — all consistent with the given letters.
+
+So the best move:
+
+h1. amigo'
+[2026-11-02 11:11:39.462] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:11:40.502] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:11:41.289] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:11:47.559] [WARNING] [lits.components.policy.env_grounded] [POLICY] Invalid action (attempt 1/3): 'Let's check what we have:
+
+**Current board:**
+```
+A _ _ _ _
+M A J O R
+I _ _ _ _
+S I E G E
+H _ _ _ _
+```
+
+Filled:  
+- h2 = MAJOR  
+- h4 = SIEGE  
+- v1 = AMISH  
+
+**Unfilled:**  
+- h1: A male friend → A____  
+- h3: Things that enter; data given to a computer program → I____  
+- h5: More healthy; a coin → H____  
+- v2: A craze → _A_I_  
+- v3: To force; to drive → _J_E_  
+- v4: To dig out roughly → _O_G_  
+- v5: On the outside → _R_E_
+
+---
+
+### Step 1 – Look at intersections with known words
+
+**v1 = AMISH** gives:  
+h1 starts with A (already known).  
+h2 starts with M (that’s MAJOR).  
+h3 starts with I (given).  
+h4 starts with S (SIEGE).  
+h5 starts with H (given). So that fits.
+
+**v2** (positions 2 in each row):  
+From h2 = MAJOR, v2's second letter is A.  
+From h4 = SIEGE, v2's fourth letter is I.  
+From v1 AMISH, v2's first letter is M. Wait—v2 is column 2: v2[1] is row1 col2, v2[2]=row2 col2, etc.
+
+Let’s map:
+
+Rows:  
+h1: A _ _ _ _  
+h2: M A J O R  
+h3: I _ _ _ _  
+h4: S I E G E  
+h5: H _ _ _ _
+
+Column 2: row1 col2 = ?, row2 col2 = A, row3 col2 = ?, row4 col2 = I, row5 col2 = ?.
+
+So v2 = _ A _ I _. Clue: “A craze” → _A_I_ (they gave pattern). Likely "manic" or "fad"? 5 letters: _A_I_ → maybe "mania" fits? M A N I A → pattern M A N I A matches _A_I_? No, they gave _A_I_, so positions: 1=?, 2=A, 3=?, 4=I, 5=? → from h4 col2=I, yes. If v2 = MANIA: M A N I A → row1 col2=M, row3 col2=N, row5 col2=A. That works.
+
+So v2 = MANIA. Then h1: A M _ _ _ (since col2=M). h3: I N _ _ _ (col2=N). h5: H A _ _ _ (col2=A).
+
+---
+
+### Step 2 – h1: "A male friend" → A M _ _ _  
+5 letters: "amigo" fits (A M I G O). Check: male friend = amigo (Spanish, but in English crossword sometimes used). Could also be "matey"? No, starts AM... "amigo" is 5 letters. Yes.
+
+So h1 = AMIGO. Then: col3 row1 = I, col4=I? Wait AMIGO: A M I G O → col3=I, col4=G, col5=O.
+
+---
+
+### Step 3 – v3: column3: row1=I, row2=J, row3=?, row4=E, row5=? → I J _ E _. Clue: "To force; to drive" → maybe "impe l"? No, 5 letters: I J _ E _. That’s odd: "ij" start unusual. Only word starting IJ...? Maybe "ij..." not English. Could be they allow "Ij..."? Actually maybe they consider h3's third letter? Let's check v3 pattern given: _J_E_ → position2=J (from MAJOR), position4=E (SIEGE). Yes. So v3: _ J _ E _. Clue: "To force; to drive" → could be "urge"? 4 letters. "impel" is 5: I M P E L — position2=M, not J. So no. "j...?"  
+
+Better: "To force; to drive" = "shove"? no. "press"? no. "goad"? 4 letters. "prod"? 4. "egg on"? 5 with space. "impel": I M P E L — but v3 pos2=J from MAJOR is fixed. So word must have J as 2nd letter. Possible: "aj'
+[2026-11-02 11:11:47.559] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:11:48.435] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 2/3): 'v2. craze', retrying with temp=1.10
+[2026-11-02 11:11:48.435] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'top_k', 'max_length'}
+[2026-11-02 11:11:49.235] [WARNING] [lits.components.policy.env_grounded] [POLICY] Duplicate action (attempt 3/3): 'v2. craze', retrying with temp=1.20
+[2026-11-02 11:11:49.235] [ERROR] [lits.components.policy.env_grounded] Max retries (3) exceeded for action generation.
+[2026-11-02 11:11:49.235] [DEBUG] [lits.components.base] 
+Generated Actions:
+[2026-11-02 11:11:49.235] [DEBUG] [lits.components.base]   [0] EnvStep(error=None, terminate=False, action=StringAction(action_str='v2. craze'), next_state=None)
+[2026-11-02 11:11:49.235] [DEBUG] [lits.components.base]   [1] EnvStep(error=None, terminate=False, action=StringAction(action_str='h1. amigo'), next_state=None)
+[2026-11-02 11:11:49.236] [DEBUG] [lits.components.base]   [2] EnvStep(error='Validation failed after 3 retries', terminate=True, action=StringAction(action_str='v2. craze'), next_state=None)
+[2026-11-02 11:11:49.236] [DEBUG] [lits.components.base] ======================================================================
+[2026-11-02 11:11:49.236] [DEBUG] [lits.components.base] >>> Policy Call: Generating 3 actions (END)
+[2026-11-02 11:11:49.236] [DEBUG] [lits.components.base] ======================================================================
+
+[2026-11-02 11:11:49.236] [DEBUG] [lits.agents.tree.common] Assigning fast reward for Node 25
+[2026-11-02 11:11:49.236] [DEBUG] [lits.components.base] 
+>>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (BEGIN) <<<<<<<<<
+[2026-11-02 11:11:49.236] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'enable_thinking', 'max_length'}
+[2026-11-02 11:11:50.392] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'enable_thinking', 'max_length'}
+[2026-11-02 11:11:51.184] [DEBUG] [lits.components.base] fast_reward: 0.0
+[2026-11-02 11:11:51.184] [DEBUG] [lits.components.base] >>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (END) <<<<<<<<<
+
+[2026-11-02 11:11:51.184] [DEBUG] [lits.agents.tree.common] Node 25 fast_reward assigned: 0.0
+[2026-11-02 11:11:51.184] [DEBUG] [lits.agents.tree.mcts] Node 25 (reward: 0.0, bn_score: -1, cum rewards: []Num children: 0): 
+	v2. craze
+[2026-11-02 11:11:51.185] [DEBUG] [lits.agents.tree.common] Assigning fast reward for Node 26
+[2026-11-02 11:11:51.185] [DEBUG] [lits.components.base] 
+>>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (BEGIN) <<<<<<<<<
+[2026-11-02 11:11:51.185] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'enable_thinking', 'max_length'}
+[2026-11-02 11:11:52.030] [DEBUG] [lits.components.base] fast_reward: 0.0
+[2026-11-02 11:11:52.030] [DEBUG] [lits.components.base] >>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (END) <<<<<<<<<
+
+[2026-11-02 11:11:52.030] [DEBUG] [lits.agents.tree.common] Node 26 fast_reward assigned: 0.0
+[2026-11-02 11:11:52.030] [DEBUG] [lits.agents.tree.mcts] Node 26 (reward: 0.0, bn_score: -1, cum rewards: []Num children: 0): 
+	h1. amigo
+[2026-11-02 11:11:52.031] [DEBUG] [lits.agents.tree.common] Assigning fast reward for Node 27
+[2026-11-02 11:11:52.031] [DEBUG] [lits.components.base] 
+>>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (BEGIN) <<<<<<<<<
+[2026-11-02 11:11:52.031] [DEBUG] [lits.lm.openai_chat] Ignoring kwargs not applicable to OpenAI chat models: {'enable_thinking', 'max_length'}
+[2026-11-02 11:11:52.747] [DEBUG] [lits.components.base] fast_reward: 0.25
+[2026-11-02 11:11:52.747] [DEBUG] [lits.components.base] >>>>>>>>> + 1 Fast Reward Evaluator Call; Outputs (END) <<<<<<<<<
+
+[2026-11-02 11:11:52.747] [DEBUG] [lits.agents.tree.common] Node 27 fast_reward assigned: 0.25
+[2026-11-02 11:11:52.748] [DEBUG] [lits.agents.tree.mcts] Node 27 (reward: 0.25, bn_score: -1, cum rewards: []Num children: 0): 
+	v2. craze
+[2026-11-02 11:11:52.748] [DEBUG] [lits.agents.tree.mcts] Child's (Node 25) fast_reward already assigned as 0.0
+[2026-11-02 11:11:52.748] [DEBUG] [lits.agents.tree.mcts] Child's (Node 26) fast_reward already assigned as 0.0
+[2026-11-02 11:11:52.748] [DEBUG] [lits.agents.tree.mcts] Child's (Node 27) fast_reward already assigned as 0.25
+[2026-11-02 11:11:52.748] [INFO] [lits.agents.tree.mcts] [Expand] End (phase=simulate)
+[2026-11-02 11:11:52.748] [DEBUG] [lits.agents.tree.common] 
+=========== [Set State for Node 27 Begin] ===========
+[2026-11-02 11:11:52.748] [DEBUG] [lits.agents.tree.common] State is set to: EnvState(steps=4, env_state='Current Board:\nAC___\nMRJOR\nIA___\nSZEGE\nHE___\n\nUnfilled:\nh1. A male friend: AC___\nh3. Things that ent...')
+[2026-11-02 11:11:52.748] [DEBUG] [lits.agents.tree.common] State confidence is set to: -1
+[2026-11-02 11:11:52.748] [DEBUG] [lits.agents.tree.common] Reward is set via {} and {'goal_reached': (False, 0.1), 'message': ''}
+[2026-11-02 11:11:52.748] [DEBUG] [lits.agents.tree.common] 
+=========== [Set State for Node 27 End] ===========
+
+[2026-11-02 11:11:52.748] [DEBUG] [lits.agents.tree.mcts] NEW NODE Transfer with the action: v2. craze. The resulting state: EnvState(steps=4, env_state='Current Board:\nAC___\nMRJOR\nIA___\nSZEGE\nHE___\n\nUnfilled:\nh1. A male friend: AC___\nh3. Things that ent...')
+[2026-11-02 11:11:52.748] [INFO] [lits.agents.tree.mcts] [Simulate] End
+[2026-11-02 11:11:52.748] [INFO] [lits.agents.tree.mcts] [Backpropagate] Begin
+[2026-11-02 11:11:52.749] [DEBUG] [lits.agents.tree.mcts] [Backpropagate] Rewards (leaf->root): [0.175, 0.35, 0.35, 0.05, -1]
+[2026-11-02 11:11:52.749] [DEBUG] [lits.agents.tree.mcts] [Backpropagate] Cum rewards: [np.float64(0.175), np.float64(0.26249999999999996), np.float64(0.2916666666666667), np.float64(0.23125), np.float64(-0.015000000000000003)]
+[2026-11-02 11:11:52.749] [INFO] [lits.agents.tree.mcts] [Backpropagate] End
+[2026-11-02 11:11:52.752] [INFO] [lits.agents.tree.mcts] [MCTS] Iteration 2/10 (example=2) | terminals=1
+Root
+├── h1. amigo r=0.50 d=1 [sim]
+│   ├── h2. major r=0.50 d=2 [sim]
+│   │   ├── h3. input r=0.00 d=3
+│   │   ├── v1. AMISH r=0.50 d=3 [sim]
+│   │   │   ├── h3. input r=0.50 d=4 [sim]
+│   │   │   │   ├── h4. siege r=0.00 d=5
+│   │   │   │   ├── h4. SIEGE r=0.50 d=5 [sim]
+│   │   │   │   │   ├── h5. HEALT r=0.00 d=6 [sim] ★
+│   │   │   │   │   ├── h5. healt r=0.00 d=6
+│   │   │   │   │   └── h5. HAPPY r=0.00 d=6
+│   │   │   │   └── h4. siege r=0.00 d=5
+│   │   │   ├── v2. MANIA r=0.50 d=4
+│   │   │   └── h3. input r=0.50 d=4
+│   │   └── h3. input r=0.00 d=3
+│   ├── v1. amish r=0.50 d=2
+│   └── v1. Amish r=0.50 d=2
+├── h1. amigo r=0.50 d=1
+└── h4. siege r=0.00 d=1
+    ├── v1. amish r=0.50 d=2 [sim]
+    │   ├── h2. major r=0.50 d=3 [sim]
+    │   │   ├── v2. craze r=0.00 d=4
+    │   │   ├── h1. amigo r=0.00 d=4
+    │   │   └── v2. craze r=0.25 d=4 [sim]
+    │   ├── v2. craze r=0.00 d=3
+    │   └── h5. HEALT r=0.00 d=3
+    ├── h1. amigo r=0.00 d=2
+    └── h5. finer r=0.00 d=2
+[2026-11-02 11:11:52.752] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 3/10 (example=2) ====================
+[2026-11-02 11:11:52.752] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:11:52.752] [DEBUG] [lits.agents.tree.mcts] All children of node 0 are visited, using UCT select.
+[2026-11-02 11:11:52.752] [DEBUG] [lits.agents.tree.mcts] Path Visualization:
+Node 0 (reward: -1, bn_score: -1, cum rewards: [np.float64(0.14285714285714285), np.float64(-0.015000000000000003)]Num children: 3): 
+	AMIGO
+MAMOU
+INPUT
+SIEGE
+HALER
+AMISH
+MANIA
+IMPEL
+GOUGE
+OUTER
+Node 2 (reward: 0.5, bn_score: -1, cum rewards: []Num children: 0): 
+	h1. amigo
+[2026-11-02 11:11:52.753] [DEBUG] [lits.agents.tree.mcts] [Select] Types: uct(ID: 2) - Q: 0.500, Exploration: inf, Score: inf)
+[2026-11-02 11:11:52.753] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:11:52.754] [DEBUG] [lits.agents.tree.mcts] [MCTS] Continues to next iteration due to terminal node (after select)
+[2026-11-02 11:11:52.754] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 4/10 (example=2) ====================
+[2026-11-02 11:11:52.754] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:11:52.754] [DEBUG] [lits.agents.tree.mcts] All children of node 0 are visited, using UCT select.
+[2026-11-02 11:11:52.754] [DEBUG] [lits.agents.tree.mcts] Path Visualization:
+Node 0 (reward: -1, bn_score: -1, cum rewards: [np.float64(0.14285714285714285), np.float64(-0.015000000000000003)]Num children: 3): 
+	AMIGO
+MAMOU
+INPUT
+SIEGE
+HALER
+AMISH
+MANIA
+IMPEL
+GOUGE
+OUTER
+Node 2 (reward: 0.5, bn_score: -1, cum rewards: []Num children: 0): 
+	h1. amigo
+[2026-11-02 11:11:52.754] [DEBUG] [lits.agents.tree.mcts] [Select] Types: uct(ID: 2) - Q: 0.500, Exploration: inf, Score: inf)
+[2026-11-02 11:11:52.754] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:11:52.755] [DEBUG] [lits.agents.tree.mcts] [MCTS] Continues to next iteration due to terminal node (after select)
+[2026-11-02 11:11:52.755] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 5/10 (example=2) ====================
+[2026-11-02 11:11:52.755] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:11:52.755] [DEBUG] [lits.agents.tree.mcts] All children of node 0 are visited, using UCT select.
+[2026-11-02 11:11:52.755] [DEBUG] [lits.agents.tree.mcts] Path Visualization:
+Node 0 (reward: -1, bn_score: -1, cum rewards: [np.float64(0.14285714285714285), np.float64(-0.015000000000000003)]Num children: 3): 
+	AMIGO
+MAMOU
+INPUT
+SIEGE
+HALER
+AMISH
+MANIA
+IMPEL
+GOUGE
+OUTER
+Node 2 (reward: 0.5, bn_score: -1, cum rewards: []Num children: 0): 
+	h1. amigo
+[2026-11-02 11:11:52.755] [DEBUG] [lits.agents.tree.mcts] [Select] Types: uct(ID: 2) - Q: 0.500, Exploration: inf, Score: inf)
+[2026-11-02 11:11:52.755] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:11:52.757] [DEBUG] [lits.agents.tree.mcts] [MCTS] Continues to next iteration due to terminal node (after select)
+[2026-11-02 11:11:52.757] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 6/10 (example=2) ====================
+[2026-11-02 11:11:52.757] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:11:52.757] [DEBUG] [lits.agents.tree.mcts] All children of node 0 are visited, using UCT select.
+[2026-11-02 11:11:52.757] [DEBUG] [lits.agents.tree.mcts] Path Visualization:
+Node 0 (reward: -1, bn_score: -1, cum rewards: [np.float64(0.14285714285714285), np.float64(-0.015000000000000003)]Num children: 3): 
+	AMIGO
+MAMOU
+INPUT
+SIEGE
+HALER
+AMISH
+MANIA
+IMPEL
+GOUGE
+OUTER
+Node 2 (reward: 0.5, bn_score: -1, cum rewards: []Num children: 0): 
+	h1. amigo
+[2026-11-02 11:11:52.757] [DEBUG] [lits.agents.tree.mcts] [Select] Types: uct(ID: 2) - Q: 0.500, Exploration: inf, Score: inf)
+[2026-11-02 11:11:52.757] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:11:52.759] [DEBUG] [lits.agents.tree.mcts] [MCTS] Continues to next iteration due to terminal node (after select)
+[2026-11-02 11:11:52.759] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 7/10 (example=2) ====================
+[2026-11-02 11:11:52.759] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:11:52.759] [DEBUG] [lits.agents.tree.mcts] All children of node 0 are visited, using UCT select.
+[2026-11-02 11:11:52.759] [DEBUG] [lits.agents.tree.mcts] Path Visualization:
+Node 0 (reward: -1, bn_score: -1, cum rewards: [np.float64(0.14285714285714285), np.float64(-0.015000000000000003)]Num children: 3): 
+	AMIGO
+MAMOU
+INPUT
+SIEGE
+HALER
+AMISH
+MANIA
+IMPEL
+GOUGE
+OUTER
+Node 2 (reward: 0.5, bn_score: -1, cum rewards: []Num children: 0): 
+	h1. amigo
+[2026-11-02 11:11:52.759] [DEBUG] [lits.agents.tree.mcts] [Select] Types: uct(ID: 2) - Q: 0.500, Exploration: inf, Score: inf)
+[2026-11-02 11:11:52.759] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:11:52.761] [DEBUG] [lits.agents.tree.mcts] [MCTS] Continues to next iteration due to terminal node (after select)
+[2026-11-02 11:11:52.761] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 8/10 (example=2) ====================
+[2026-11-02 11:11:52.761] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:11:52.761] [DEBUG] [lits.agents.tree.mcts] All children of node 0 are visited, using UCT select.
+[2026-11-02 11:11:52.761] [DEBUG] [lits.agents.tree.mcts] Path Visualization:
+Node 0 (reward: -1, bn_score: -1, cum rewards: [np.float64(0.14285714285714285), np.float64(-0.015000000000000003)]Num children: 3): 
+	AMIGO
+MAMOU
+INPUT
+SIEGE
+HALER
+AMISH
+MANIA
+IMPEL
+GOUGE
+OUTER
+Node 2 (reward: 0.5, bn_score: -1, cum rewards: []Num children: 0): 
+	h1. amigo
+[2026-11-02 11:11:52.761] [DEBUG] [lits.agents.tree.mcts] [Select] Types: uct(ID: 2) - Q: 0.500, Exploration: inf, Score: inf)
+[2026-11-02 11:11:52.761] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:11:52.762] [DEBUG] [lits.agents.tree.mcts] [MCTS] Continues to next iteration due to terminal node (after select)
+[2026-11-02 11:11:52.762] [INFO] [lits.agents.tree.mcts] ==================== [MCTS] Iteration 9/10 (example=2) ====================
+[2026-11-02 11:11:52.762] [INFO] [lits.agents.tree.mcts] [Select] Begin
+[2026-11-02 11:11:52.762] [DEBUG] [lits.agents.tree.mcts] All children of node 0 are visited, using UCT select.
+[2026-11-02 11:11:52.762] [DEBUG] [lits.agents.tree.mcts] Path Visualization:
+Node 0 (reward: -1, bn_score: -1, cum rewards: [np.float64(0.14285714285714285), np.float64(-0.015000000000000003)]Num children: 3): 
+	AMIGO
+MAMOU
+INPUT
+SIEGE
+HALER
+AMISH
+MANIA
+IMPEL
+GOUGE
+OUTER
+Node 2 (reward: 0.5, bn_score: -1, cum rewards: []Num children: 0): 
+	h1. amigo
+[2026-11-02 11:11:52.762] [DEBUG] [lits.agents.tree.mcts] [Select] Types: uct(ID: 2) - Q: 0.500, Exploration: inf, Score: inf)
+[2026-11-02 11:11:52.762] [INFO] [lits.agents.tree.mcts] [Select] End
+[2026-11-02 11:11:52.763] [DEBUG] [lits.agents.tree.mcts] [MCTS] Continues to next iteration due to terminal node (after select)
+[2026-11-02 11:11:52.764] [DEBUG] [lits.agents.tree.mcts] [CHECKPOINT] Saved result: D:\codex写5660作业\IndividualProject2\reproduction\runs\iter10_seed43\checkpoints\2_result.json
+[2026-11-02 11:11:52.766] [DEBUG] [lits.agents.tree.mcts] [MCTS] Total terminal nodes: 1
+[2026-11-02 11:11:52.766] [INFO] [lits.agents.tree.mcts] [MCTS] End (example=2)
+[2026-11-02 11:11:52.766] [DEBUG] [lits.agents.tree.search_base] [METRIC] hours_used=0.0194
+[2026-11-02 11:11:52.768] [DEBUG] [root] Saved 1 terminal nodes to D:\codex写5660作业\IndividualProject2\reproduction\runs\iter10_seed43\terminal_nodes\terminal_nodes_2.json
+[2026-11-02 11:11:52.769] [INFO] [root] Total time: 69.79551100730896
+[2026-11-02 11:11:52.775] [INFO] [root] default: 	 {'num_calls': 0, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'running_time': 0, 'total_hours': 0.0}
+[2026-11-02 11:11:52.776] [INFO] [root] dynamics: 	 {'num_calls': 0, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'running_time': 0, 'total_hours': 0.0}
+[2026-11-02 11:11:52.776] [INFO] [root] policy: 	 {'num_calls': 41, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 11832, 'output_tokens': 1325, 'running_time': 42.808995962142944, 'total_hours': 0.011891387767261929}
+[2026-11-02 11:11:52.777] [INFO] [root] evaluator: 	 {'num_calls': 0, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'running_time': 0, 'total_hours': 0.0}
+[2026-11-02 11:11:52.777] [INFO] [root] prm: 	 {'num_calls': 28, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 11711, 'output_tokens': 37, 'running_time': 26.86184334754944, 'total_hours': 0.007461623152097066}
+[2026-11-02 11:11:52.777] [INFO] [root] bn_eval: 	 {'num_calls': 0, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'running_time': 0, 'total_hours': 0.0}
+[2026-11-02 11:11:52.778] [INFO] [root] bn_entropy: 	 {'num_calls': 0, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'running_time': 0, 'total_hours': 0.0}
+[2026-11-02 11:11:52.778] [INFO] [root] memory: 	 {'num_calls': 0, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'running_time': 0, 'total_hours': 0.0}
+[2026-11-02 11:11:52.778] [INFO] [root] augmentor: 	 {'num_calls': 0, 'num_batch_calls': 0, 'num_flatten_calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'running_time': 0, 'total_hours': 0.0}
+[2026-11-02 11:11:52.784] [INFO] [lits.eval.llm_call_logger] Loaded 41 records from D:\codex写5660作业\IndividualProject2\reproduction\runs\iter10_seed43/llm_calls.jsonl
+[2026-11-02 11:11:52.785] [INFO] [lits.eval.llm_call_logger] ======================================================================
+[2026-11-02 11:11:52.785] [INFO] [lits.eval.llm_call_logger] LLM Call Diversity Report
+[2026-11-02 11:11:52.785] [INFO] [lits.eval.llm_call_logger] ======================================================================
+[2026-11-02 11:11:52.785] [INFO] [lits.eval.llm_call_logger] Unique states visited: 9
+[2026-11-02 11:11:52.785] [INFO] [lits.eval.llm_call_logger] Avg. policy calls per state: 4.6
+[2026-11-02 11:11:52.785] [INFO] [lits.eval.llm_call_logger] Dup. rate (all): 51.2%
+[2026-11-02 11:11:52.785] [INFO] [lits.eval.llm_call_logger] Dup. rate (correct): 0.0%
+[2026-11-02 11:11:52.785] [INFO] [lits.eval.llm_call_logger] Dup. rate (incorrect): 51.2%
+[2026-11-02 11:11:52.785] [INFO] [lits.eval.llm_call_logger] Per-prompt breakdown:
+[2026-11-02 11:11:52.785] [INFO] [lits.eval.llm_call_logger] Prompt       Total  Uniq   Dup%     Corr   CorrDup%  IncDup% 
+[2026-11-02 11:11:52.785] [INFO] [lits.eval.llm_call_logger] -------------------------------------------------------------
+[2026-11-02 11:11:52.785] [INFO] [lits.eval.llm_call_logger] c7715c02ed12 5      1      80.0%   0      N/A       80.0%
+[2026-11-02 11:11:52.785] [INFO] [lits.eval.llm_call_logger] 30321ee7c900 6      2      66.7%   0      N/A       66.7%
+[2026-11-02 11:11:52.785] [INFO] [lits.eval.llm_call_logger] 11ca1c90c9d7 5      2      60.0%   0      N/A       60.0%
+[2026-11-02 11:11:52.785] [INFO] [lits.eval.llm_call_logger] e2797059ddaf 5      2      60.0%   0      N/A       60.0%
+[2026-11-02 11:11:52.785] [INFO] [lits.eval.llm_call_logger] c33d03b032f2 5      2      60.0%   0      N/A       60.0%
+[2026-11-02 11:11:52.785] [INFO] [lits.eval.llm_call_logger] 02756390f815 6      3      50.0%   0      N/A       50.0%
+[2026-11-02 11:11:52.785] [INFO] [lits.eval.llm_call_logger] f0a5b349385c 3      2      33.3%   0      N/A       33.3%
+[2026-11-02 11:11:52.785] [INFO] [lits.eval.llm_call_logger] 6a8a6a629953 3      3      0.0%   0      N/A       0.0%
+[2026-11-02 11:11:52.785] [INFO] [lits.eval.llm_call_logger] 930e4eb08167 3      3      0.0%   0      N/A       0.0%
+[2026-11-02 11:11:52.785] [INFO] [lits.eval.llm_call_logger] ======================================================================
+[2026-11-02 11:11:52.785] [INFO] [root] Tree search complete. Terminal nodes saved to D:\codex写5660作业\IndividualProject2\reproduction\runs\iter10_seed43/terminal_nodes/
+[2026-11-02 11:11:52.785] [INFO] [root] Run lits-eval to extract answers and compute accuracy.

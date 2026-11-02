@@ -1,0 +1,307 @@
+[
+  {
+    "id": 0,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh3. Pretentious; flowery: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: _____\nv2. An Indian antelope: _____\nv3. To intend; to plan; to devise; a nettle; to guess: _____\nv4. A nozzle: _____\nv5. Desiccator; more dry: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": "AGEND\nMOTOR\nARTSY\nSALLE\nSLEER\nAMASS\nGORAL\nETTLE\nNOSLE\nDRYER",
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": -1.0,
+    "trajectory_key": {
+      "search_id": "0_1793587379",
+      "indices": [],
+      "root_token": "q"
+    },
+    "from_simulate": false,
+    "is_simulated": false,
+    "from_expand": false,
+    "cum_rewards": [
+      -0.07857142857142854,
+      0.06562499999999999,
+      0.016666666666666666,
+      0.007142857142857141,
+      0.03611111111111112,
+      -0.04583333333333334
+    ],
+    "visit_count": 6,
+    "from_continuation": false
+  },
+  {
+    "id": 2,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "h1. chore",
+          "next_state": "Current Board:\nCHORE\n_____\n_____\n_____\n_____\n\nUnfilled:\nh2. An engine: _____\nh3. Pretentious; flowery: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: C____\nv2. An Indian antelope: H____\nv3. To intend; to plan; to devise; a nettle; to guess: O____\nv4. A nozzle: R____\nv5. Desiccator; more dry: E____\n\nFilled:\nh1. An agendum; something to be done: CHORE\n\nChanged:\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh3. Pretentious; flowery: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: _____\nv2. An Indian antelope: _____\nv3. To intend; to plan; to devise; a nettle; to guess: _____\nv4. A nozzle: _____\nv5. Desiccator; more dry: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "h1. chore",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.5,
+    "trajectory_key": {
+      "search_id": "0_1793587379",
+      "indices": [
+        1
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "action": "h1. chore"
+    },
+    "from_simulate": false,
+    "is_simulated": true,
+    "from_expand": true,
+    "cum_rewards": [
+      0.075,
+      0.14500000000000002
+    ],
+    "visit_count": 2,
+    "from_continuation": false
+  },
+  {
+    "id": 5,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "h1. chore",
+          "next_state": "Current Board:\nCHORE\n_____\n_____\n_____\n_____\n\nUnfilled:\nh2. An engine: _____\nh3. Pretentious; flowery: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: C____\nv2. An Indian antelope: H____\nv3. To intend; to plan; to devise; a nettle; to guess: O____\nv4. A nozzle: R____\nv5. Desiccator; more dry: E____\n\nFilled:\nh1. An agendum; something to be done: CHORE\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "v2. horse",
+          "next_state": "Current Board:\nCHORE\n_O___\n_R___\n_S___\n_E___\n\nUnfilled:\nh2. An engine: _O___\nh3. Pretentious; flowery: _R___\nh4. A salon; a hall: _S___\nh5. To mock; to sneer: _E___\nv1. To heap: C____\nv3. To intend; to plan; to devise; a nettle; to guess: O____\nv4. A nozzle: R____\nv5. Desiccator; more dry: E____\n\nFilled:\nh1. An agendum; something to be done: CHORE\nv2. An Indian antelope: HORSE\n\nChanged:\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh3. Pretentious; flowery: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: _____\nv2. An Indian antelope: _____\nv3. To intend; to plan; to devise; a nettle; to guess: _____\nv4. A nozzle: _____\nv5. Desiccator; more dry: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "v2. horse",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.0,
+    "trajectory_key": {
+      "search_id": "0_1793587379",
+      "indices": [
+        1,
+        1
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "action": "v2. horse"
+    },
+    "from_simulate": true,
+    "is_simulated": false,
+    "from_expand": false,
+    "cum_rewards": [
+      0.11875
+    ],
+    "visit_count": 1,
+    "from_continuation": false
+  },
+  {
+    "id": 79,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "h1. chore",
+          "next_state": "Current Board:\nCHORE\n_____\n_____\n_____\n_____\n\nUnfilled:\nh2. An engine: _____\nh3. Pretentious; flowery: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: C____\nv2. An Indian antelope: H____\nv3. To intend; to plan; to devise; a nettle; to guess: O____\nv4. A nozzle: R____\nv5. Desiccator; more dry: E____\n\nFilled:\nh1. An agendum; something to be done: CHORE\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "v2. horse",
+          "next_state": "Current Board:\nCHORE\n_O___\n_R___\n_S___\n_E___\n\nUnfilled:\nh2. An engine: _O___\nh3. Pretentious; flowery: _R___\nh4. A salon; a hall: _S___\nh5. To mock; to sneer: _E___\nv1. To heap: C____\nv3. To intend; to plan; to devise; a nettle; to guess: O____\nv4. A nozzle: R____\nv5. Desiccator; more dry: E____\n\nFilled:\nh1. An agendum; something to be done: CHORE\nv2. An Indian antelope: HORSE\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "v3. ORGAN",
+          "next_state": "Current Board:\nCHORE\n_OR__\n_RG__\n_SA__\n_EN__\n\nUnfilled:\nh2. An engine: _OR__\nh3. Pretentious; flowery: _RG__\nh4. A salon; a hall: _SA__\nh5. To mock; to sneer: _EN__\nv1. To heap: C____\nv4. A nozzle: R____\nv5. Desiccator; more dry: E____\n\nFilled:\nh1. An agendum; something to be done: CHORE\nv2. An Indian antelope: HORSE\nv3. To intend; to plan; to devise; a nettle; to guess: ORGAN\n\nChanged:\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh3. Pretentious; flowery: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: _____\nv2. An Indian antelope: _____\nv3. To intend; to plan; to devise; a nettle; to guess: _____\nv4. A nozzle: _____\nv5. Desiccator; more dry: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "v3. ORGAN",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.5,
+    "trajectory_key": {
+      "search_id": "0_1793587379",
+      "indices": [
+        1,
+        1,
+        0
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "action": "v3. ORGAN"
+    },
+    "from_simulate": false,
+    "is_simulated": true,
+    "from_expand": true,
+    "cum_rewards": [
+      0.15833333333333333
+    ],
+    "visit_count": 1,
+    "from_continuation": false
+  },
+  {
+    "id": 82,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "h1. chore",
+          "next_state": "Current Board:\nCHORE\n_____\n_____\n_____\n_____\n\nUnfilled:\nh2. An engine: _____\nh3. Pretentious; flowery: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: C____\nv2. An Indian antelope: H____\nv3. To intend; to plan; to devise; a nettle; to guess: O____\nv4. A nozzle: R____\nv5. Desiccator; more dry: E____\n\nFilled:\nh1. An agendum; something to be done: CHORE\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "v2. horse",
+          "next_state": "Current Board:\nCHORE\n_O___\n_R___\n_S___\n_E___\n\nUnfilled:\nh2. An engine: _O___\nh3. Pretentious; flowery: _R___\nh4. A salon; a hall: _S___\nh5. To mock; to sneer: _E___\nv1. To heap: C____\nv3. To intend; to plan; to devise; a nettle; to guess: O____\nv4. A nozzle: R____\nv5. Desiccator; more dry: E____\n\nFilled:\nh1. An agendum; something to be done: CHORE\nv2. An Indian antelope: HORSE\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "v3. ORGAN",
+          "next_state": "Current Board:\nCHORE\n_OR__\n_RG__\n_SA__\n_EN__\n\nUnfilled:\nh2. An engine: _OR__\nh3. Pretentious; flowery: _RG__\nh4. A salon; a hall: _SA__\nh5. To mock; to sneer: _EN__\nv1. To heap: C____\nv4. A nozzle: R____\nv5. Desiccator; more dry: E____\n\nFilled:\nh1. An agendum; something to be done: CHORE\nv2. An Indian antelope: HORSE\nv3. To intend; to plan; to devise; a nettle; to guess: ORGAN\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h2. motor",
+          "next_state": "Current Board:\nCHORE\nMOTOR\n_RG__\n_SA__\n_EN__\n\nUnfilled:\nh3. Pretentious; flowery: _RG__\nh4. A salon; a hall: _SA__\nh5. To mock; to sneer: _EN__\nv1. To heap: CM___\nv4. A nozzle: RO___\nv5. Desiccator; more dry: ER___\n\nFilled:\nh1. An agendum; something to be done: CHORE\nh2. An engine: MOTOR\nv2. An Indian antelope: HORSE\n\nChanged:\nv3. To intend; to plan; to devise; a nettle; to guess: OTGAN\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh3. Pretentious; flowery: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: _____\nv2. An Indian antelope: _____\nv3. To intend; to plan; to devise; a nettle; to guess: _____\nv4. A nozzle: _____\nv5. Desiccator; more dry: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "h2. motor",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.0,
+    "trajectory_key": {
+      "search_id": "0_1793587379",
+      "indices": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "action": "h2. motor"
+    },
+    "from_simulate": true,
+    "is_simulated": true,
+    "from_expand": false,
+    "cum_rewards": [
+      0.11249999999999999
+    ],
+    "visit_count": 1,
+    "from_continuation": false
+  },
+  {
+    "id": 87,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "h1. chore",
+          "next_state": "Current Board:\nCHORE\n_____\n_____\n_____\n_____\n\nUnfilled:\nh2. An engine: _____\nh3. Pretentious; flowery: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: C____\nv2. An Indian antelope: H____\nv3. To intend; to plan; to devise; a nettle; to guess: O____\nv4. A nozzle: R____\nv5. Desiccator; more dry: E____\n\nFilled:\nh1. An agendum; something to be done: CHORE\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "v2. horse",
+          "next_state": "Current Board:\nCHORE\n_O___\n_R___\n_S___\n_E___\n\nUnfilled:\nh2. An engine: _O___\nh3. Pretentious; flowery: _R___\nh4. A salon; a hall: _S___\nh5. To mock; to sneer: _E___\nv1. To heap: C____\nv3. To intend; to plan; to devise; a nettle; to guess: O____\nv4. A nozzle: R____\nv5. Desiccator; more dry: E____\n\nFilled:\nh1. An agendum; something to be done: CHORE\nv2. An Indian antelope: HORSE\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "v3. ORGAN",
+          "next_state": "Current Board:\nCHORE\n_OR__\n_RG__\n_SA__\n_EN__\n\nUnfilled:\nh2. An engine: _OR__\nh3. Pretentious; flowery: _RG__\nh4. A salon; a hall: _SA__\nh5. To mock; to sneer: _EN__\nv1. To heap: C____\nv4. A nozzle: R____\nv5. Desiccator; more dry: E____\n\nFilled:\nh1. An agendum; something to be done: CHORE\nv2. An Indian antelope: HORSE\nv3. To intend; to plan; to devise; a nettle; to guess: ORGAN\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h2. motor",
+          "next_state": "Current Board:\nCHORE\nMOTOR\n_RG__\n_SA__\n_EN__\n\nUnfilled:\nh3. Pretentious; flowery: _RG__\nh4. A salon; a hall: _SA__\nh5. To mock; to sneer: _EN__\nv1. To heap: CM___\nv4. A nozzle: RO___\nv5. Desiccator; more dry: ER___\n\nFilled:\nh1. An agendum; something to be done: CHORE\nh2. An engine: MOTOR\nv2. An Indian antelope: HORSE\n\nChanged:\nv3. To intend; to plan; to devise; a nettle; to guess: OTGAN\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "Let's start by analyzing the board.\n\n**Current Board:**\n```\nCHORE\nMOTOR\n_RG__\n_SA__\n_EN__\n```\n\nGiven filled clues:\n\n- h1: CHORE (C H O R E)\n- h2: MOTOR (M O T O R)\n- v2: HORSE\n\nBut v2 is HORSE, which is column 2 reading down:\n\nColumn 2 currently is:\nRow 1: H  \nRow 2: O  \nRow 3: R? But from board, row 3 col 2 is 'R'? Wait, row 3 is _RG__, the second character is 'R'. Yes, row3 col2 = R.  \nRow 4 col2 is S (row4 is _SA__, second letter S).  \nRow 5 col2 is E? Row5 is _EN__, second letter E.  \n\nSo indeed col2 down = H O R S E, which matches HORSE. Good.\n\n---\n\nNow v3 shows \"OTGAN\" in the \"Changed\" section — I think that means someone tried to fill v3, but it's not correct? Actually, it says \"Changed: v3. To intend; to plan; to devise; a nettle; to guess: OTGAN\". Could be a dictionary form? But \"OTGAN\" isn’t a word — maybe it’s an anagram? The clue \"a nettle\" might mean the plant **\"urgent\"?** Wait 5 letters... Actually \"nettle\" as a verb means to irritate; also \"nettle\" plant = **\"urtia\"**? No. But \"to intend; to plan; to devise\" suggests \"design\", and \"to guess\" could be \"intent\"? Five letters: maybe **\"meant\"**? Let’s check: \"meant\" = intended. Nettle = to annoy. Guess =? Perhaps \"opine\"? No not nettle.  \n\nMaybe the v3 clue collectively points to the word \"think\"? 5 letters, fits? \"To intend\" = think? Possibly \"mean\" = intend. Nettle = \"irritate\", guess = \"think\". The word = \"meant\" not guess. But let’s see: Could be \"opine\"? v3 down letters:  \n\nv3 is column3:\n\nRow1 col3: O  \nRow2 col3: T  \nRow3 col3: G  \nRow4 col3: A  \nRow5 col3: N (current? Row5 has _EN__, third is N) Yes.\n\nSo current v3 = O T G A N. That’s not a word. That’s why it's in \"changed\" — maybe a mistaken fill. So v3 is still wrong.\n\n---\n\nBut we need to fill one unfilled word from clues. We have h3, h4, h5, v1, v4, v5.\n\nLet's check what fits:\n\n**h3 clue: Pretentious; flowery: _RG__**  \nRow3 = _ R G _ _  \nPossible word: \"orga...\"? Actually h3 known letters: position1 unknown, pos2=R, pos3=G, pos4 unknown, pos5 unknown. But given h3 is across, column constraints from v1...v5 apply.\n\nv1: clue \"To heap: CM___\"  \nColumn1 currently from filled: row1 C, row2 M, row3 ?, row4 ?, row5 ? — That's v1 = C M _ _ _. So v1 is \"CM___\" — \"to heap\" could be \"cumulate\"? 8 letters, too long. 5 letters... \"amass\" is to heap, but starts with A. \"Cump\"? No. Wait, \"to heap\" = \"amass\". But our v1 starts C M? Hmm \"C M\" could be from \"Cumulate\"? Not 5 letters. Only 5 letter word for heap starting CM? Maybe \"com...\"? Actually heap as verb can be \"cumulate\" but no. Might be \"cumber\"? No. \"Cram\" is to heap? That's 4 letters. \"Crame\"? No. Possibly clue’s first letters \"CM\" might not be C M from h1/h2? Let's check h1=CHORE so v1 row1= C. h2=MOTOR so v1 row2=M. Yes. So CM___ is correct.\n\nCould v1 = \"CUMU...\" maybe \"cumus\"? No. \"Amass\" is 5 letters but doesn't start CM. Might be \"com...\" like \"combt\"? No. \"Crame\"? Old word? Might \"C M\" plus 3 letters = \"CUMIN\"? no that's spice. But \"to heap\" is \"cumulate\".",
+          "next_state": "Current Board:\nCHORE\nMOTOR\n_RG__\n_SA__\n_EN__\n\nUnfilled:\nh3. Pretentious; flowery: _RG__\nh4. A salon; a hall: _SA__\nh5. To mock; to sneer: _EN__\nv1. To heap: CM___\nv4. A nozzle: RO___\nv5. Desiccator; more dry: ER___\n\nFilled:\nh1. An agendum; something to be done: CHORE\nh2. An engine: MOTOR\nv2. An Indian antelope: HORSE\n\nChanged:\nv3. To intend; to plan; to devise; a nettle; to guess: OTGAN\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh3. Pretentious; flowery: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: _____\nv2. An Indian antelope: _____\nv3. To intend; to plan; to devise; a nettle; to guess: _____\nv4. A nozzle: _____\nv5. Desiccator; more dry: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "Let's start by analyzing the board.\n\n**Current Board:**\n```\nCHORE\nMOTOR\n_RG__\n_SA__\n_EN__\n```\n\nGiven filled clues:\n\n- h1: CHORE (C H O R E)\n- h2: MOTOR (M O T O R)\n- v2: HORSE\n\nBut v2 is HORSE, which is column 2 reading down:\n\nColumn 2 currently is:\nRow 1: H  \nRow 2: O  \nRow 3: R? But from board, row 3 col 2 is 'R'? Wait, row 3 is _RG__, the second character is 'R'. Yes, row3 col2 = R.  \nRow 4 col2 is S (row4 is _SA__, second letter S).  \nRow 5 col2 is E? Row5 is _EN__, second letter E.  \n\nSo indeed col2 down = H O R S E, which matches HORSE. Good.\n\n---\n\nNow v3 shows \"OTGAN\" in the \"Changed\" section — I think that means someone tried to fill v3, but it's not correct? Actually, it says \"Changed: v3. To intend; to plan; to devise; a nettle; to guess: OTGAN\". Could be a dictionary form? But \"OTGAN\" isn’t a word — maybe it’s an anagram? The clue \"a nettle\" might mean the plant **\"urgent\"?** Wait 5 letters... Actually \"nettle\" as a verb means to irritate; also \"nettle\" plant = **\"urtia\"**? No. But \"to intend; to plan; to devise\" suggests \"design\", and \"to guess\" could be \"intent\"? Five letters: maybe **\"meant\"**? Let’s check: \"meant\" = intended. Nettle = to annoy. Guess =? Perhaps \"opine\"? No not nettle.  \n\nMaybe the v3 clue collectively points to the word \"think\"? 5 letters, fits? \"To intend\" = think? Possibly \"mean\" = intend. Nettle = \"irritate\", guess = \"think\". The word = \"meant\" not guess. But let’s see: Could be \"opine\"? v3 down letters:  \n\nv3 is column3:\n\nRow1 col3: O  \nRow2 col3: T  \nRow3 col3: G  \nRow4 col3: A  \nRow5 col3: N (current? Row5 has _EN__, third is N) Yes.\n\nSo current v3 = O T G A N. That’s not a word. That’s why it's in \"changed\" — maybe a mistaken fill. So v3 is still wrong.\n\n---\n\nBut we need to fill one unfilled word from clues. We have h3, h4, h5, v1, v4, v5.\n\nLet's check what fits:\n\n**h3 clue: Pretentious; flowery: _RG__**  \nRow3 = _ R G _ _  \nPossible word: \"orga...\"? Actually h3 known letters: position1 unknown, pos2=R, pos3=G, pos4 unknown, pos5 unknown. But given h3 is across, column constraints from v1...v5 apply.\n\nv1: clue \"To heap: CM___\"  \nColumn1 currently from filled: row1 C, row2 M, row3 ?, row4 ?, row5 ? — That's v1 = C M _ _ _. So v1 is \"CM___\" — \"to heap\" could be \"cumulate\"? 8 letters, too long. 5 letters... \"amass\" is to heap, but starts with A. \"Cump\"? No. Wait, \"to heap\" = \"amass\". But our v1 starts C M? Hmm \"C M\" could be from \"Cumulate\"? Not 5 letters. Only 5 letter word for heap starting CM? Maybe \"com...\"? Actually heap as verb can be \"cumulate\" but no. Might be \"cumber\"? No. \"Cram\" is to heap? That's 4 letters. \"Crame\"? No. Possibly clue’s first letters \"CM\" might not be C M from h1/h2? Let's check h1=CHORE so v1 row1= C. h2=MOTOR so v1 row2=M. Yes. So CM___ is correct.\n\nCould v1 = \"CUMU...\" maybe \"cumus\"? No. \"Amass\" is 5 letters but doesn't start CM. Might be \"com...\" like \"combt\"? No. \"Crame\"? Old word? Might \"C M\" plus 3 letters = \"CUMIN\"? no that's spice. But \"to heap\" is \"cumulate\".",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.25,
+    "trajectory_key": {
+      "search_id": "0_1793587379",
+      "indices": [
+        1,
+        1,
+        0,
+        0,
+        2
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "error": "Validation failed after 3 retries",
+      "terminate": true,
+      "action": "Let's start by analyzing the board.\n\n**Current Board:**\n```\nCHORE\nMOTOR\n_RG__\n_SA__\n_EN__\n```\n\nGiven filled clues:\n\n- h1: CHORE (C H O R E)\n- h2: MOTOR (M O T O R)\n- v2: HORSE\n\nBut v2 is HORSE, which is column 2 reading down:\n\nColumn 2 currently is:\nRow 1: H  \nRow 2: O  \nRow 3: R? But from board, row 3 col 2 is 'R'? Wait, row 3 is _RG__, the second character is 'R'. Yes, row3 col2 = R.  \nRow 4 col2 is S (row4 is _SA__, second letter S).  \nRow 5 col2 is E? Row5 is _EN__, second letter E.  \n\nSo indeed col2 down = H O R S E, which matches HORSE. Good.\n\n---\n\nNow v3 shows \"OTGAN\" in the \"Changed\" section — I think that means someone tried to fill v3, but it's not correct? Actually, it says \"Changed: v3. To intend; to plan; to devise; a nettle; to guess: OTGAN\". Could be a dictionary form? But \"OTGAN\" isn’t a word — maybe it’s an anagram? The clue \"a nettle\" might mean the plant **\"urgent\"?** Wait 5 letters... Actually \"nettle\" as a verb means to irritate; also \"nettle\" plant = **\"urtia\"**? No. But \"to intend; to plan; to devise\" suggests \"design\", and \"to guess\" could be \"intent\"? Five letters: maybe **\"meant\"**? Let’s check: \"meant\" = intended. Nettle = to annoy. Guess =? Perhaps \"opine\"? No not nettle.  \n\nMaybe the v3 clue collectively points to the word \"think\"? 5 letters, fits? \"To intend\" = think? Possibly \"mean\" = intend. Nettle = \"irritate\", guess = \"think\". The word = \"meant\" not guess. But let’s see: Could be \"opine\"? v3 down letters:  \n\nv3 is column3:\n\nRow1 col3: O  \nRow2 col3: T  \nRow3 col3: G  \nRow4 col3: A  \nRow5 col3: N (current? Row5 has _EN__, third is N) Yes.\n\nSo current v3 = O T G A N. That’s not a word. That’s why it's in \"changed\" — maybe a mistaken fill. So v3 is still wrong.\n\n---\n\nBut we need to fill one unfilled word from clues. We have h3, h4, h5, v1, v4, v5.\n\nLet's check what fits:\n\n**h3 clue: Pretentious; flowery: _RG__**  \nRow3 = _ R G _ _  \nPossible word: \"orga...\"? Actually h3 known letters: position1 unknown, pos2=R, pos3=G, pos4 unknown, pos5 unknown. But given h3 is across, column constraints from v1...v5 apply.\n\nv1: clue \"To heap: CM___\"  \nColumn1 currently from filled: row1 C, row2 M, row3 ?, row4 ?, row5 ? — That's v1 = C M _ _ _. So v1 is \"CM___\" — \"to heap\" could be \"cumulate\"? 8 letters, too long. 5 letters... \"amass\" is to heap, but starts with A. \"Cump\"? No. Wait, \"to heap\" = \"amass\". But our v1 starts C M? Hmm \"C M\" could be from \"Cumulate\"? Not 5 letters. Only 5 letter word for heap starting CM? Maybe \"com...\"? Actually heap as verb can be \"cumulate\" but no. Might be \"cumber\"? No. \"Cram\" is to heap? That's 4 letters. \"Crame\"? No. Possibly clue’s first letters \"CM\" might not be C M from h1/h2? Let's check h1=CHORE so v1 row1= C. h2=MOTOR so v1 row2=M. Yes. So CM___ is correct.\n\nCould v1 = \"CUMU...\" maybe \"cumus\"? No. \"Amass\" is 5 letters but doesn't start CM. Might be \"com...\" like \"combt\"? No. \"Crame\"? Old word? Might \"C M\" plus 3 letters = \"CUMIN\"? no that's spice. But \"to heap\" is \"cumulate\"."
+    },
+    "from_simulate": true,
+    "is_simulated": true,
+    "from_expand": false,
+    "cum_rewards": [
+      0.175
+    ],
+    "visit_count": 1,
+    "from_continuation": false
+  }
+]

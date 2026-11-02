@@ -1,0 +1,12 @@
+# Preserve generated documents and raw experiment bytes across platforms.
+*.pdf binary
+*.pptx binary
+*.log binary
+reproduction/runs/** -text -diff
+reproduction/exploratory_index0/** -text -diff
+reproduction/failed_encoding_batch/** -text -diff
+reproduction/pilot_dry/** -text -diff
+reproduction/pilot_fixed/** -text -diff
+reproduction/pilot_run/** -text -diff
+# Preserve the upstream README verbatim, including its existing whitespace.
+README_UPSTREAM.md -text -diff

@@ -1,0 +1,450 @@
+[
+  {
+    "id": 0,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh3. Pretentious; flowery: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: _____\nv2. An Indian antelope: _____\nv3. To intend; to plan; to devise; a nettle; to guess: _____\nv4. A nozzle: _____\nv5. Desiccator; more dry: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": "AGEND\nMOTOR\nARTSY\nSALLE\nSLEER\nAMASS\nGORAL\nETTLE\nNOSLE\nDRYER",
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": -1.0,
+    "trajectory_key": {
+      "search_id": "0_1793544933",
+      "indices": [],
+      "root_token": "q"
+    },
+    "from_simulate": false,
+    "is_simulated": false,
+    "from_expand": false,
+    "cum_rewards": [
+      0.1142857142857143,
+      -0.075
+    ],
+    "visit_count": 2,
+    "from_continuation": false
+  },
+  {
+    "id": 2,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "h3. ornat",
+          "next_state": "Current Board:\n_____\n_____\nORNAT\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: __O__\nv2. An Indian antelope: __R__\nv3. To intend; to plan; to devise; a nettle; to guess: __N__\nv4. A nozzle: __A__\nv5. Desiccator; more dry: __T__\n\nFilled:\nh3. Pretentious; flowery: ORNAT\n\nChanged:\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh3. Pretentious; flowery: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: _____\nv2. An Indian antelope: _____\nv3. To intend; to plan; to devise; a nettle; to guess: _____\nv4. A nozzle: _____\nv5. Desiccator; more dry: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "h3. ornat",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.0,
+    "trajectory_key": {
+      "search_id": "0_1793544933",
+      "indices": [
+        1
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "action": "h3. ornat"
+    },
+    "from_simulate": false,
+    "is_simulated": false,
+    "from_expand": true,
+    "cum_rewards": [
+      0.05714285714285714
+    ],
+    "visit_count": 1,
+    "from_continuation": false
+  },
+  {
+    "id": 19,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "h3. ornat",
+          "next_state": "Current Board:\n_____\n_____\nORNAT\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: __O__\nv2. An Indian antelope: __R__\nv3. To intend; to plan; to devise; a nettle; to guess: __N__\nv4. A nozzle: __A__\nv5. Desiccator; more dry: __T__\n\nFilled:\nh3. Pretentious; flowery: ORNAT\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h1. chore",
+          "next_state": "Current Board:\nCHORE\n_____\nORNAT\n_____\n_____\n\nUnfilled:\nh2. An engine: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: C_O__\nv2. An Indian antelope: H_R__\nv3. To intend; to plan; to devise; a nettle; to guess: O_N__\nv4. A nozzle: R_A__\nv5. Desiccator; more dry: E_T__\n\nFilled:\nh1. An agendum; something to be done: CHORE\nh3. Pretentious; flowery: ORNAT\n\nChanged:\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh3. Pretentious; flowery: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: _____\nv2. An Indian antelope: _____\nv3. To intend; to plan; to devise; a nettle; to guess: _____\nv4. A nozzle: _____\nv5. Desiccator; more dry: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "h1. chore",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.5,
+    "trajectory_key": {
+      "search_id": "0_1793544933",
+      "indices": [
+        1,
+        0
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "action": "h1. chore"
+    },
+    "from_simulate": false,
+    "is_simulated": true,
+    "from_expand": true,
+    "cum_rewards": [
+      0.06666666666666667
+    ],
+    "visit_count": 1,
+    "from_continuation": false
+  },
+  {
+    "id": 22,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "h3. ornat",
+          "next_state": "Current Board:\n_____\n_____\nORNAT\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: __O__\nv2. An Indian antelope: __R__\nv3. To intend; to plan; to devise; a nettle; to guess: __N__\nv4. A nozzle: __A__\nv5. Desiccator; more dry: __T__\n\nFilled:\nh3. Pretentious; flowery: ORNAT\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h1. chore",
+          "next_state": "Current Board:\nCHORE\n_____\nORNAT\n_____\n_____\n\nUnfilled:\nh2. An engine: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: C_O__\nv2. An Indian antelope: H_R__\nv3. To intend; to plan; to devise; a nettle; to guess: O_N__\nv4. A nozzle: R_A__\nv5. Desiccator; more dry: E_T__\n\nFilled:\nh1. An agendum; something to be done: CHORE\nh3. Pretentious; flowery: ORNAT\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "v4. spout",
+          "next_state": "Current Board:\nCHOSE\n___P_\nORNOT\n___U_\n___T_\n\nUnfilled:\nh2. An engine: ___P_\nh4. A salon; a hall: ___U_\nh5. To mock; to sneer: ___T_\nv1. To heap: C_O__\nv2. An Indian antelope: H_R__\nv3. To intend; to plan; to devise; a nettle; to guess: O_N__\nv5. Desiccator; more dry: E_T__\n\nFilled:\nv4. A nozzle: SPOUT\n\nChanged:\nh1. An agendum; something to be done: CHOSE\nh3. Pretentious; flowery: ORNOT\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh3. Pretentious; flowery: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: _____\nv2. An Indian antelope: _____\nv3. To intend; to plan; to devise; a nettle; to guess: _____\nv4. A nozzle: _____\nv5. Desiccator; more dry: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "v4. spout",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.0,
+    "trajectory_key": {
+      "search_id": "0_1793544933",
+      "indices": [
+        1,
+        0,
+        0
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "action": "v4. spout"
+    },
+    "from_simulate": true,
+    "is_simulated": true,
+    "from_expand": false,
+    "cum_rewards": [
+      0.030000000000000006
+    ],
+    "visit_count": 1,
+    "from_continuation": false
+  },
+  {
+    "id": 25,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "h3. ornat",
+          "next_state": "Current Board:\n_____\n_____\nORNAT\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: __O__\nv2. An Indian antelope: __R__\nv3. To intend; to plan; to devise; a nettle; to guess: __N__\nv4. A nozzle: __A__\nv5. Desiccator; more dry: __T__\n\nFilled:\nh3. Pretentious; flowery: ORNAT\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h1. chore",
+          "next_state": "Current Board:\nCHORE\n_____\nORNAT\n_____\n_____\n\nUnfilled:\nh2. An engine: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: C_O__\nv2. An Indian antelope: H_R__\nv3. To intend; to plan; to devise; a nettle; to guess: O_N__\nv4. A nozzle: R_A__\nv5. Desiccator; more dry: E_T__\n\nFilled:\nh1. An agendum; something to be done: CHORE\nh3. Pretentious; flowery: ORNAT\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "v4. spout",
+          "next_state": "Current Board:\nCHOSE\n___P_\nORNOT\n___U_\n___T_\n\nUnfilled:\nh2. An engine: ___P_\nh4. A salon; a hall: ___U_\nh5. To mock; to sneer: ___T_\nv1. To heap: C_O__\nv2. An Indian antelope: H_R__\nv3. To intend; to plan; to devise; a nettle; to guess: O_N__\nv5. Desiccator; more dry: E_T__\n\nFilled:\nv4. A nozzle: SPOUT\n\nChanged:\nh1. An agendum; something to be done: CHOSE\nh3. Pretentious; flowery: ORNOT\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "v2. HAREM",
+          "next_state": "Current Board:\nCHOSE\n_A_P_\nORNOT\n_E_U_\n_M_T_\n\nUnfilled:\nh2. An engine: _A_P_\nh4. A salon; a hall: _E_U_\nh5. To mock; to sneer: _M_T_\nv1. To heap: C_O__\nv3. To intend; to plan; to devise; a nettle; to guess: O_N__\nv5. Desiccator; more dry: E_T__\n\nFilled:\nv2. An Indian antelope: HAREM\nv4. A nozzle: SPOUT\n\nChanged:\nh1. An agendum; something to be done: CHOSE\nh3. Pretentious; flowery: ORNOT\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh3. Pretentious; flowery: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: _____\nv2. An Indian antelope: _____\nv3. To intend; to plan; to devise; a nettle; to guess: _____\nv4. A nozzle: _____\nv5. Desiccator; more dry: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "v2. HAREM",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.0,
+    "trajectory_key": {
+      "search_id": "0_1793544933",
+      "indices": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "action": "v2. HAREM"
+    },
+    "from_simulate": true,
+    "is_simulated": true,
+    "from_expand": false,
+    "cum_rewards": [
+      0.037500000000000006
+    ],
+    "visit_count": 1,
+    "from_continuation": false
+  },
+  {
+    "id": 28,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "h3. ornat",
+          "next_state": "Current Board:\n_____\n_____\nORNAT\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: __O__\nv2. An Indian antelope: __R__\nv3. To intend; to plan; to devise; a nettle; to guess: __N__\nv4. A nozzle: __A__\nv5. Desiccator; more dry: __T__\n\nFilled:\nh3. Pretentious; flowery: ORNAT\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h1. chore",
+          "next_state": "Current Board:\nCHORE\n_____\nORNAT\n_____\n_____\n\nUnfilled:\nh2. An engine: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: C_O__\nv2. An Indian antelope: H_R__\nv3. To intend; to plan; to devise; a nettle; to guess: O_N__\nv4. A nozzle: R_A__\nv5. Desiccator; more dry: E_T__\n\nFilled:\nh1. An agendum; something to be done: CHORE\nh3. Pretentious; flowery: ORNAT\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "v4. spout",
+          "next_state": "Current Board:\nCHOSE\n___P_\nORNOT\n___U_\n___T_\n\nUnfilled:\nh2. An engine: ___P_\nh4. A salon; a hall: ___U_\nh5. To mock; to sneer: ___T_\nv1. To heap: C_O__\nv2. An Indian antelope: H_R__\nv3. To intend; to plan; to devise; a nettle; to guess: O_N__\nv5. Desiccator; more dry: E_T__\n\nFilled:\nv4. A nozzle: SPOUT\n\nChanged:\nh1. An agendum; something to be done: CHOSE\nh3. Pretentious; flowery: ORNOT\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "v2. HAREM",
+          "next_state": "Current Board:\nCHOSE\n_A_P_\nORNOT\n_E_U_\n_M_T_\n\nUnfilled:\nh2. An engine: _A_P_\nh4. A salon; a hall: _E_U_\nh5. To mock; to sneer: _M_T_\nv1. To heap: C_O__\nv3. To intend; to plan; to devise; a nettle; to guess: O_N__\nv5. Desiccator; more dry: E_T__\n\nFilled:\nv2. An Indian antelope: HAREM\nv4. A nozzle: SPOUT\n\nChanged:\nh1. An agendum; something to be done: CHOSE\nh3. Pretentious; flowery: ORNOT\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h2. motor",
+          "next_state": "Current Board:\nCHOSE\nMOTOR\nORNOT\n_E_U_\n_M_T_\n\nUnfilled:\nh4. A salon; a hall: _E_U_\nh5. To mock; to sneer: _M_T_\nv1. To heap: CMO__\nv3. To intend; to plan; to devise; a nettle; to guess: OTN__\nv5. Desiccator; more dry: ERT__\n\nFilled:\nh2. An engine: MOTOR\n\nChanged:\nh1. An agendum; something to be done: CHOSE\nh3. Pretentious; flowery: ORNOT\nv2. An Indian antelope: HOREM\nv4. A nozzle: SOOUT\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh3. Pretentious; flowery: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: _____\nv2. An Indian antelope: _____\nv3. To intend; to plan; to devise; a nettle; to guess: _____\nv4. A nozzle: _____\nv5. Desiccator; more dry: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "h2. motor",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.0,
+    "trajectory_key": {
+      "search_id": "0_1793544933",
+      "indices": [
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "action": "h2. motor"
+    },
+    "from_simulate": true,
+    "is_simulated": true,
+    "from_expand": false,
+    "cum_rewards": [
+      0.05000000000000001
+    ],
+    "visit_count": 1,
+    "from_continuation": false
+  },
+  {
+    "id": 31,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "h3. ornat",
+          "next_state": "Current Board:\n_____\n_____\nORNAT\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: __O__\nv2. An Indian antelope: __R__\nv3. To intend; to plan; to devise; a nettle; to guess: __N__\nv4. A nozzle: __A__\nv5. Desiccator; more dry: __T__\n\nFilled:\nh3. Pretentious; flowery: ORNAT\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h1. chore",
+          "next_state": "Current Board:\nCHORE\n_____\nORNAT\n_____\n_____\n\nUnfilled:\nh2. An engine: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: C_O__\nv2. An Indian antelope: H_R__\nv3. To intend; to plan; to devise; a nettle; to guess: O_N__\nv4. A nozzle: R_A__\nv5. Desiccator; more dry: E_T__\n\nFilled:\nh1. An agendum; something to be done: CHORE\nh3. Pretentious; flowery: ORNAT\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "v4. spout",
+          "next_state": "Current Board:\nCHOSE\n___P_\nORNOT\n___U_\n___T_\n\nUnfilled:\nh2. An engine: ___P_\nh4. A salon; a hall: ___U_\nh5. To mock; to sneer: ___T_\nv1. To heap: C_O__\nv2. An Indian antelope: H_R__\nv3. To intend; to plan; to devise; a nettle; to guess: O_N__\nv5. Desiccator; more dry: E_T__\n\nFilled:\nv4. A nozzle: SPOUT\n\nChanged:\nh1. An agendum; something to be done: CHOSE\nh3. Pretentious; flowery: ORNOT\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "v2. HAREM",
+          "next_state": "Current Board:\nCHOSE\n_A_P_\nORNOT\n_E_U_\n_M_T_\n\nUnfilled:\nh2. An engine: _A_P_\nh4. A salon; a hall: _E_U_\nh5. To mock; to sneer: _M_T_\nv1. To heap: C_O__\nv3. To intend; to plan; to devise; a nettle; to guess: O_N__\nv5. Desiccator; more dry: E_T__\n\nFilled:\nv2. An Indian antelope: HAREM\nv4. A nozzle: SPOUT\n\nChanged:\nh1. An agendum; something to be done: CHOSE\nh3. Pretentious; flowery: ORNOT\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h2. motor",
+          "next_state": "Current Board:\nCHOSE\nMOTOR\nORNOT\n_E_U_\n_M_T_\n\nUnfilled:\nh4. A salon; a hall: _E_U_\nh5. To mock; to sneer: _M_T_\nv1. To heap: CMO__\nv3. To intend; to plan; to devise; a nettle; to guess: OTN__\nv5. Desiccator; more dry: ERT__\n\nFilled:\nh2. An engine: MOTOR\n\nChanged:\nh1. An agendum; something to be done: CHOSE\nh3. Pretentious; flowery: ORNOT\nv2. An Indian antelope: HOREM\nv4. A nozzle: SOOUT\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h4. HALLS",
+          "next_state": "Current Board:\nCHOSE\nMOTOR\nORNOT\nHALLS\n_M_T_\n\nUnfilled:\nh5. To mock; to sneer: _M_T_\nv1. To heap: CMOH_\nv3. To intend; to plan; to devise; a nettle; to guess: OTNL_\nv5. Desiccator; more dry: ERTS_\n\nFilled:\nh2. An engine: MOTOR\nh4. A salon; a hall: HALLS\n\nChanged:\nh1. An agendum; something to be done: CHOSE\nh3. Pretentious; flowery: ORNOT\nv2. An Indian antelope: HORAM\nv4. A nozzle: SOOLT\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh3. Pretentious; flowery: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: _____\nv2. An Indian antelope: _____\nv3. To intend; to plan; to devise; a nettle; to guess: _____\nv4. A nozzle: _____\nv5. Desiccator; more dry: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "h4. HALLS",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": false,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.0,
+    "trajectory_key": {
+      "search_id": "0_1793544933",
+      "indices": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "action": "h4. HALLS"
+    },
+    "from_simulate": true,
+    "is_simulated": true,
+    "from_expand": false,
+    "cum_rewards": [
+      0.05
+    ],
+    "visit_count": 1,
+    "from_continuation": false
+  },
+  {
+    "id": 34,
+    "state": {
+      "__type__": "EnvState",
+      "steps": [
+        {
+          "__type__": "EnvStep",
+          "action": "h3. ornat",
+          "next_state": "Current Board:\n_____\n_____\nORNAT\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: __O__\nv2. An Indian antelope: __R__\nv3. To intend; to plan; to devise; a nettle; to guess: __N__\nv4. A nozzle: __A__\nv5. Desiccator; more dry: __T__\n\nFilled:\nh3. Pretentious; flowery: ORNAT\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h1. chore",
+          "next_state": "Current Board:\nCHORE\n_____\nORNAT\n_____\n_____\n\nUnfilled:\nh2. An engine: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: C_O__\nv2. An Indian antelope: H_R__\nv3. To intend; to plan; to devise; a nettle; to guess: O_N__\nv4. A nozzle: R_A__\nv5. Desiccator; more dry: E_T__\n\nFilled:\nh1. An agendum; something to be done: CHORE\nh3. Pretentious; flowery: ORNAT\n\nChanged:\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "v4. spout",
+          "next_state": "Current Board:\nCHOSE\n___P_\nORNOT\n___U_\n___T_\n\nUnfilled:\nh2. An engine: ___P_\nh4. A salon; a hall: ___U_\nh5. To mock; to sneer: ___T_\nv1. To heap: C_O__\nv2. An Indian antelope: H_R__\nv3. To intend; to plan; to devise; a nettle; to guess: O_N__\nv5. Desiccator; more dry: E_T__\n\nFilled:\nv4. A nozzle: SPOUT\n\nChanged:\nh1. An agendum; something to be done: CHOSE\nh3. Pretentious; flowery: ORNOT\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "v2. HAREM",
+          "next_state": "Current Board:\nCHOSE\n_A_P_\nORNOT\n_E_U_\n_M_T_\n\nUnfilled:\nh2. An engine: _A_P_\nh4. A salon; a hall: _E_U_\nh5. To mock; to sneer: _M_T_\nv1. To heap: C_O__\nv3. To intend; to plan; to devise; a nettle; to guess: O_N__\nv5. Desiccator; more dry: E_T__\n\nFilled:\nv2. An Indian antelope: HAREM\nv4. A nozzle: SPOUT\n\nChanged:\nh1. An agendum; something to be done: CHOSE\nh3. Pretentious; flowery: ORNOT\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h2. motor",
+          "next_state": "Current Board:\nCHOSE\nMOTOR\nORNOT\n_E_U_\n_M_T_\n\nUnfilled:\nh4. A salon; a hall: _E_U_\nh5. To mock; to sneer: _M_T_\nv1. To heap: CMO__\nv3. To intend; to plan; to devise; a nettle; to guess: OTN__\nv5. Desiccator; more dry: ERT__\n\nFilled:\nh2. An engine: MOTOR\n\nChanged:\nh1. An agendum; something to be done: CHOSE\nh3. Pretentious; flowery: ORNOT\nv2. An Indian antelope: HOREM\nv4. A nozzle: SOOUT\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h4. HALLS",
+          "next_state": "Current Board:\nCHOSE\nMOTOR\nORNOT\nHALLS\n_M_T_\n\nUnfilled:\nh5. To mock; to sneer: _M_T_\nv1. To heap: CMOH_\nv3. To intend; to plan; to devise; a nettle; to guess: OTNL_\nv5. Desiccator; more dry: ERTS_\n\nFilled:\nh2. An engine: MOTOR\nh4. A salon; a hall: HALLS\n\nChanged:\nh1. An agendum; something to be done: CHOSE\nh3. Pretentious; flowery: ORNOT\nv2. An Indian antelope: HORAM\nv4. A nozzle: SOOLT\n"
+        },
+        {
+          "__type__": "EnvStep",
+          "action": "h5. SMIRK",
+          "next_state": "Current Board:\nCHOSE\nMOTOR\nORNOT\nHALLS\nSMIRK\n\nUnfilled:\nv1. To heap: CMOHS\nv3. To intend; to plan; to devise; a nettle; to guess: OTNLI\nv5. Desiccator; more dry: ERTSK\n\nFilled:\nh2. An engine: MOTOR\nh4. A salon; a hall: HALLS\nh5. To mock; to sneer: SMIRK\n\nChanged:\nh1. An agendum; something to be done: CHOSE\nh3. Pretentious; flowery: ORNOT\nv2. An Indian antelope: HORAM\nv4. A nozzle: SOOLR\n"
+        }
+      ],
+      "init_state": "Current Board:\n_____\n_____\n_____\n_____\n_____\n\nUnfilled:\nh1. An agendum; something to be done: _____\nh2. An engine: _____\nh3. Pretentious; flowery: _____\nh4. A salon; a hall: _____\nh5. To mock; to sneer: _____\nv1. To heap: _____\nv2. An Indian antelope: _____\nv3. To intend; to plan; to devise; a nettle; to guess: _____\nv4. A nozzle: _____\nv5. Desiccator; more dry: _____\n\nFilled:\n\nChanged:\n"
+    },
+    "action": {
+      "action_str": "h5. SMIRK",
+      "__type__": "StringAction"
+    },
+    "is_continuous": false,
+    "is_terminal": true,
+    "bn_score": -1,
+    "state_conf": -1,
+    "fast_reward": 0.0,
+    "trajectory_key": {
+      "search_id": "0_1793544933",
+      "indices": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "root_token": "q"
+    },
+    "step": {
+      "__type__": "EnvStep",
+      "action": "h5. SMIRK"
+    },
+    "from_simulate": true,
+    "is_simulated": true,
+    "from_expand": false,
+    "cum_rewards": [
+      0.05
+    ],
+    "visit_count": 1,
+    "from_continuation": false
+  }
+]

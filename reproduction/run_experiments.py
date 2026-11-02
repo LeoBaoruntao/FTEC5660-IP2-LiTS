@@ -14,7 +14,7 @@ def run_job(iterations, seed):
     if dest.exists():
         raise RuntimeError(f'{dest} exists; refusing to mix or overwrite trials')
     console = ROOT / 'reproduction/runs' / (name + '.log')
-    env = dict(os.environ, PYTHONIOENCODING='utf-8',
+    env = dict(os.environ, PYTHONIOENCODING='utf-8', PYTHONUTF8='1',
                PYTHONPATH=str(ROOT / 'demos') + os.pathsep + str(ROOT),
                PYTHONHASHSEED=str(seed))
     with console.open('w', encoding='utf-8') as log:
@@ -24,6 +24,8 @@ def run_job(iterations, seed):
         subprocess.run([sys.executable, '-m', 'lits.cli.eval_search', '--result_dir', str(dest)],
                        cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT,
                        check=True, timeout=300)
+    if not (dest/'eval_results.json').is_file():
+        raise RuntimeError('Missing evaluation artifact despite upstream exit code zero')
     return name
 
 

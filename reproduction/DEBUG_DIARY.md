@@ -33,6 +33,16 @@ checkout says 0.4.0. Both this version difference and the Claude-to-DeepSeek
 change must be disclosed, rather than treating the archived run as a perfectly
 matched control.
 
+The pilot initially returned empty final messages with 1,024 output tokens.
+The upstream search defaults enabled thinking, so the provider-specific
+non-thinking option was never applied. Explicitly disabling all three search
+thinking flags fixed this. The corrected two-iteration pilot produced 30%
+word accuracy; it is excluded from the prespecified final six trials.
+
+The upstream inference report prints an estimated dollar cost using default
+pricing. That is not a verified DeepSeek bill, so the report uses measured
+calls and token counts rather than reporting those dollar estimates.
+
 The policy and reward-model prompts omit the answer key, but the environment's
 `goal_check` compares each board with reference answers. The resulting progress
 contributes to the search reward in `EnvGroundedPRM.calculate_reward`. This

@@ -15,6 +15,9 @@ sys.path.insert(0, str(ROOT / 'demos'))
 
 
 def main():
+    if not sys.flags.utf8_mode:
+        import subprocess
+        raise SystemExit(subprocess.call([sys.executable, '-X', 'utf8', __file__, *sys.argv[1:]]))
     p = argparse.ArgumentParser()
     p.add_argument('--iterations', type=int, choices=[2, 10, 30], required=True)
     p.add_argument('--seed', type=int, required=True)

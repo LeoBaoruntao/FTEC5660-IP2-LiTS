@@ -50,7 +50,7 @@ def main():
             'enable_think_terminal_gen=false',
             'add_continuation=false', '--component-arg', 'max_new_tokens=1024',
             '--dataset-arg', f'data_file={dataset}',
-            '--var', 'offset=0', 'limit=1', '-o', str(out)]
+            '--var', 'offset=2', 'limit=1', '-o', str(out)]
     if args.dry_run:
         argv.append('--dry-run')
     sys.argv = argv
@@ -63,7 +63,7 @@ def main():
                     model='deepseek-v4-flash', provider='DeepSeek',
                     base_url='https://api.deepseek.com', thinking='disabled',
                     dataset_sha256=hashlib.sha256(dataset.read_bytes()).hexdigest(),
-                    puzzle_indices=[0], argv=argv, python=sys.version)
+                    puzzle_indices=[2], argv=argv, python=sys.version)
     (out/'run_manifest.json').write_text(json.dumps(manifest, indent=2), encoding='utf-8')
     if code:
         raise SystemExit(code)

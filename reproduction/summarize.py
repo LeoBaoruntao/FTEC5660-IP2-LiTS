@@ -18,7 +18,7 @@ def summarize():
             evaluation = json.loads((d/'eval_results.json').read_text(encoding='utf-8'))
             usage = [json.loads(x) for x in (d/'inferencelogger.log').read_text(encoding='utf-8').splitlines() if x.strip()]
             assert manifest['exit_code'] == 0
-            assert manifest['puzzle_indices'] == [0]
+            assert manifest['puzzle_indices'] == [2]
             assert len(evaluation['examples']) == 1
             assert 0 <= evaluation['soft_accuracy'] <= 1
             rows.append(dict(condition='baseline' if iterations==30 else 'reduced_budget',

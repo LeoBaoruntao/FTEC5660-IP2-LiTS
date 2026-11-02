@@ -55,3 +55,22 @@ The archived `terminate_on_terminal_node` argument is rejected by LiTS 0.4.0.
 The runner omits this removed flag and explicitly keeps
 `terminate_on_first_solution=false` in both conditions. This is another reason
 the archived 0.3.1 result is a contextual reference, not an exact replication.
+
+## Windows encoding and false success
+
+The first full batch encountered a GBK UnicodeEncodeError while saving a
+generated checkmark in a checkpoint. Upstream catches per-task failures and can
+still return zero; its evaluator can likewise return zero without a result.
+That entire batch is preserved as `failed_encoding_batch`. On 2 November all
+six trials were restarted with Python UTF-8 mode. A run is now accepted only
+when the evaluator creates `eval_results.json`; offline checks also inspect
+the execution log. Infrastructure failures were not selected by accuracy.
+
+## Dataset identity mismatch
+
+Archived query 0 has the board AMIGO / MAMOU / INPUT / SIEGE / HALER, which is
+current dataset row 2. Current row 0 begins AGEND. The index-0 exploratory
+batch was stopped and preserved in `exploratory_index0`; its scores do not
+count as same-puzzle reproduction. The final comparison was restarted on
+content-matched row 2 with the same budgets and seeds. This correction was
+based on data identity, not on which puzzle produced a better score.

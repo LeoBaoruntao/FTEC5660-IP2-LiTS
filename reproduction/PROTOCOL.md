@@ -43,3 +43,12 @@ Remove an unused unconditional torch import for hosted-API execution.
 Add DeepSeek's explicit thinking-disabled request parameter to the existing
 OpenAI-compatible model wrapper. Do not replace the search algorithm.
 Document additional compatibility fixes if discovered during the pilot.
+
+## Data identity amendment on 2 November
+
+The archived terminal board was compared with the current data before accepting
+any final result. Archived query 0 is current row 2, with horizontal answers
+AMIGO / MAMOU / INPUT / SIEGE / HALER. This definitive target supersedes the
+index-0 selection above. The index-0 runs are retained in `exploratory_index0`
+and excluded as a whole batch, regardless of scores. The two budgets and three
+seeds are unchanged. All final trials use content-matched index 2.

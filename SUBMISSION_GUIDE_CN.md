@@ -32,12 +32,11 @@ Zoom 操作参考：[官方本地录制说明](https://support.zoom.com/hc/en/ar
 本地项目已经保留作者历史和本次修改提交。使用 PowerShell 进入项目目录，将下面 URL 换成你自己的真实仓库地址后逐行运行：
 
 ```powershell
-cd D:\codex写5660作业\IndividualProject2
-git remote rename origin upstream
+cd 'D:\codex写5660作业\5660个人项目2\02_上传到GitHub的代码\LiTS'
 git remote add origin https://github.com/你的用户名/FTEC5660-IP2-LiTS.git
 git push -u origin main
 ```
 
-如弹出 GitHub 登录窗口，登录你自己的账号。上述 remote 改名只需做一次；如果提示已有 upstream 或 origin，请先运行 `git remote -v` 检查，不要重复操作或使用强制推送。
+如弹出 GitHub 登录窗口，登录你自己的账号。整理后的副本已将原作者地址命名为 upstream，无需再次改名；如果提示已有 origin，请先运行 `git remote -v` 检查，不要重复操作或使用强制推送。
 推送后打开自己的仓库，确认报告、演示材料和原始结果都存在，且没有 `.env`。
 课程平台填仓库首页链接，另填你录制完成的视频链接。不要填写原作者仓库链接作为自己的提交。

@@ -1,6 +1,6 @@
 # 本地材料和提交步骤
 
-本项目尚未上传 GitHub，也没有生成或上传 Zoom 录制视频。
+本项目已上传至 https://github.com/LeoBaoruntao/FTEC5660-IP2-LiTS 。展示视频已在本地整理为 Presentation_Final.mp4，仍需另行上传到老师可访问的视频存储服务，并在课程平台提交视频链接。
 
 ## 你需要完成的个人操作
 
@@ -26,7 +26,9 @@ Zoom 操作参考：[官方本地录制说明](https://support.zoom.com/hc/en/ar
 
 老师写的是 “13 November, midnight”。以课程页面具体时间为准，建议 11 月 12 日晚前完成提交，避免对 midnight 的理解差异。
 
-## 保留提交记录的 GitHub 上传方法
+## 保留提交记录的 GitHub 上传方法（本次已完成）
+
+下面保留首次上传步骤作为参考。当前仓库已经设置 origin 并完成推送，请勿重复创建仓库或运行 git remote add origin。后续如需更新，提交修改后运行 git push 即可。
 
 在自己的 GitHub 账号创建一个空的公开仓库，例如 `FTEC5660-IP2-LiTS`，先不要让 GitHub 自动添加 README 或许可证。
 本地项目已经保留作者历史和本次修改提交。使用 PowerShell 进入项目目录，将下面 URL 换成你自己的真实仓库地址后逐行运行：

@@ -8,7 +8,8 @@ This repository reproduces one archived mini-crossword result from LiTS and comp
 - [Presentation slides](submission/Presentation.pptx) and [English speaking script](submission/Presentation_Script.md).
 - [Measured trial table](reproduction/analysis/trials.csv) and [full statistics](reproduction/analysis/summary.json).
 - [Protocol](reproduction/PROTOCOL.md), [debug diary](reproduction/DEBUG_DIARY.md), and raw evidence in `reproduction/runs/`.
-- The recorded Zoom presentation and public GitHub link must still be supplied by the student. Slides are not a recording.
+- Submission repository: [LeoBaoruntao/FTEC5660-IP2-LiTS](https://github.com/LeoBaoruntao/FTEC5660-IP2-LiTS).
+- Submit the recorded Zoom presentation link separately through the course page. Slides are not a recording.
 
 ## Setup
 
